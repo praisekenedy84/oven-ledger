@@ -1,0 +1,94 @@
+import InputError from '@/Components/InputError';
+import InputLabel from '@/Components/InputLabel';
+import PrimaryButton from '@/Components/PrimaryButton';
+import TextInput from '@/Components/TextInput';
+import GuestLayout from '@/Layouts/GuestLayout';
+import { Button, Stack } from '@mui/material';
+import { Head, Link, useForm } from '@inertiajs/react';
+
+export default function Register() {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        name: '',
+        email: '',
+        password: '',
+        password_confirmation: '',
+    });
+
+    return (
+        <GuestLayout>
+            <Head title="Register" />
+
+            <Stack
+                component="form"
+                spacing={2.5}
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    post(route('register'), {
+                        onFinish: () => reset('password', 'password_confirmation'),
+                    });
+                }}
+            >
+                <div>
+                    <InputLabel htmlFor="name" value="Name" />
+                    <TextInput
+                        id="name"
+                        value={data.name}
+                        autoComplete="name"
+                        isFocused
+                        required
+                        onChange={(e) => setData('name', e.target.value)}
+                    />
+                    <InputError message={errors.name} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="email" value="Email" />
+                    <TextInput
+                        id="email"
+                        type="email"
+                        value={data.email}
+                        autoComplete="username"
+                        required
+                        onChange={(e) => setData('email', e.target.value)}
+                    />
+                    <InputError message={errors.email} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="password" value="Password" />
+                    <TextInput
+                        id="password"
+                        type="password"
+                        value={data.password}
+                        autoComplete="new-password"
+                        required
+                        onChange={(e) => setData('password', e.target.value)}
+                    />
+                    <InputError message={errors.password} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
+                    <TextInput
+                        id="password_confirmation"
+                        type="password"
+                        value={data.password_confirmation}
+                        autoComplete="new-password"
+                        required
+                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                    />
+                    <InputError message={errors.password_confirmation} />
+                </div>
+
+                <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={2}>
+                    <Button component={Link} href={route('login')} size="small">
+                        Already registered?
+                    </Button>
+                    <PrimaryButton type="submit" disabled={processing}>
+                        Register
+                    </PrimaryButton>
+                </Stack>
+            </Stack>
+        </GuestLayout>
+    );
+}

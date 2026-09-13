@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --color-kraft: #efe3cb;
+    --color-cream: #fbf6ea;
+    --color-ink: #33261c;
+    --color-jam: #9c2b3a;
+    --color-butter: #e3a72b;
+    --color-sage: #5f7a52;
+    --color-cocoa: #33261c;
+    --color-wheat: #e3a72b;
+    --color-wheat-light: #f4e8c8;
+    --color-surface: #efe3cb;
+    --color-surface-raised: #fbf6ea;
+    --color-charcoal: #33261c;
+    --color-muted: #6b5848;
+    --color-border: #e0d2b4;
+    --color-success: #5f7a52;
+    --color-warning: #e3a72b;
+    --color-danger: #9c2b3a;
+    --shadow-card: 0 2px 8px rgb(51 38 28 / 0.08);
+    --radius-card: 10px;
+}
+
+@layer base {
+    body {
+        @apply bg-kraft text-ink antialiased;
+        font-family: 'Archivo', Helvetica, Arial, sans-serif;
+    }
+}

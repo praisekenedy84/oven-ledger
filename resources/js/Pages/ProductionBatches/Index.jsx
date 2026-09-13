@@ -1,0 +1,268 @@
+import InputError from '@/Components/InputError';
+import InputLabel from '@/Components/InputLabel';
+import PageHeader from '@/Components/PageHeader';
+import Pagination from '@/Components/Pagination';
+import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
+import StatusBadge from '@/Components/StatusBadge';
+import SurfaceCard from '@/Components/SurfaceCard';
+import TextInput from '@/Components/TextInput';
+import TenantLayout from '@/Layouts/TenantLayout';
+import { formatDate } from '@/lib/format';
+import { colors } from '@/theme/bakeryTheme';
+import { Box, FormControl, MenuItem, Select, Stack, Typography } from '@mui/material';
+import { Head, router, useForm } from '@inertiajs/react';
+
+const NEXT_STATUS = {
+    planned: 'baking',
+    baking: 'cooling',
+    cooling: 'ready',
+    ready: 'dispatched',
+};
+
+const COLUMNS = [
+    { key: 'baking', label: 'Baking', accent: colors.jam },
+    { key: 'cooling', label: 'Cooling', accent: colors.butter },
+    { key: 'ready', label: 'Ready', accent: colors.sage },
+];
+
+export default function Index({ batches, products, recipes }) {
+    const createForm = useForm({
+        product_id: products[0]?.id ?? '',
+        recipe_id: recipes[0]?.id ?? '',
+        batch_number: '',
+        planned_quantity: '',
+        expiry_date: '',
+    });
+
+    const filteredRecipes = recipes.filter(
+        (r) => String(r.product_id) === String(createForm.data.product_id),
+    );
+
+    const transition = (batch, status) => {
+        const payload = { status };
+        if (status === 'ready' || status === 'dispatched') {
+            const qty = window.prompt('Actual quantity produced (optional):');
+            if (qty) {
+                payload.actual_quantity = qty;
+            }
+        }
+        router.patch(route('tenant.production-batches.transition', batch.id), payload, {
+            preserveScroll: true,
+        });
+    };
+
+    const rows = batches.data ?? [];
+    const board = Object.fromEntries(
+        COLUMNS.map((col) => [col.key, rows.filter((batch) => batch.status === col.key)]),
+    );
+    const queued = rows.filter((batch) => !['baking', 'cooling', 'ready'].includes(batch.status));
+
+    return (
+        <TenantLayout title="Production">
+            <Head title="Production" />
+
+            <PageHeader
+                eyebrow="Floor"
+                title="Production planning"
+                description="Schedule a batch, then walk it from oven to cooling rack to the ready shelf."
+            />
+
+            <SurfaceCard
+                component="form"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    createForm.post(route('tenant.production-batches.store'), {
+                        onSuccess: () =>
+                            createForm.reset('batch_number', 'planned_quantity', 'expiry_date'),
+                    });
+                }}
+                sx={{
+                    mb: 3,
+                    display: 'grid',
+                    gap: 2,
+                    gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
+                }}
+            >
+                <Typography variant="h6" sx={{ gridColumn: '1 / -1' }}>
+                    Schedule a batch
+                </Typography>
+                <Box>
+                    <InputLabel value="Product" />
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={createForm.data.product_id}
+                            onChange={(e) => {
+                                createForm.setData('product_id', e.target.value);
+                                const firstRecipe = recipes.find(
+                                    (r) => String(r.product_id) === e.target.value,
+                                );
+                                if (firstRecipe) {
+                                    createForm.setData('recipe_id', firstRecipe.id);
+                                }
+                            }}
+                        >
+                            {products.map((p) => (
+                                <MenuItem key={p.id} value={p.id}>
+                                    {p.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Box>
+                <Box>
+                    <InputLabel value="Recipe" />
+                    <FormControl fullWidth size="small">
+                        <Select
+                            value={createForm.data.recipe_id}
+                            onChange={(e) => createForm.setData('recipe_id', e.target.value)}
+                        >
+                            {filteredRecipes.map((r) => (
+                                <MenuItem key={r.id} value={r.id}>
+                                    {r.product?.name} (#{r.id})
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    <InputError message={createForm.errors.recipe_id} />
+                </Box>
+                <Box>
+                    <InputLabel value="Batch number" />
+                    <TextInput
+                        value={createForm.data.batch_number}
+                        onChange={(e) => createForm.setData('batch_number', e.target.value)}
+                    />
+                    <InputError message={createForm.errors.batch_number} />
+                </Box>
+                <Box>
+                    <InputLabel value="Planned quantity" />
+                    <TextInput
+                        type="number"
+                        inputProps={{ step: '0.001' }}
+                        value={createForm.data.planned_quantity}
+                        onChange={(e) => createForm.setData('planned_quantity', e.target.value)}
+                    />
+                </Box>
+                <Box>
+                    <InputLabel value="Expiry date" />
+                    <TextInput
+                        type="date"
+                        value={createForm.data.expiry_date}
+                        onChange={(e) => createForm.setData('expiry_date', e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                    />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                    <PrimaryButton type="submit" fullWidth disabled={createForm.processing}>
+                        Schedule batch
+                    </PrimaryButton>
+                </Box>
+            </SurfaceCard>
+
+            <Box
+                sx={{
+                    display: 'grid',
+                    gap: 2,
+                    gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
+                    mb: 3,
+                }}
+            >
+                {COLUMNS.map((col) => (
+                    <SurfaceCard key={col.key} sx={{ p: 2 }}>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
+                            <Typography variant="overline" sx={{ color: col.accent }}>
+                                {col.label}
+                            </Typography>
+                            <Typography variant="caption" fontWeight={700}>
+                                {board[col.key].length}
+                            </Typography>
+                        </Stack>
+                        <Stack spacing={1.25}>
+                            {board[col.key].length === 0 && (
+                                <Typography variant="body2" color="text.secondary">
+                                    None {col.label.toLowerCase()}.
+                                </Typography>
+                            )}
+                            {board[col.key].map((batch) => {
+                                const next = NEXT_STATUS[batch.status];
+                                return (
+                                    <Box
+                                        key={batch.id}
+                                        sx={{
+                                            p: 1.5,
+                                            borderRadius: '10px',
+                                            border: `1px solid ${colors.border}`,
+                                            bgcolor: colors.wheatLight,
+                                        }}
+                                    >
+                                        <Typography variant="subtitle2">{batch.product?.name}</Typography>
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                            #{batch.batch_number} · {batch.planned_quantity}
+                                            {batch.actual_quantity ? ` actual ${batch.actual_quantity}` : ''}
+                                        </Typography>
+                                        {next && (
+                                            <SecondaryButton
+                                                size="small"
+                                                onClick={() => transition(batch, next)}
+                                                sx={{ mt: 1, textTransform: 'capitalize' }}
+                                            >
+                                                → {next}
+                                            </SecondaryButton>
+                                        )}
+                                    </Box>
+                                );
+                            })}
+                        </Stack>
+                    </SurfaceCard>
+                ))}
+            </Box>
+
+            {queued.length > 0 && (
+                <SurfaceCard>
+                    <Typography variant="h6" sx={{ mb: 2 }}>
+                        Queued & dispatched
+                    </Typography>
+                    <Stack spacing={1.25}>
+                        {queued.map((batch) => {
+                            const next = NEXT_STATUS[batch.status];
+                            return (
+                                <Stack
+                                    key={batch.id}
+                                    direction={{ xs: 'column', sm: 'row' }}
+                                    justifyContent="space-between"
+                                    spacing={1}
+                                    sx={{
+                                        py: 1,
+                                        borderBottom: `1px solid ${colors.border}`,
+                                    }}
+                                >
+                                    <Box>
+                                        <Typography variant="subtitle2">{batch.product?.name}</Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            #{batch.batch_number} · planned {batch.planned_quantity} ·{' '}
+                                            {formatDate(batch.expiry_date)}
+                                        </Typography>
+                                    </Box>
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                        <StatusBadge status={batch.status} />
+                                        {next && (
+                                            <SecondaryButton
+                                                size="small"
+                                                onClick={() => transition(batch, next)}
+                                                sx={{ textTransform: 'capitalize' }}
+                                            >
+                                                → {next}
+                                            </SecondaryButton>
+                                        )}
+                                    </Stack>
+                                </Stack>
+                            );
+                        })}
+                    </Stack>
+                </SurfaceCard>
+            )}
+
+            <Pagination links={batches.links} />
+        </TenantLayout>
+    );
+}
