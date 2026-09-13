@@ -18,6 +18,7 @@ export default function Create({ featureKeys }) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         owner_name: '',
+        owner_username: '',
         owner_email: '',
         owner_phone: '',
         owner_password: '',
@@ -51,7 +52,7 @@ export default function Create({ featureKeys }) {
                 sx={{ mx: 'auto', maxWidth: 720 }}
             >
                 <Stack spacing={3}>
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                         <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
                             Business
                         </Typography>
@@ -79,7 +80,7 @@ export default function Create({ featureKeys }) {
                         </Stack>
                     </Paper>
 
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                         <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
                             Owner account
                         </Typography>
@@ -100,6 +101,15 @@ export default function Create({ featureKeys }) {
                                     <InputError message={errors.owner_name} />
                                 </Box>
                                 <Box>
+                                    <InputLabel value="Username" />
+                                    <TextInput
+                                        value={data.owner_username}
+                                        autoComplete="username"
+                                        onChange={(e) => setData('owner_username', e.target.value)}
+                                    />
+                                    <InputError message={errors.owner_username} />
+                                </Box>
+                                <Box>
                                     <InputLabel value="Phone" />
                                     <TextInput
                                         value={data.owner_phone}
@@ -117,8 +127,8 @@ export default function Create({ featureKeys }) {
                                 />
                                 <InputError message={errors.owner_email} />
                                 <Typography variant="caption" color="text.secondary">
-                                    Used to sign in at the shared Oven Ledger URL. Must be unique
-                                    across all tenants.
+                                    Sign in with this email or the username above. Both must be
+                                    unique across all tenants.
                                 </Typography>
                             </Box>
                             <Box>
@@ -133,7 +143,7 @@ export default function Create({ featureKeys }) {
                         </Stack>
                     </Paper>
 
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                         <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
                             Feature flags
                         </Typography>

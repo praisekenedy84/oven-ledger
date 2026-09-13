@@ -24,12 +24,18 @@ class ProductionBatchController extends Controller
 
         return Inertia::render('ProductionBatches/Index', [
             'batches' => ProductionBatch::query()
-                ->with(['product', 'recipe'])
+                ->with(['product:id,name,type', 'recipe:id,product_id,expected_yield'])
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->latest()
                 ->paginate(20),
-            'products' => Product::query()->where('type', 'produced')->orderBy('name')->get(),
-            'recipes' => Recipe::query()->with('product')->orderBy('id')->get(),
+            'products' => Product::query()
+                ->where('type', 'produced')
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'recipes' => Recipe::query()
+                ->with('product:id,name')
+                ->orderBy('id')
+                ->get(['id', 'product_id', 'expected_yield']),
         ]);
     }
 

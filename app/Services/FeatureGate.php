@@ -38,16 +38,24 @@ class FeatureGate
             return [];
         }
 
-        return tenancy()->central(function () use ($tenantId) {
-            return TenantFeatureFlag::query()
-                ->where('tenant_id', $tenantId)
-                ->pluck('enabled', 'feature_key')
-                ->toArray();
-        });
+        return Cache::remember(
+            "tenant:{$tenantId}:features",
+            now()->addMinutes(5),
+            function () use ($tenantId) {
+                return tenancy()->central(function () use ($tenantId) {
+                    return TenantFeatureFlag::query()
+                        ->where('tenant_id', $tenantId)
+                        ->pluck('enabled', 'feature_key')
+                        ->toArray();
+                });
+            }
+        );
     }
 
     public function forget(string $tenantId): void
     {
+        Cache::forget("tenant:{$tenantId}:features");
+
         foreach (config('ovenledger.feature_keys', []) as $featureKey) {
             Cache::forget("tenant:{$tenantId}:feature:{$featureKey}");
         }

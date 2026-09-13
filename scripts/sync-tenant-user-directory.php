@@ -25,9 +25,9 @@ foreach (Tenant::query()->cursor() as $tenant) {
 
     $tenant->run(function () use ($directory, $tenant, &$registered) {
         foreach (User::query()->cursor() as $user) {
-            $directory->register($user->email, $tenant->id);
+            $directory->register($user->email, $tenant->id, $user->username);
             $registered++;
-            echo "User:  {$user->email} -> {$tenant->id}\n";
+            echo "User:  {$user->email} ({$user->username}) -> {$tenant->id}\n";
         }
     });
 }

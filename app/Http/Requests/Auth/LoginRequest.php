@@ -2,11 +2,13 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use App\Services\TenantUserDirectory;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -29,7 +31,8 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'login' => ['required_without:email', 'string'],
+            'email' => ['required_without:login', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -47,7 +50,8 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         $directory = app(TenantUserDirectory::class);
-        $tenant = $directory->findTenantByEmail($this->string('email')->toString());
+        $identifier = $this->loginIdentifier();
+        $tenant = $directory->findTenantByLogin($identifier);
 
         if (! $tenant) {
             $this->failAuthentication();
@@ -55,16 +59,20 @@ class LoginRequest extends FormRequest
 
         if (method_exists($tenant, 'isSuspended') && $tenant->isSuspended()) {
             throw ValidationException::withMessages([
-                'email' => 'Account suspended — contact support.',
+                $this->credentialField() => 'Account suspended — contact support.',
             ]);
         }
 
         tenancy()->initialize($tenant);
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $user = $this->findUserForLogin($directory, $identifier);
+
+        if (! $user || ! Hash::check($this->string('password')->toString(), $user->password)) {
             tenancy()->end();
             $this->failAuthentication();
         }
+
+        Auth::login($user, $this->boolean('remember'));
 
         RateLimiter::clear($this->throttleKey());
     }
@@ -77,7 +85,7 @@ class LoginRequest extends FormRequest
         RateLimiter::hit($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.failed'),
+            $this->credentialField() => trans('auth.failed'),
         ]);
     }
 
@@ -97,7 +105,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            $this->credentialField() => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -109,6 +117,29 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->loginIdentifier()).'|'.$this->ip());
+    }
+
+    protected function loginIdentifier(): string
+    {
+        return trim((string) ($this->input('login') ?: $this->input('email') ?: ''));
+    }
+
+    protected function credentialField(): string
+    {
+        return $this->exists('login') ? 'login' : 'email';
+    }
+
+    protected function findUserForLogin(TenantUserDirectory $directory, string $identifier): ?User
+    {
+        if (str_contains($identifier, '@')) {
+            return User::query()
+                ->where('email', $directory->normalizeEmail($identifier))
+                ->first();
+        }
+
+        return User::query()
+            ->where('username', $directory->normalizeUsername($identifier))
+            ->first();
     }
 }

@@ -1,3 +1,4 @@
+import { radius, shadow } from '@/theme/bakeryTheme';
 import {
     Paper,
     Table,
@@ -11,22 +12,40 @@ import {
 
 export default function DataTable({ columns, children, emptyMessage = 'No records found.' }) {
     const isEmpty = !children || (Array.isArray(children) && children.length === 0);
+    const minWidth = Math.max(columns.length * 120, 480);
 
     return (
         <TableContainer
             component={Paper}
             variant="outlined"
-            sx={{ borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 8px rgb(51 38 28 / 0.08)' }}
+            sx={{
+                borderRadius: `${radius}px`,
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                WebkitOverflowScrolling: 'touch',
+                boxShadow: shadow,
+            }}
         >
-            <Table size="medium">
+            <Table
+                size="medium"
+                sx={{
+                    minWidth,
+                    ...(columns.some((column) => column.label === '') && {
+                        '& tbody td:last-child': { textAlign: 'right' },
+                    }),
+                }}
+            >
                 <TableHead>
                     <TableRow>
                         {columns.map((column) => (
                             <TableCell
                                 key={column.key ?? column.label}
                                 className={column.className}
-                                align={column.align}
-                                sx={column.sx}
+                                align={column.align ?? (column.label === '' ? 'right' : 'left')}
+                                sx={{
+                                    whiteSpace: 'nowrap',
+                                    ...column.sx,
+                                }}
                             >
                                 {column.label}
                             </TableCell>
@@ -68,9 +87,9 @@ export function DataTableRow({ children, onClick, className = '', sx, ...props }
     );
 }
 
-export function DataTableCell({ children, className = '', sx, ...props }) {
+export function DataTableCell({ children, className = '', sx, align, ...props }) {
     return (
-        <TableCell className={className} sx={sx} {...props}>
+        <TableCell className={className} align={align} sx={sx} {...props}>
             {children}
         </TableCell>
     );

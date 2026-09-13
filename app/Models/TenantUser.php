@@ -11,6 +11,7 @@ class TenantUser extends Model
 {
     protected $fillable = [
         'email',
+        'username',
         'tenant_id',
     ];
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\TenantUserDirectory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,13 +30,25 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $previousEmail = $user->email;
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user->fill($request->validated());
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
+
+        if (tenant()) {
+            app(TenantUserDirectory::class)->register(
+                $user->email,
+                tenant()->getTenantKey(),
+                $user->username,
+                $previousEmail,
+            );
+        }
 
         return Redirect::route('profile.edit');
     }
@@ -52,6 +65,10 @@ class ProfileController extends Controller
         $user = $request->user();
 
         Auth::logout();
+
+        if (tenant()) {
+            app(TenantUserDirectory::class)->forget($user->email);
+        }
 
         $user->delete();
 

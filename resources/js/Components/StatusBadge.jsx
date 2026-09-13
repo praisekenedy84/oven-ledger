@@ -11,6 +11,8 @@ const STATUS_COLORS = {
     ready: { bg: `${colors.sage}1f`, color: colors.sage },
     dispatched: { bg: `${colors.ink}14`, color: colors.ink },
     completed: { bg: `${colors.sage}1f`, color: colors.sage },
+    voided: { bg: `${colors.jam}1a`, color: colors.jam },
+    reversal: { bg: `${colors.jam}1a`, color: colors.jam },
     wholesale: { bg: `${colors.butter}24`, color: '#8A6410' },
     restaurant: { bg: `${colors.sage}1f`, color: colors.sage },
     produced: { bg: `${colors.jam}1a`, color: colors.jam },

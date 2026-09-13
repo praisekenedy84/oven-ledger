@@ -36,6 +36,13 @@ class BusinessLiabilityController extends Controller
             ->paginate(20, ['*'], 'owner_page')
             ->withQueryString();
 
+        $ownerTotals = OwnerTransaction::query()
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN type = 'capital_injection' THEN amount ELSE 0 END), 0) as capital_in,
+                COALESCE(SUM(CASE WHEN type = 'drawing' THEN amount ELSE 0 END), 0) as drawings
+            ")
+            ->first();
+
         return Inertia::render('Debts/Index', [
             'liabilities' => $liabilities,
             'ownerTransactions' => $ownerTransactions,
@@ -47,12 +54,8 @@ class BusinessLiabilityController extends Controller
                 'payables_open' => (float) BusinessLiability::query()
                     ->where('status', 'open')
                     ->sum('balance_remaining'),
-                'capital_in' => (float) OwnerTransaction::query()
-                    ->where('type', 'capital_injection')
-                    ->sum('amount'),
-                'drawings' => (float) OwnerTransaction::query()
-                    ->where('type', 'drawing')
-                    ->sum('amount'),
+                'capital_in' => (float) ($ownerTotals?->capital_in ?? 0),
+                'drawings' => (float) ($ownerTotals?->drawings ?? 0),
             ],
         ]);
     }

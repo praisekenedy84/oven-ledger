@@ -8,6 +8,7 @@ import LocalMallOutlinedIcon from '@mui/icons-material/LocalMallOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
 import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import PolicyOutlinedIcon from '@mui/icons-material/PolicyOutlined';
@@ -17,6 +18,7 @@ import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 const NAV_ICONS = {
     'tenant.dashboard': DashboardOutlinedIcon,
     'tenant.pos.index': PointOfSaleOutlinedIcon,
+    'tenant.pos.tickets': ReceiptLongOutlinedIcon,
     'tenant.products.index': LocalMallOutlinedIcon,
     'tenant.raw-materials.index': ScienceOutlinedIcon,
     'tenant.recipes.index': MenuBookOutlinedIcon,
@@ -91,11 +93,27 @@ export function isRouteActive(routeName) {
         return (
             route().current(routeName) ||
             route().current(`${routeName}.*`) ||
-            (routeName === 'tenant.pos.index' && route().current('tenant.pos.*'))
+            (routeName === 'tenant.pos.index' && route().current('tenant.pos.*') && !route().current('tenant.pos.tickets'))
         );
     } catch {
         return false;
     }
+}
+
+export function isNavTreeActive(item) {
+    if (!item) {
+        return false;
+    }
+    if (isRouteActive(item.route_name)) {
+        return true;
+    }
+    return (item.children ?? []).some(isNavTreeActive);
+}
+
+export function activeGroupKeys(items = []) {
+    return (items ?? [])
+        .filter((item) => (item.children ?? []).length > 0 && isNavTreeActive(item))
+        .map((item) => item.key);
 }
 
 export function flattenMenuLeaves(items = []) {

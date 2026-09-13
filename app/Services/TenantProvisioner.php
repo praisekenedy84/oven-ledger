@@ -33,11 +33,17 @@ class TenantProvisioner
 
         $this->seedFeatureFlags($tenant, $platformAdminId, $data['feature_flags'] ?? []);
 
-        $tenant->run(function () use ($data) {
-            $this->createOwnerUser($data);
+        $username = null;
+
+        $tenant->run(function () use ($data, &$username) {
+            $username = $this->createOwnerUser($data);
         });
 
-        $this->userDirectory->register($data['owner_email'], $tenant->id);
+        $this->userDirectory->register(
+            $data['owner_email'],
+            $tenant->id,
+            $username,
+        );
 
         if ($platformAdminId) {
             PlatformAuditLog::create([
@@ -70,16 +76,21 @@ class TenantProvisioner
         }
     }
 
-    protected function createOwnerUser(array $data): void
+    protected function createOwnerUser(array $data): ?string
     {
         $ownerRole = Role::query()->where('name', 'owner')->first();
 
         if (! $ownerRole) {
-            return;
+            return null;
         }
+
+        $username = $data['owner_username']
+            ?? Str::slug(Str::before($data['owner_email'], '@'), '_');
+        $username = $username !== '' ? $username : 'owner';
 
         $user = User::create([
             'name' => $data['owner_name'],
+            'username' => $username,
             'email' => $data['owner_email'],
             'password' => Hash::make($data['owner_password'] ?? Str::random(16)),
             'email_verified_at' => now(),
@@ -96,5 +107,7 @@ class TenantProvisioner
         if ($mainBranch) {
             $user->branches()->attach($mainBranch->id);
         }
+
+        return $username;
     }
 }

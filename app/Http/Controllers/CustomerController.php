@@ -22,8 +22,7 @@ class CustomerController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $customers = Customer::query()
-            ->withSum(['ledgerEntries as charged' => fn ($q) => $q->where('type', 'charge')], 'amount')
-            ->withSum(['ledgerEntries as paid' => fn ($q) => $q->where('type', 'payment')], 'amount')
+            ->withOutstandingBalance()
             ->when($type, fn ($q) => $q->where('type', $type))
             ->when($search !== '', function ($q) use ($search) {
                 $term = '%'.mb_strtolower($search).'%';
@@ -37,14 +36,12 @@ class CustomerController extends Controller
             ->paginate(20)
             ->withQueryString()
             ->through(function (Customer $customer) {
-                $outstanding = round(((float) $customer->charged) - ((float) $customer->paid), 2);
-
                 return [
                     ...$customer->only([
                         'id', 'name', 'phone', 'email', 'type', 'tin_number',
                         'credit_limit', 'payment_terms', 'is_active',
                     ]),
-                    'outstanding_balance' => $outstanding,
+                    'outstanding_balance' => round((float) ($customer->outstanding_balance ?? 0), 2),
                 ];
             });
 
@@ -80,7 +77,7 @@ class CustomerController extends Controller
             ->withQueryString();
 
         $orders = $customer->orders()
-            ->with(['deliveryAddress', 'items.product:id,name'])
+            ->with(['deliveryAddress', 'items.product:id,name', 'soldBy:id,name', 'voidedBy:id,name'])
             ->latest()
             ->paginate(10, ['*'], 'orders_page')
             ->withQueryString();
@@ -99,7 +96,7 @@ class CustomerController extends Controller
                 ->with('product:id,name,type,unit_of_measure')
                 ->where('channel', $priceChannel)
                 ->orderBy('product_id')
-                ->get(),
+                ->get(['id', 'product_id', 'channel', 'price']),
         ]);
     }
 

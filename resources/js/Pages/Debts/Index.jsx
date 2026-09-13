@@ -58,7 +58,7 @@ export default function Index({ liabilities, ownerTransactions, branches, filter
             <Box
                 sx={{
                     display: 'grid',
-                    gap: 2,
+                    gap: 3,
                     gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
                     mb: 3,
                 }}
@@ -68,7 +68,7 @@ export default function Index({ liabilities, ownerTransactions, branches, filter
                     { label: 'Capital in', value: totals.capital_in },
                     { label: 'Drawings', value: totals.drawings },
                 ].map((card) => (
-                    <Paper key={card.label} variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+                    <Paper key={card.label} variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                         <Typography variant="caption" color="text.secondary">
                             {card.label}
                         </Typography>
@@ -79,7 +79,7 @@ export default function Index({ liabilities, ownerTransactions, branches, filter
                 ))}
             </Box>
 
-            <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center" sx={{ mb: 3 }}>
                 {[
                     { key: 'payables', label: 'What we owe' },
                     { key: 'owner', label: 'Owner capital' },
@@ -115,7 +115,7 @@ export default function Index({ liabilities, ownerTransactions, branches, filter
                         sx={{
                             mb: 3,
                             p: 3,
-                            borderRadius: 3,
+                            borderRadius: 1,
                             display: 'grid',
                             gap: 2,
                             gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
@@ -205,7 +205,7 @@ export default function Index({ liabilities, ownerTransactions, branches, filter
                                 router.get(
                                     route('tenant.debts.index'),
                                     { status: e.target.value },
-                                    { preserveState: true, preserveScroll: true },
+                                    { preserveState: true, preserveScroll: true, only: ['liabilities', 'filters'] },
                                 )
                             }
                         >
@@ -346,7 +346,7 @@ export default function Index({ liabilities, ownerTransactions, branches, filter
                         sx={{
                             mb: 3,
                             p: 3,
-                            borderRadius: 3,
+                            borderRadius: 1,
                             display: 'grid',
                             gap: 2,
                             gridTemplateColumns: { xs: '1fr', lg: 'repeat(4, 1fr)' },
@@ -408,7 +408,7 @@ export default function Index({ liabilities, ownerTransactions, branches, filter
                                 <DataTableCell sx={{ fontWeight: 600 }}>
                                     <Money amount={row.amount} />
                                 </DataTableCell>
-                                <DataTableCell>{row.notes || '—'}</DataTableCell>
+                                <DataTableCell>{row.notes || 'â€”'}</DataTableCell>
                             </DataTableRow>
                         ))}
                     </DataTable>

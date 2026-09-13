@@ -31,8 +31,14 @@ class StaffController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $request->merge([
+            'username' => $this->userDirectory->normalizeUsername((string) $request->input('username')),
+            'email' => $this->userDirectory->normalizeEmail((string) $request->input('email')),
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'username' => $this->userDirectory->usernameRules(),
             'email' => [
                 'required',
                 'email',
@@ -48,6 +54,7 @@ class StaffController extends Controller
 
         $user = User::create([
             'name' => $validated['name'],
+            'username' => $validated['username'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'email_verified_at' => now(),
@@ -63,7 +70,11 @@ class StaffController extends Controller
             $user->branches()->sync($validated['branch_ids']);
         }
 
-        $this->userDirectory->register($validated['email'], tenant()->getTenantKey());
+        $this->userDirectory->register(
+            $validated['email'],
+            tenant()->getTenantKey(),
+            $validated['username'],
+        );
 
         return back()->with('success', 'Staff member created.');
     }

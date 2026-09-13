@@ -72,13 +72,17 @@ class HandleInertiaRequests extends Middleware
                 $shared['branches'] = $this->currentBranch->availableBranches();
                 $shared['features'] = $features;
                 $shared['menuItems'] = $this->resolveTenantMenuItems($user, $features);
-                $shared['branchSuspended'] = $branch && tenancy()->central(function () use ($branch) {
-                    return TenantBranchSuspension::query()
-                        ->where('tenant_id', tenant('id'))
-                        ->where('branch_id', $branch->id)
-                        ->where('suspended', true)
-                        ->exists();
-                });
+                $shared['branchSuspended'] = $request->attributes->get('branch_suspended');
+
+                if ($shared['branchSuspended'] === null && $branch) {
+                    $shared['branchSuspended'] = tenancy()->central(function () use ($branch) {
+                        return TenantBranchSuspension::query()
+                            ->where('tenant_id', tenant('id'))
+                            ->where('branch_id', $branch->id)
+                            ->where('suspended', true)
+                            ->exists();
+                    });
+                }
 
                 return $shared;
             } catch (\Throwable $e) {

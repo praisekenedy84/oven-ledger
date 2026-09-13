@@ -4,6 +4,8 @@ return [
 
     'version' => env('APP_VERSION', '1.0.0'),
 
+    'contact_email' => env('CONTACT_EMAIL', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+
     'feature_keys' => [
         'wholesale_module',
         'restaurant_module',

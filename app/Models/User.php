@@ -16,6 +16,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
     ];
@@ -24,6 +25,8 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    protected array $permissionKeysCache = [];
 
     protected function casts(): array
     {
@@ -56,7 +59,13 @@ class User extends Authenticatable
 
     public function permissionKeys(?int $branchId = null): array
     {
-        return $this->userRoles()
+        $cacheKey = $branchId ?? 'all';
+
+        if (array_key_exists($cacheKey, $this->permissionKeysCache)) {
+            return $this->permissionKeysCache[$cacheKey];
+        }
+
+        return $this->permissionKeysCache[$cacheKey] = $this->userRoles()
             ->where(function ($query) use ($branchId) {
                 $query->whereNull('branch_id');
 

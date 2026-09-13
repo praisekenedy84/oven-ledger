@@ -24,14 +24,17 @@ class InventoryController extends Controller
 
         return Inertia::render('Inventory/Index', [
             'rawMaterialStock' => BranchRawMaterialStock::query()
-                ->with('rawMaterial')
+                ->with('rawMaterial:id,name,unit_of_measure,reorder_threshold')
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->get(),
             'finishedGoodsStock' => BranchFinishedGoodsStock::query()
-                ->with('product')
+                ->with('product:id,name,type,unit_of_measure')
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->get(),
-            'products' => Product::query()->orderBy('name')->get(),
+            'products' => Product::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ]);
     }
 

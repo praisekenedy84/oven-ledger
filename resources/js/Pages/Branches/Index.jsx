@@ -41,7 +41,7 @@ export default function Index({ branches, maxBranches, branchCount }) {
                     sx={{
                         mb: 3,
                         p: 3,
-                        borderRadius: 3,
+                        borderRadius: 1,
                         display: 'grid',
                         gap: 2,
                         gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
@@ -102,8 +102,8 @@ export default function Index({ branches, maxBranches, branchCount }) {
                 {branches.map((branch) => (
                     <DataTableRow key={branch.id}>
                         <DataTableCell sx={{ fontWeight: 600 }}>{branch.name}</DataTableCell>
-                        <DataTableCell>{branch.address || '—'}</DataTableCell>
-                        <DataTableCell>{branch.phone || '—'}</DataTableCell>
+                        <DataTableCell>{branch.address || 'â€”'}</DataTableCell>
+                        <DataTableCell>{branch.phone || 'â€”'}</DataTableCell>
                         <DataTableCell>
                             <StatusBadge status={branch.is_active ? 'active' : 'inactive'} />
                         </DataTableCell>

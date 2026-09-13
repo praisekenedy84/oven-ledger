@@ -32,8 +32,8 @@ export default {
                 danger: '#9C2B3A',
             },
             fontFamily: {
-                sans: ['Archivo', ...defaultTheme.fontFamily.sans],
-                brand: ['Fraunces', ...defaultTheme.fontFamily.serif],
+                sans: ['Poppins', ...defaultTheme.fontFamily.sans],
+                brand: ['Poppins', ...defaultTheme.fontFamily.sans],
             },
             borderRadius: {
                 card: '10px',

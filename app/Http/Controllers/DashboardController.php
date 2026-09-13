@@ -34,17 +34,14 @@ class DashboardController extends Controller
             ->get();
 
         $rawAlerts = BranchRawMaterialStock::query()
+            ->select('branch_raw_material_stock.*')
+            ->join('raw_materials', 'raw_materials.id', '=', 'branch_raw_material_stock.raw_material_id')
             ->with('rawMaterial:id,name,unit_of_measure,reorder_threshold')
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_raw_material_stock.branch_id', $branchId))
+            ->whereRaw('branch_raw_material_stock.quantity_on_hand <= COALESCE(raw_materials.reorder_threshold, 0)')
+            ->orderBy('branch_raw_material_stock.quantity_on_hand')
+            ->limit(8)
             ->get()
-            ->filter(function (BranchRawMaterialStock $row) {
-                $threshold = $row->rawMaterial?->reorder_threshold;
-                if ($threshold === null) {
-                    return (float) $row->quantity_on_hand <= 0;
-                }
-
-                return (float) $row->quantity_on_hand <= (float) $threshold;
-            })
             ->map(fn (BranchRawMaterialStock $row) => [
                 'id' => 'raw-'.$row->id,
                 'kind' => 'raw',
@@ -59,6 +56,8 @@ class DashboardController extends Controller
             ->with('product:id,name,type,unit_of_measure')
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('quantity_on_hand', '<=', 8)
+            ->orderBy('quantity_on_hand')
+            ->limit(8)
             ->get()
             ->map(fn (BranchFinishedGoodsStock $row) => [
                 'id' => 'fg-'.$row->id,
@@ -73,7 +72,7 @@ class DashboardController extends Controller
             ->with(['customer:id,name,type'])
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereIn('channel', ['wholesale', 'restaurant'])
-            ->where('status', '!=', 'completed')
+            ->whereNotIn('status', ['completed', 'voided'])
             ->where(function ($q) {
                 $q->whereDate('requested_fulfillment_at', '<=', now()->addDay())
                     ->orWhereDate('due_date', '<=', now()->addDay())
@@ -102,13 +101,18 @@ class DashboardController extends Controller
 
         $days = collect(range(0, 6))->map(fn (int $i) => now()->subDays(6 - $i)->toDateString());
 
-        $dailyRows = Order::query()
+        $dailyLookup = [];
+        Order::query()
             ->select(DB::raw('DATE(created_at) as day'), 'channel', DB::raw('SUM(total_amount) as total'))
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('status', 'completed')
             ->where('created_at', '>=', $weekStart)
             ->groupBy('day', 'channel')
-            ->get();
+            ->get()
+            ->each(function ($row) use (&$dailyLookup) {
+                $day = Carbon::parse($row->day)->toDateString();
+                $dailyLookup[$day][$row->channel] = (float) $row->total;
+            });
 
         $dailyTools = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
@@ -131,22 +135,64 @@ class DashboardController extends Controller
 
         $salesTrend = [
             'labels' => $days->map(fn (string $day) => Carbon::parse($day)->format('D'))->all(),
-            'series' => collect($seriesKeys)->map(function (string $label, string $key) use ($days, $dailyRows, $dailyTools) {
+            'series' => collect($seriesKeys)->map(function (string $label, string $key) use ($days, $dailyLookup, $dailyTools) {
                 return [
                     'key' => $key,
                     'label' => $label,
-                    'values' => $days->map(function (string $day) use ($key, $dailyRows, $dailyTools) {
+                    'values' => $days->map(function (string $day) use ($key, $dailyLookup, $dailyTools) {
                         if ($key === 'tools') {
                             return (float) ($dailyTools[$day] ?? 0);
                         }
 
-                        return (float) ($dailyRows->firstWhere(
-                            fn ($row) => Carbon::parse($row->day)->toDateString() === $day && $row->channel === $key,
-                        )?->total ?? 0);
+                        return (float) ($dailyLookup[$day][$key] ?? 0);
                     })->all(),
                 ];
             })->values()->all(),
         ];
+
+        $productSales = OrderItem::query()
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->select(
+                'products.id',
+                'products.name',
+                'products.type',
+                'products.unit_of_measure',
+                DB::raw('SUM(order_items.quantity) as quantity'),
+                DB::raw('SUM(order_items.line_total) as revenue'),
+            )
+            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
+            ->where('orders.status', 'completed')
+            ->where('orders.created_at', '>=', $weekStart)
+            ->groupBy('products.id', 'products.name', 'products.type', 'products.unit_of_measure')
+            ->orderByDesc('quantity')
+            ->get();
+
+        $topSellers = $productSales->take(5);
+        $otherSellers = $productSales->slice(5);
+        $bestSellingProducts = $topSellers
+            ->map(fn ($row) => [
+                'id' => $row->id,
+                'name' => $row->name,
+                'type' => $row->type,
+                'unit' => $row->unit_of_measure,
+                'quantity' => (float) $row->quantity,
+                'revenue' => (float) $row->revenue,
+                'is_other' => false,
+            ])
+            ->values();
+
+        if ($otherSellers->isNotEmpty()) {
+            $bestSellingProducts->push([
+                'id' => 'other',
+                'name' => 'Other products',
+                'type' => null,
+                'unit' => null,
+                'quantity' => (float) $otherSellers->sum('quantity'),
+                'revenue' => (float) $otherSellers->sum('revenue'),
+                'is_other' => true,
+            ]);
+        }
 
         return Inertia::render('Dashboard', [
             'currentBranch' => $this->currentBranch->branch(),
@@ -160,6 +206,12 @@ class DashboardController extends Controller
                 ['channel' => 'tools', 'label' => 'Tools', 'total' => (float) $toolsTotal],
             ],
             'salesTrend' => $salesTrend,
+            'bestSellingProducts' => $bestSellingProducts,
+            'bestSellingSummary' => [
+                'total_quantity' => (float) $productSales->sum('quantity'),
+                'total_revenue' => (float) $productSales->sum('revenue'),
+                'product_count' => $productSales->count(),
+            ],
         ]);
     }
 }

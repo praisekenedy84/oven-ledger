@@ -8,8 +8,10 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import StatusBadge from '@/Components/StatusBadge';
 import TextInput from '@/Components/TextInput';
 import TenantLayout from '@/Layouts/TenantLayout';
+import useDebouncedValue from '@/hooks/useDebouncedValue';
 import { Box, Button, FormControl, MenuItem, Paper, Select, Stack } from '@mui/material';
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
 const TYPES = [
     { value: '', label: 'All types' },
@@ -19,6 +21,9 @@ const TYPES = [
 ];
 
 export default function Index({ customers, filters }) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const debouncedSearch = useDebouncedValue(search, 300);
+
     const form = useForm({
         name: '',
         phone: '',
@@ -34,8 +39,21 @@ export default function Index({ customers, filters }) {
         router.get(route('tenant.customers.index'), next, {
             preserveState: true,
             preserveScroll: true,
+            only: ['customers', 'filters'],
         });
     };
+
+    useEffect(() => {
+        setSearch(filters.search ?? '');
+    }, [filters.search]);
+
+    useEffect(() => {
+        if ((debouncedSearch ?? '') === (filters.search ?? '')) {
+            return;
+        }
+
+        applyFilters({ ...filters, search: debouncedSearch });
+    }, [debouncedSearch]);
 
     return (
         <TenantLayout title="Customers">
@@ -57,8 +75,7 @@ export default function Index({ customers, filters }) {
                 variant="outlined"
                 sx={{
                     mb: 3,
-                    p: 3,
-                    borderRadius: 3,
+                    p: { xs: 2, sm: 3 },
                     display: 'grid',
                     gap: 2,
                     gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
@@ -126,13 +143,14 @@ export default function Index({ customers, filters }) {
 
             <Stack
                 direction={{ xs: 'column', sm: 'row' }}
-                spacing={1.5}
-                sx={{ mb: 2 }}
+                spacing={2}
+                alignItems={{ sm: 'center' }}
+                sx={{ mb: 3 }}
             >
                 <TextInput
                     placeholder="Search name or phone"
-                    value={filters.search ?? ''}
-                    onChange={(e) => applyFilters({ ...filters, search: e.target.value })}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                 />
                 <FormControl size="small" sx={{ minWidth: 180 }}>
                     <Select
@@ -184,6 +202,7 @@ export default function Index({ customers, filters }) {
                             <Button
                                 component={Link}
                                 href={route('tenant.customers.show', customer.id)}
+                                prefetch
                                 size="small"
                             >
                                 Statement

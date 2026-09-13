@@ -17,18 +17,18 @@ export default function Edit({ mustVerifyEmail, status }) {
             />
 
             <Stack spacing={3} sx={{ maxWidth: 720 }}>
-                <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                     <UpdateProfileInformationForm
                         mustVerifyEmail={mustVerifyEmail}
                         status={status}
                     />
                 </Paper>
 
-                <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                     <UpdatePasswordForm />
                 </Paper>
 
-                <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                     <DeleteUserForm />
                 </Paper>
             </Stack>

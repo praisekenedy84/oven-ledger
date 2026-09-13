@@ -17,7 +17,8 @@ export default function FlashMessage() {
             open={open && Boolean(message)}
             autoHideDuration={5000}
             onClose={() => setOpen(false)}
-            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            sx={{ top: { xs: 16, sm: 24 }, left: { xs: 16, sm: 'auto' }, right: { xs: 16, sm: 24 } }}
         >
             <Alert
                 onClose={() => setOpen(false)}

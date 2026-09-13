@@ -21,7 +21,7 @@ export default function Show({ recipe }) {
                 backHref={route('tenant.recipes.index')}
             />
 
-            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                 <Typography variant="subtitle1" fontWeight={700}>
                     Ingredients
                 </Typography>

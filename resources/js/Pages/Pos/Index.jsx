@@ -4,9 +4,9 @@ import TicketPanel from '@/Components/TicketPanel';
 import { formatMoney } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
 import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import RemoveIcon from '@mui/icons-material/Remove';
 import SearchIcon from '@mui/icons-material/Search';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
@@ -16,6 +16,7 @@ import {
     Card,
     CardContent,
     Chip,
+    Drawer,
     FormControl,
     IconButton,
     InputAdornment,
@@ -24,9 +25,11 @@ import {
     Stack,
     TextField,
     Typography,
+    useMediaQuery,
 } from '@mui/material';
-import { Head, router, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useTheme } from '@mui/material/styles';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 const CHANNELS = [
     { value: 'retail', label: 'Retail' },
@@ -42,7 +45,7 @@ const PAYMENT_METHODS = [
     { value: 'mobile_money', label: 'Mobile Money' },
 ];
 
-function ProductCard({ product, price, qtyInCart, onAdd }) {
+const ProductCard = memo(function ProductCard({ product, price, qtyInCart, onAdd }) {
     const inCart = qtyInCart > 0;
 
     return (
@@ -66,13 +69,13 @@ function ProductCard({ product, price, qtyInCart, onAdd }) {
                     product={product}
                     size="100%"
                     radius="10px 10px 0 0"
-                    sx={{ height: 120, width: '100%' }}
+                    sx={{ height: { xs: 88, sm: 120 }, width: '100%' }}
                 />
-                <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', flex: 1, gap: 0.75 }}>
+                <Box sx={{ p: { xs: 1.25, sm: 2 }, display: 'flex', flexDirection: 'column', flex: 1, gap: 0.75 }}>
                     <Typography variant="subtitle2" sx={{ lineHeight: 1.25 }}>
                         {product.name}
                     </Typography>
-                    <Typography variant="h6" sx={{ color: colors.jam }}>
+                    <Typography variant="h6" sx={{ color: colors.jam, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
                         {formatMoney(price)}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
@@ -83,7 +86,7 @@ function ProductCard({ product, price, qtyInCart, onAdd }) {
                         variant={inCart ? 'outlined' : 'contained'}
                         color={inCart ? 'inherit' : 'primary'}
                         onClick={() => onAdd(product)}
-                        sx={{ mt: 0.5 }}
+                        sx={{ mt: 0.5, minHeight: 40 }}
                     >
                         {inCart ? `Add more (${qtyInCart})` : 'Add to ticket'}
                     </Button>
@@ -91,11 +94,14 @@ function ProductCard({ product, price, qtyInCart, onAdd }) {
             </CardContent>
         </Card>
     );
-}
+});
 
-export default function Pos({ products, customers = [], clients = [], priceLists }) {
+export default function Pos({ products, customers = [], clients = [], priceLists, todayTicketCount = 0 }) {
+    const theme = useTheme();
+    const isDesktop = useMediaQuery(theme.breakpoints.up('lg'), { defaultMatches: true });
     const { errors } = usePage().props;
     const [ticket, setTicket] = useState([]);
+    const [ticketOpen, setTicketOpen] = useState(false);
     const [channel, setChannel] = useState('retail');
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [customerId, setCustomerId] = useState('');
@@ -118,10 +124,13 @@ export default function Pos({ products, customers = [], clients = [], priceLists
         return map;
     }, [priceLists]);
 
-    const getPrice = (productId) => {
-        const ch = channel === 'custom' ? 'retail' : channel;
-        return priceMap[`${productId}-${ch}`] ?? 0;
-    };
+    const getPrice = useCallback(
+        (productId) => {
+            const ch = channel === 'custom' ? 'retail' : channel;
+            return priceMap[`${productId}-${ch}`] ?? 0;
+        },
+        [channel, priceMap],
+    );
 
     useEffect(() => {
         setTicket((prev) =>
@@ -130,8 +139,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                 unit_price: getPrice(line.product_id),
             })),
         );
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh prices when channel/price map changes
-    }, [channel, priceMap]);
+    }, [getPrice]);
 
     useEffect(() => {
         setCategory('all');
@@ -175,29 +183,32 @@ export default function Pos({ products, customers = [], clients = [], priceLists
         return map;
     }, [ticket]);
 
-    const addToTicket = (product) => {
-        const unitPrice = getPrice(product.id);
-        setTicket((prev) => {
-            const existing = prev.find((l) => l.product_id === product.id);
-            if (existing) {
-                return prev.map((l) =>
-                    l.product_id === product.id
-                        ? { ...l, quantity: l.quantity + 1 }
-                        : l,
-                );
-            }
-            return [
-                ...prev,
-                {
-                    product_id: product.id,
-                    name: product.name,
-                    category: product.category,
-                    quantity: 1,
-                    unit_price: unitPrice,
-                },
-            ];
-        });
-    };
+    const addToTicket = useCallback(
+        (product) => {
+            const unitPrice = getPrice(product.id);
+            setTicket((prev) => {
+                const existing = prev.find((l) => l.product_id === product.id);
+                if (existing) {
+                    return prev.map((l) =>
+                        l.product_id === product.id
+                            ? { ...l, quantity: l.quantity + 1 }
+                            : l,
+                    );
+                }
+                return [
+                    ...prev,
+                    {
+                        product_id: product.id,
+                        name: product.name,
+                        category: product.category,
+                        quantity: 1,
+                        unit_price: unitPrice,
+                    },
+                ];
+            });
+        },
+        [getPrice],
+    );
 
     const bumpQty = (productId, delta) => {
         setTicket((prev) =>
@@ -272,11 +283,419 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                     setRequestedFulfillmentAt('');
                     setDeliveryAddressId('');
                     setDepositAmount('');
+                    setTicketOpen(false);
                 },
                 onFinish: () => setProcessing(false),
             },
         );
     };
+
+    const ticketPanel = (
+        <TicketPanel
+            component="form"
+            onSubmit={submit}
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                borderLeft: { lg: `1px solid ${colors.border}` },
+                bgcolor: colors.cream,
+                height: { xs: '100%', lg: '100%' },
+                overflow: 'hidden',
+                borderRadius: { xs: '16px 16px 0 0', lg: 0 },
+            }}
+        >
+            <Box sx={{ p: { xs: 2, sm: 2.5 }, pb: 2, borderBottom: `1px solid ${colors.border}` }}>
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
+                    <Box>
+                        <Typography variant="overline" sx={{ color: colors.jam }}>
+                            Ticket
+                        </Typography>
+                        <Typography variant="h6" sx={{ mb: 2 }}>
+                            Order ticket
+                        </Typography>
+                    </Box>
+                    {!isDesktop && (
+                        <IconButton onClick={() => setTicketOpen(false)} aria-label="Close ticket">
+                            <CloseIcon />
+                        </IconButton>
+                    )}
+                </Stack>
+
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    {CHANNELS.map((ch) => {
+                        const active = channel === ch.value;
+                        return (
+                            <Button
+                                key={ch.value}
+                                type="button"
+                                size="small"
+                                variant="outlined"
+                                onClick={() => setChannel(ch.value)}
+                                sx={{
+                                    borderRadius: 999,
+                                    px: 1.75,
+                                    minHeight: 40,
+                                    borderColor: active ? colors.jam : colors.border,
+                                    color: active ? colors.jam : colors.muted,
+                                    bgcolor: active ? `${colors.jam}14` : 'transparent',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                {ch.label}
+                            </Button>
+                        );
+                    })}
+                </Stack>
+
+                <Stack spacing={1.5} sx={{ mt: 2.5 }}>
+                    <FormControl fullWidth size="small">
+                        <Select
+                            displayEmpty
+                            value={customerId}
+                            onChange={(e) => {
+                                setCustomerId(e.target.value);
+                                setDeliveryAddressId('');
+                            }}
+                        >
+                            <MenuItem value="">
+                                <em>Walk-in / no account</em>
+                            </MenuItem>
+                            {visibleCustomers.map((c) => (
+                                <MenuItem key={c.id} value={String(c.id)}>
+                                    {c.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        <Button
+                            type="button"
+                            size="small"
+                            variant="outlined"
+                            onClick={() => {
+                                const next = !isPreOrder;
+                                setIsPreOrder(next);
+                                if (!next) {
+                                    setDepositAmount('');
+                                }
+                            }}
+                            sx={{
+                                flex: 1,
+                                minWidth: 110,
+                                minHeight: 40,
+                                borderRadius: 999,
+                                borderColor: isPreOrder ? colors.jam : colors.border,
+                                bgcolor: isPreOrder ? `${colors.jam}14` : 'transparent',
+                                color: isPreOrder ? colors.jam : colors.muted,
+                                fontWeight: 600,
+                            }}
+                        >
+                            Pre-order
+                        </Button>
+                        {['pickup', 'delivery'].map((type) => (
+                            <Button
+                                key={type}
+                                type="button"
+                                size="small"
+                                variant="outlined"
+                                onClick={() => setFulfillmentType(type)}
+                                sx={{
+                                    flex: 1,
+                                    minWidth: 90,
+                                    minHeight: 40,
+                                    borderRadius: 999,
+                                    borderColor:
+                                        fulfillmentType === type ? colors.jam : colors.border,
+                                    bgcolor:
+                                        fulfillmentType === type
+                                            ? `${colors.jam}14`
+                                            : 'transparent',
+                                    color:
+                                        fulfillmentType === type ? colors.jam : colors.muted,
+                                    fontWeight: 600,
+                                    textTransform: 'capitalize',
+                                }}
+                            >
+                                {type}
+                            </Button>
+                        ))}
+                    </Stack>
+
+                    {(isPreOrder || fulfillmentType === 'delivery') && (
+                        <TextField
+                            size="small"
+                            type="datetime-local"
+                            label="Requested for"
+                            value={requestedFulfillmentAt}
+                            onChange={(e) => setRequestedFulfillmentAt(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                        />
+                    )}
+
+                    {fulfillmentType === 'delivery' && (
+                        <FormControl fullWidth size="small">
+                            <Select
+                                displayEmpty
+                                value={deliveryAddressId}
+                                onChange={(e) => setDeliveryAddressId(e.target.value)}
+                            >
+                                <MenuItem value="">
+                                    <em>Choose delivery address</em>
+                                </MenuItem>
+                                {customerAddresses.map((address) => (
+                                    <MenuItem key={address.id} value={String(address.id)}>
+                                        {address.label} â€” {address.address_text}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    )}
+
+                    {isPreOrder && (
+                        <TextField
+                            size="small"
+                            type="number"
+                            label="Deposit (TZS)"
+                            value={depositAmount}
+                            onChange={(e) => setDepositAmount(e.target.value)}
+                        />
+                    )}
+                </Stack>
+            </Box>
+
+            <Box
+                sx={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    px: { xs: 2, sm: 2.5 },
+                    py: 2,
+                }}
+            >
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{ mb: 1.5 }}
+                >
+                    <Typography variant="subtitle2" fontWeight={700}>
+                        Items ({ticket.length})
+                    </Typography>
+                    {ticket.length > 0 && (
+                        <Button
+                            type="button"
+                            size="small"
+                            color="error"
+                            startIcon={<DeleteOutlinedIcon fontSize="small" />}
+                            onClick={clearTicket}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            Clear all
+                        </Button>
+                    )}
+                </Stack>
+
+                {ticket.length === 0 ? (
+                    <Box
+                        sx={{
+                            py: 6,
+                            textAlign: 'center',
+                            color: 'text.secondary',
+                        }}
+                    >
+                        <ShoppingBagOutlinedIcon sx={{ fontSize: 40, opacity: 0.35, mb: 1 }} />
+                        <Typography variant="body2">
+                            Tap products to add items to the ticket.
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Stack spacing={1.5}>
+                        {ticket.map((line) => (
+                            <Box
+                                key={line.product_id}
+                                sx={{
+                                    display: 'flex',
+                                    gap: 1.5,
+                                    alignItems: 'flex-start',
+                                    p: 1.25,
+                                    borderRadius: 2,
+                                    border: `1px solid ${colors.border}`,
+                                    bgcolor: colors.surface,
+                                }}
+                            >
+                                <ProductVisual
+                                    product={line}
+                                    size={44}
+                                />
+
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Stack
+                                        direction="row"
+                                        justifyContent="space-between"
+                                        spacing={1}
+                                    >
+                                        <Typography
+                                            variant="body2"
+                                            fontWeight={700}
+                                            noWrap
+                                        >
+                                            {line.name}
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            fontWeight={700}
+                                            sx={{ color: colors.jam, whiteSpace: 'nowrap' }}
+                                        >
+                                            {formatMoney(line.quantity * line.unit_price)}
+                                        </Typography>
+                                    </Stack>
+
+                                    <Typography variant="caption" color="text.secondary">
+                                        {formatMoney(line.unit_price)} each
+                                    </Typography>
+
+                                    <Stack
+                                        direction="row"
+                                        alignItems="center"
+                                        spacing={0.5}
+                                        sx={{ mt: 1 }}
+                                    >
+                                        <IconButton
+                                            size="small"
+                                            type="button"
+                                            onClick={() => bumpQty(line.product_id, -1)}
+                                            sx={{
+                                                border: `1px solid ${colors.border}`,
+                                                width: 40,
+                                                height: 40,
+                                            }}
+                                        >
+                                            <RemoveIcon sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                        <Typography
+                                            variant="body2"
+                                            fontWeight={700}
+                                            sx={{ minWidth: 28, textAlign: 'center' }}
+                                        >
+                                            {line.quantity}
+                                        </Typography>
+                                        <IconButton
+                                            size="small"
+                                            type="button"
+                                            onClick={() => bumpQty(line.product_id, 1)}
+                                            sx={{
+                                                border: `1px solid ${colors.border}`,
+                                                width: 40,
+                                                height: 40,
+                                            }}
+                                        >
+                                            <AddIcon sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                    </Stack>
+                                </Box>
+                            </Box>
+                        ))}
+                    </Stack>
+                )}
+            </Box>
+
+            <Box
+                sx={{
+                    borderTop: `1px solid ${colors.border}`,
+                    p: { xs: 2, sm: 2.5 },
+                    bgcolor: 'background.paper',
+                }}
+            >
+                <Stack spacing={1} sx={{ mb: 2 }}>
+                    <Stack direction="row" justifyContent="space-between">
+                        <Typography variant="body2" color="text.secondary">
+                            Subtotal
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                            {formatMoney(subtotal)}
+                        </Typography>
+                    </Stack>
+                    <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="baseline"
+                        sx={{ pt: 0.5 }}
+                    >
+                        <Typography variant="subtitle1" fontWeight={700}>
+                            Grand Total
+                        </Typography>
+                        <Typography
+                            variant="h5"
+                            fontWeight={700}
+                            sx={{ color: colors.jam }}
+                        >
+                            {formatMoney(total)}
+                        </Typography>
+                    </Stack>
+                </Stack>
+
+                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                    <Select
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        startAdornment={
+                            <InputAdornment position="start">
+                                <CreditCardOutlinedIcon
+                                    sx={{ color: colors.muted, fontSize: 20 }}
+                                />
+                            </InputAdornment>
+                        }
+                    >
+                        {PAYMENT_METHODS.map((method) => (
+                            <MenuItem key={method.value} value={method.value}>
+                                {method.label}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+
+                {(errors?.items ||
+                    errors?.customer_id ||
+                    errors?.delivery_address_id ||
+                    errors?.payments) && (
+                    <Typography variant="body2" color="error" sx={{ mb: 1.5 }}>
+                        {errors.items ||
+                            errors.customer_id ||
+                            errors.delivery_address_id ||
+                            errors.payments}
+                    </Typography>
+                )}
+
+                {remainderOnAccount > 0 && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                        {formatMoney(remainderOnAccount)} will go on the customer account.
+                    </Typography>
+                )}
+
+                <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    color="primary"
+                    size="large"
+                    disabled={
+                        processing ||
+                        ticket.length === 0 ||
+                        (remainderOnAccount > 0 && !customerId) ||
+                        (fulfillmentType === 'delivery' && (!customerId || !deliveryAddressId))
+                    }
+                    startIcon={<CreditCardOutlinedIcon />}
+                    sx={{
+                        py: 1.5,
+                        borderRadius: 1,
+                        fontSize: '1rem',
+                    }}
+                >
+                    {processing ? 'Recordingâ€¦' : 'Confirm Payment'}
+                </Button>
+            </Box>
+        </TicketPanel>
+    );
 
     return (
         <PosLayout>
@@ -286,42 +705,52 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                 sx={{
                     display: 'grid',
                     gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 380px' },
-                    height: '100vh',
-                    overflow: 'hidden',
+                    height: { xs: 'auto', lg: '100%' },
+                    minHeight: { xs: 'auto', lg: '100dvh' },
+                    overflow: { xs: 'visible', lg: 'hidden' },
                 }}
             >
-                {/* Center: catalog */}
                 <Box
                     sx={{
                         display: 'flex',
                         flexDirection: 'column',
                         minWidth: 0,
-                        overflow: 'hidden',
+                        minHeight: { xs: 'auto', lg: 0 },
+                        overflow: { xs: 'visible', lg: 'hidden' },
                         p: { xs: 2, md: 3 },
-                        gap: 2.5,
+                        gap: 2,
+                        pb: { xs: ticket.length > 0 ? 10 : 2, lg: 3 },
                     }}
                 >
                     <Stack
-                        direction="row"
-                        alignItems="center"
+                        direction={{ xs: 'column', sm: 'row' }}
+                        alignItems={{ sm: 'center' }}
                         justifyContent="space-between"
-                        spacing={2}
+                        spacing={1.5}
                     >
                         <Box>
                             <Typography variant="overline" sx={{ color: colors.jam }}>
                                 Point of sale
                             </Typography>
-                            <Typography variant="h4">Order line</Typography>
+                            <Typography variant="h4" sx={{ fontSize: { xs: '1.35rem', sm: '1.5rem' } }}>
+                                Order line
+                            </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                                 Bakery or tools — then build the ticket.
                             </Typography>
                         </Box>
-                        <IconButton size="small" sx={{ border: `1px solid ${colors.border}` }}>
-                            <MoreHorizIcon fontSize="small" />
-                        </IconButton>
+                        <Button
+                            component={Link}
+                            href={route('tenant.pos.tickets')}
+                            prefetch
+                            variant="outlined"
+                            sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}
+                        >
+                            Today’s tickets{todayTicketCount ? ` (${todayTicketCount})` : ''}
+                        </Button>
                     </Stack>
 
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                         {[
                             { value: 'bakery', label: 'Bakery' },
                             { value: 'tools', label: 'Tools & supplies' },
@@ -333,7 +762,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                     type="button"
                                     variant={active ? 'contained' : 'outlined'}
                                     onClick={() => setDepartment(tab.value)}
-                                    sx={{ px: 2 }}
+                                    sx={{ px: 2, flex: { xs: 1, sm: 'none' } }}
                                 >
                                     {tab.label}
                                 </Button>
@@ -343,7 +772,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
 
                     <TextField
                         size="small"
-                        placeholder="Search products…"
+                        placeholder="Search productsâ€¦"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         InputProps={{
@@ -354,7 +783,8 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                             ),
                         }}
                         sx={{
-                            maxWidth: 420,
+                            width: '100%',
+                            maxWidth: { sm: 420 },
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: 999,
                                 bgcolor: 'background.paper',
@@ -394,9 +824,9 @@ export default function Pos({ products, customers = [], clients = [], priceLists
 
                     <Box
                         sx={{
-                            flex: 1,
-                            overflowY: 'auto',
-                            pr: 0.5,
+                            flex: { lg: 1 },
+                            overflowY: { lg: 'auto' },
+                            pr: { lg: 0.5 },
                             pb: 2,
                         }}
                     >
@@ -414,7 +844,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                             <Box
                                 sx={{
                                     display: 'grid',
-                                    gap: 2,
+                                    gap: { xs: 1.25, sm: 2 },
                                     gridTemplateColumns: {
                                         xs: 'repeat(2, minmax(0, 1fr))',
                                         sm: 'repeat(3, minmax(0, 1fr))',
@@ -436,422 +866,61 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                     </Box>
                 </Box>
 
-                {/* Right: order summary */}
-                <TicketPanel
-                    component="form"
-                    onSubmit={submit}
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        borderLeft: { lg: `1px solid ${colors.border}` },
-                        borderTop: { xs: `1px solid ${colors.border}`, lg: 'none' },
-                        bgcolor: colors.cream,
-                        height: { xs: 'auto', lg: '100vh' },
-                        maxHeight: { xs: 'none', lg: '100vh' },
-                        overflow: 'hidden',
-                        borderRadius: 0,
-                    }}
-                >
-                    <Box sx={{ p: 2.5, pb: 2, borderBottom: `1px solid ${colors.border}` }}>
-                        <Typography variant="overline" sx={{ color: colors.jam }}>
-                            Ticket
-                        </Typography>
-                        <Typography variant="h6" sx={{ mb: 2 }}>
-                            Order ticket
-                        </Typography>
-
-                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                            {CHANNELS.map((ch) => {
-                                const active = channel === ch.value;
-                                return (
-                                    <Button
-                                        key={ch.value}
-                                        type="button"
-                                        size="small"
-                                        variant="outlined"
-                                        onClick={() => setChannel(ch.value)}
-                                        sx={{
-                                            borderRadius: 999,
-                                            px: 1.75,
-                                            borderColor: active ? colors.jam : colors.border,
-                                            color: active ? colors.jam : colors.muted,
-                                            bgcolor: active ? `${colors.jam}14` : 'transparent',
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        {ch.label}
-                                    </Button>
-                                );
-                            })}
-                        </Stack>
-
-                        <Stack spacing={1.5} sx={{ mt: 2.5 }}>
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    displayEmpty
-                                    value={customerId}
-                                    onChange={(e) => {
-                                        setCustomerId(e.target.value);
-                                        setDeliveryAddressId('');
-                                    }}
-                                >
-                                    <MenuItem value="">
-                                        <em>Walk-in / no account</em>
-                                    </MenuItem>
-                                    {visibleCustomers.map((c) => (
-                                        <MenuItem key={c.id} value={String(c.id)}>
-                                            {c.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-
-                            <Stack direction="row" spacing={1}>
-                                <Button
-                                    type="button"
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => {
-                                        const next = !isPreOrder;
-                                        setIsPreOrder(next);
-                                        if (!next) {
-                                            setDepositAmount('');
-                                        }
-                                    }}
-                                    sx={{
-                                        flex: 1,
-                                        borderRadius: 999,
-                                        borderColor: isPreOrder ? colors.jam : colors.border,
-                                        bgcolor: isPreOrder ? `${colors.jam}14` : 'transparent',
-                                        color: isPreOrder ? colors.jam : colors.muted,
-                                        fontWeight: 600,
-                                    }}
-                                >
-                                    Pre-order
-                                </Button>
-                                {['pickup', 'delivery'].map((type) => (
-                                    <Button
-                                        key={type}
-                                        type="button"
-                                        size="small"
-                                        variant="outlined"
-                                        onClick={() => setFulfillmentType(type)}
-                                        sx={{
-                                            flex: 1,
-                                            borderRadius: 999,
-                                            borderColor:
-                                                fulfillmentType === type ? colors.jam : colors.border,
-                                            bgcolor:
-                                                fulfillmentType === type
-                                                    ? `${colors.jam}14`
-                                                    : 'transparent',
-                                            color:
-                                                fulfillmentType === type ? colors.jam : colors.muted,
-                                            fontWeight: 600,
-                                            textTransform: 'capitalize',
-                                        }}
-                                    >
-                                        {type}
-                                    </Button>
-                                ))}
-                            </Stack>
-
-                            {(isPreOrder || fulfillmentType === 'delivery') && (
-                                <TextField
-                                    size="small"
-                                    type="datetime-local"
-                                    label="Requested for"
-                                    value={requestedFulfillmentAt}
-                                    onChange={(e) => setRequestedFulfillmentAt(e.target.value)}
-                                    InputLabelProps={{ shrink: true }}
-                                />
-                            )}
-
-                            {fulfillmentType === 'delivery' && (
-                                <FormControl fullWidth size="small">
-                                    <Select
-                                        displayEmpty
-                                        value={deliveryAddressId}
-                                        onChange={(e) => setDeliveryAddressId(e.target.value)}
-                                    >
-                                        <MenuItem value="">
-                                            <em>Choose delivery address</em>
-                                        </MenuItem>
-                                        {customerAddresses.map((address) => (
-                                            <MenuItem key={address.id} value={String(address.id)}>
-                                                {address.label} — {address.address_text}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            )}
-
-                            {isPreOrder && (
-                                <TextField
-                                    size="small"
-                                    type="number"
-                                    label="Deposit (TZS)"
-                                    value={depositAmount}
-                                    onChange={(e) => setDepositAmount(e.target.value)}
-                                />
-                            )}
-
-                            <TextField
-                                size="small"
-                                label="Channel price"
-                                value={CHANNELS.find((c) => c.value === channel)?.label ?? channel}
-                                InputProps={{ readOnly: true }}
-                            />
-                        </Stack>
-                    </Box>
-
-                    <Box
-                        sx={{
-                            flex: 1,
-                            overflowY: 'auto',
-                            px: 2.5,
-                            py: 2,
+                {isDesktop ? (
+                    ticketPanel
+                ) : (
+                    <Drawer
+                        anchor="bottom"
+                        open={ticketOpen}
+                        onClose={() => setTicketOpen(false)}
+                        PaperProps={{
+                            sx: {
+                                height: 'min(92dvh, 100%)',
+                                maxHeight: '92dvh',
+                                bgcolor: 'transparent',
+                                boxShadow: 'none',
+                            },
                         }}
                     >
-                        <Stack
-                            direction="row"
-                            alignItems="center"
-                            justifyContent="space-between"
-                            sx={{ mb: 1.5 }}
-                        >
-                            <Typography variant="subtitle2" fontWeight={700}>
-                                Items ({ticket.length})
-                            </Typography>
-                            {ticket.length > 0 && (
-                                <Button
-                                    type="button"
-                                    size="small"
-                                    color="error"
-                                    startIcon={<DeleteOutlinedIcon fontSize="small" />}
-                                    onClick={clearTicket}
-                                    sx={{ textTransform: 'none' }}
-                                >
-                                    Clear all
-                                </Button>
-                            )}
-                        </Stack>
+                        {ticketPanel}
+                    </Drawer>
+                )}
 
-                        {ticket.length === 0 ? (
-                            <Box
-                                sx={{
-                                    py: 6,
-                                    textAlign: 'center',
-                                    color: 'text.secondary',
-                                }}
-                            >
-                                <ShoppingBagOutlinedIcon sx={{ fontSize: 40, opacity: 0.35, mb: 1 }} />
-                                <Typography variant="body2">
-                                    Tap products to add items to the ticket.
-                                </Typography>
-                            </Box>
-                        ) : (
-                            <Stack spacing={1.5}>
-                                {ticket.map((line) => (
-                                    <Box
-                                        key={line.product_id}
-                                        sx={{
-                                            display: 'flex',
-                                            gap: 1.5,
-                                            alignItems: 'flex-start',
-                                            p: 1.25,
-                                            borderRadius: 2,
-                                            border: `1px solid ${colors.border}`,
-                                            bgcolor: colors.surface,
-                                        }}
-                                    >
-                                        <ProductVisual
-                                            product={line}
-                                            size={44}
-                                        />
-
-                                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                                            <Stack
-                                                direction="row"
-                                                justifyContent="space-between"
-                                                spacing={1}
-                                            >
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight={700}
-                                                    noWrap
-                                                >
-                                                    {line.name}
-                                                </Typography>
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight={700}
-                                                    sx={{ color: colors.jam, whiteSpace: 'nowrap' }}
-                                                >
-                                                    {formatMoney(line.quantity * line.unit_price)}
-                                                </Typography>
-                                            </Stack>
-
-                                            <Typography variant="caption" color="text.secondary">
-                                                {formatMoney(line.unit_price)} each
-                                            </Typography>
-
-                                            <Stack
-                                                direction="row"
-                                                alignItems="center"
-                                                spacing={0.5}
-                                                sx={{ mt: 1 }}
-                                            >
-                                                <IconButton
-                                                    size="small"
-                                                    type="button"
-                                                    onClick={() => bumpQty(line.product_id, -1)}
-                                                    sx={{
-                                                        border: `1px solid ${colors.border}`,
-                                                        width: 28,
-                                                        height: 28,
-                                                    }}
-                                                >
-                                                    <RemoveIcon sx={{ fontSize: 16 }} />
-                                                </IconButton>
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight={700}
-                                                    sx={{ minWidth: 28, textAlign: 'center' }}
-                                                >
-                                                    {line.quantity}
-                                                </Typography>
-                                                <IconButton
-                                                    size="small"
-                                                    type="button"
-                                                    onClick={() => bumpQty(line.product_id, 1)}
-                                                    sx={{
-                                                        border: `1px solid ${colors.border}`,
-                                                        width: 28,
-                                                        height: 28,
-                                                    }}
-                                                >
-                                                    <AddIcon sx={{ fontSize: 16 }} />
-                                                </IconButton>
-                                            </Stack>
-                                        </Box>
-                                    </Box>
-                                ))}
-                            </Stack>
-                        )}
-                    </Box>
-
+                {!isDesktop && ticket.length > 0 && (
                     <Box
                         sx={{
-                            borderTop: `1px solid ${colors.border}`,
-                            p: 2.5,
-                            bgcolor: 'background.paper',
+                            position: 'fixed',
+                            left: 0,
+                            right: 0,
+                            bottom: { xs: 'calc(64px + env(safe-area-inset-bottom))', md: 0 },
+                            zIndex: 1200,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 1.5,
+                            px: 2,
+                            py: 1.25,
+                            bgcolor: colors.ink,
+                            color: colors.cream,
                         }}
                     >
-                        <Stack spacing={1} sx={{ mb: 2 }}>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="body2" color="text.secondary">
-                                    Subtotal
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600}>
-                                    {formatMoney(subtotal)}
-                                </Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="body2" color="text.secondary">
-                                    Taxes
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600}>
-                                    {formatMoney(tax)}
-                                </Typography>
-                            </Stack>
-                            <Stack direction="row" justifyContent="space-between">
-                                <Typography variant="body2" color="text.secondary">
-                                    Discount
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600} color="error.main">
-                                    −{formatMoney(discount)}
-                                </Typography>
-                            </Stack>
-                            <Stack
-                                direction="row"
-                                justifyContent="space-between"
-                                alignItems="baseline"
-                                sx={{ pt: 0.5 }}
-                            >
-                                <Typography variant="subtitle1" fontWeight={700}>
-                                    Grand Total
-                                </Typography>
-                                <Typography
-                                    variant="h5"
-                                    fontWeight={700}
-                                    sx={{ color: colors.jam }}
-                                >
-                                    {formatMoney(total)}
-                                </Typography>
-                            </Stack>
-                        </Stack>
-
-                        <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                            <Select
-                                value={paymentMethod}
-                                onChange={(e) => setPaymentMethod(e.target.value)}
-                                startAdornment={
-                                    <InputAdornment position="start">
-                                        <CreditCardOutlinedIcon
-                                            sx={{ color: colors.muted, fontSize: 20 }}
-                                        />
-                                    </InputAdornment>
-                                }
-                            >
-                                {PAYMENT_METHODS.map((method) => (
-                                    <MenuItem key={method.value} value={method.value}>
-                                        {method.label}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-
-                        {(errors?.items ||
-                            errors?.customer_id ||
-                            errors?.delivery_address_id ||
-                            errors?.payments) && (
-                            <Typography variant="body2" color="error" sx={{ mb: 1.5 }}>
-                                {errors.items ||
-                                    errors.customer_id ||
-                                    errors.delivery_address_id ||
-                                    errors.payments}
+                        <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="caption" sx={{ color: colors.wheatLight }}>
+                                {ticket.length} item{ticket.length === 1 ? '' : 's'}
                             </Typography>
-                        )}
-
-                        {remainderOnAccount > 0 && (
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                                {formatMoney(remainderOnAccount)} will go on the customer account.
+                            <Typography variant="subtitle1" fontWeight={700} noWrap>
+                                {formatMoney(total)}
                             </Typography>
-                        )}
-
+                        </Box>
                         <Button
-                            type="submit"
-                            fullWidth
                             variant="contained"
-                            color="primary"
-                            size="large"
-                            disabled={
-                                processing ||
-                                ticket.length === 0 ||
-                                (remainderOnAccount > 0 && !customerId) ||
-                                (fulfillmentType === 'delivery' && (!customerId || !deliveryAddressId))
-                            }
-                            startIcon={<CreditCardOutlinedIcon />}
-                            sx={{
-                                py: 1.5,
-                                borderRadius: 3,
-                                fontSize: '1rem',
-                            }}
+                            onClick={() => setTicketOpen(true)}
+                            sx={{ flexShrink: 0 }}
                         >
-                            {processing ? 'Recording…' : 'Confirm Payment'}
+                            Review ticket
                         </Button>
                     </Box>
-                </TicketPanel>
+                )}
             </Box>
         </PosLayout>
     );

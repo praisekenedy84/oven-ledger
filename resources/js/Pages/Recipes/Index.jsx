@@ -53,12 +53,12 @@ export default function Index({ recipes, products, rawMaterials }) {
                     post(route('tenant.recipes.store'), { onSuccess: () => reset() });
                 }}
                 variant="outlined"
-                sx={{ mb: 3, p: 3, borderRadius: 3 }}
+                sx={{ mb: 3, p: { xs: 2, sm: 3 }, borderRadius: 1 }}
             >
                 <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
                     New recipe
                 </Typography>
-                <Stack spacing={2.5}>
+                <Stack spacing={2}>
                     <Box
                         sx={{
                             display: 'grid',

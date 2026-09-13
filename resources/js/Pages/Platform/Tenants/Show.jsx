@@ -85,7 +85,7 @@ export default function Show({
                     gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
                 }}
             >
-                <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                     <Typography variant="subtitle1" fontWeight={700}>
                         Overview
                     </Typography>
@@ -96,7 +96,7 @@ export default function Show({
                         <Row label="Owner">
                             {tenant.owner_name} ({tenant.owner_email})
                         </Row>
-                        <Row label="Phone">{tenant.owner_phone || '—'}</Row>
+                        <Row label="Phone">{tenant.owner_phone || 'â€”'}</Row>
                         <Row label="Branches">
                             <UsageBar value={branchCount} max={tenant.max_branches} />
                         </Row>
@@ -110,7 +110,7 @@ export default function Show({
                         branchesForm.patch(route('platform.tenants.max-branches', tenant.id));
                     }}
                     variant="outlined"
-                    sx={{ p: 3, borderRadius: 3 }}
+                    sx={{ p: 3, borderRadius: 1 }}
                 >
                     <Typography variant="subtitle1" fontWeight={700}>
                         Branch limit
@@ -136,7 +136,7 @@ export default function Show({
 
                 <Paper
                     variant="outlined"
-                    sx={{ p: 3, borderRadius: 3, gridColumn: { lg: '1 / -1' } }}
+                    sx={{ p: 3, borderRadius: 1, gridColumn: { lg: '1 / -1' } }}
                 >
                     <Typography variant="subtitle1" fontWeight={700}>
                         Feature flags
@@ -199,7 +199,7 @@ export default function Show({
 
                 <Paper
                     variant="outlined"
-                    sx={{ p: 3, borderRadius: 3, gridColumn: { lg: '1 / -1' } }}
+                    sx={{ p: 3, borderRadius: 1, gridColumn: { lg: '1 / -1' } }}
                 >
                     <Typography variant="subtitle1" fontWeight={700}>
                         Menu availability
@@ -245,7 +245,7 @@ export default function Show({
                 {branchSuspensions?.length > 0 && (
                     <Paper
                         variant="outlined"
-                        sx={{ p: 3, borderRadius: 3, gridColumn: { lg: '1 / -1' } }}
+                        sx={{ p: 3, borderRadius: 1, gridColumn: { lg: '1 / -1' } }}
                     >
                         <Typography variant="subtitle1" fontWeight={700}>
                             Branch suspensions

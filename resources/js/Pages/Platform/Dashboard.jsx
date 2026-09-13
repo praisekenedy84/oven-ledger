@@ -18,7 +18,7 @@ export default function Dashboard({ stats }) {
             <Box
                 sx={{
                     display: 'grid',
-                    gap: 2,
+                    gap: 3,
                     gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
                 }}
             >
@@ -31,13 +31,13 @@ export default function Dashboard({ stats }) {
                 sx={{
                     mt: 3,
                     display: 'grid',
-                    gap: 2,
+                    gap: 3,
                     gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
                 }}
             >
-                <Card sx={{ borderRadius: 3 }}>
+                <Card sx={{ borderRadius: 1 }}>
                     <CardActionArea component={Link} href={route('platform.tenants.index')}>
-                        <CardContent sx={{ p: 2.5 }}>
+                        <CardContent>
                             <Typography variant="subtitle1" fontWeight={700}>
                                 Manage Tenants
                             </Typography>
@@ -47,9 +47,9 @@ export default function Dashboard({ stats }) {
                         </CardContent>
                     </CardActionArea>
                 </Card>
-                <Card sx={{ borderRadius: 3 }}>
+                <Card sx={{ borderRadius: 1 }}>
                     <CardActionArea component={Link} href={route('platform.audit.index')}>
-                        <CardContent sx={{ p: 2.5 }}>
+                        <CardContent>
                             <Typography variant="subtitle1" fontWeight={700}>
                                 Audit Log
                             </Typography>
@@ -73,8 +73,8 @@ function StatCard({ label, value, accent }) {
               : colors.ink;
 
     return (
-        <Card sx={{ borderRadius: 3 }}>
-            <CardContent sx={{ p: 2.5 }}>
+        <Card sx={{ borderRadius: 1 }}>
+            <CardContent>
                 <Typography variant="body2" color="text.secondary">
                     {label}
                 </Typography>

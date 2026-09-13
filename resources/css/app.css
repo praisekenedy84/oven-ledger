@@ -25,8 +25,20 @@
 }
 
 @layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+    }
+
     body {
         @apply bg-kraft text-ink antialiased;
-        font-family: 'Archivo', Helvetica, Arial, sans-serif;
+        font-family: 'Poppins', Helvetica, Arial, sans-serif;
+        overflow-x: hidden;
     }
 }

@@ -58,12 +58,12 @@ All bakeries share one URL (production: `https://oven.mernettechnologies.com`).
 - **URL:** `http://127.0.0.1:8000/login`
 - **Password for every demo account:** `password`
 
-| Email | Role | Branches |
-|---|---|---|
-| `owner@demo.test` | Owner | All (Kariakoo, Masaki, Mlimani) |
-| `manager@demo.test` | Branch manager | Masaki + Mlimani |
-| `cashier@demo.test` | Cashier | Main Branch |
-| `baker@demo.test` | Production staff | Main Branch |
+| Username | Email | Role | Branches |
+|---|---|---|---|
+| `owner` | `owner@demo.test` | Owner | All (Kariakoo, Masaki, Mlimani) |
+| `manager` | `manager@demo.test` | Branch manager | Masaki + Mlimani |
+| `cashier` | `cashier@demo.test` | Cashier | Main Branch |
+| `baker` | `baker@demo.test` | Production staff | Main Branch |
 
 `php scripts/provision-demo-tenant.php` creates the tenant if needed and seeds a week of bakery operations: catalog, recipes, stock, customers, credit ledgers, pre-orders, production batches, supplier bills, and owner capital. Catalog rows are upserted; sales, batches, and debts are skipped if they already exist.
 
@@ -80,12 +80,12 @@ php scripts/sync-tenant-user-directory.php
 
 1. Log in to the platform console at `/platform/dashboard`
 2. Go to **Tenants → Create**
-3. Provide business details and owner email/password (no subdomain / DNS step)
+3. Provide business details and owner username/email/password (no subdomain / DNS step)
 4. The provisioner creates the tenant database, runs tenant migrations/seeds, sets default feature flags, creates the owner user, and registers the owner in the central login directory
 
 ### Tenant access (shared domain)
 
-Tenant staff sign in at `/login` on the same host as the platform. After authentication, the tenant is resolved from the user record and stored in the session for subsequent requests.
+Tenant staff sign in at `/login` on the same host as the platform, using either the username set when the account was created or their email. After authentication, the tenant is resolved from the user record and stored in the session for subsequent requests.
 
 > **Note:** Production uses one shared host (e.g. `oven.mernettechnologies.com`). Platform admin stays under `/platform`.
 

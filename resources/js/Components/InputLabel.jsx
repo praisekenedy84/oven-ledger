@@ -9,7 +9,7 @@ export default function InputLabel({ value, className = '', children, ...props }
             sx={{
                 position: 'relative',
                 transform: 'none',
-                mb: 0.75,
+                mb: 1,
                 fontSize: 14,
                 fontWeight: 600,
                 color: 'text.primary',

@@ -63,7 +63,7 @@ export default function Show({ product }) {
                     component="form"
                     onSubmit={submit}
                     variant="outlined"
-                    sx={{ p: 3, borderRadius: 3 }}
+                    sx={{ p: 3, borderRadius: 1 }}
                 >
                     <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
                         Edit product
@@ -127,7 +127,7 @@ export default function Show({ product }) {
                 </Paper>
 
                 {product.recipe && (
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                         <Typography variant="subtitle1" fontWeight={700}>
                             Linked recipe
                         </Typography>

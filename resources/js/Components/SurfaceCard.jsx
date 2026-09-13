@@ -1,4 +1,4 @@
-import { colors, shadow, radius } from '@/theme/bakeryTheme';
+import { colors, layout, radius, shadow } from '@/theme/bakeryTheme';
 import { Paper } from '@mui/material';
 
 export default function SurfaceCard({ children, sx, ...props }) {
@@ -6,7 +6,7 @@ export default function SurfaceCard({ children, sx, ...props }) {
         <Paper
             variant="outlined"
             sx={{
-                p: 3,
+                p: layout.cardPad,
                 borderRadius: `${radius}px`,
                 bgcolor: colors.cream,
                 borderColor: colors.border,

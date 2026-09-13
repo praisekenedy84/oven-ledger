@@ -55,14 +55,21 @@ class TenantController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $directory = app(TenantUserDirectory::class);
+
         $request->merge([
-            'owner_email' => app(TenantUserDirectory::class)
-                ->normalizeEmail((string) $request->input('owner_email')),
+            'owner_email' => $directory->normalizeEmail((string) $request->input('owner_email')),
+            'owner_username' => $directory->normalizeUsername((string) $request->input('owner_username')),
         ]);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'owner_name' => ['required', 'string', 'max:255'],
+            'owner_username' => [
+                'required',
+                ...$directory->usernameFormatRules(),
+                $directory->uniqueDirectoryUsername(),
+            ],
             'owner_email' => ['required', 'email', 'max:255', 'unique:tenant_users,email'],
             'owner_phone' => ['nullable', 'string', 'max:50'],
             'owner_password' => ['required', 'string', 'min:8'],

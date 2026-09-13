@@ -10,7 +10,7 @@ import { Head, useForm } from '@inertiajs/react';
 
 export default function Login({ status }) {
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
+        login: '',
         password: '',
         remember: false,
     });
@@ -41,16 +41,19 @@ export default function Login({ status }) {
                 }}
             >
                 <div>
-                    <InputLabel htmlFor="email" value="Email" />
+                    <InputLabel htmlFor="login" value="Email or username" />
                     <TextInput
-                        id="email"
-                        type="email"
-                        value={data.email}
+                        id="login"
+                        type="text"
+                        value={data.login}
                         autoComplete="username"
                         isFocused
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setData('login', e.target.value)}
                     />
-                    <InputError message={errors.email} />
+                    <InputError message={errors.login ?? errors.email} />
+                    <Typography variant="caption" color="text.secondary">
+                        Use the username set when the account was created, or the email.
+                    </Typography>
                 </div>
 
                 <div>

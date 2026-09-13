@@ -7,7 +7,15 @@ export default function Pagination({ links }) {
     }
 
     return (
-        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 2 }}>
+        <Stack
+            direction="row"
+            spacing={1}
+            useFlexGap
+            flexWrap="wrap"
+            alignItems="center"
+            justifyContent={{ xs: 'center', sm: 'flex-end' }}
+            sx={{ mt: 3 }}
+        >
             {links.map((link, index) => {
                 const disabled = !link.url;
                 const content = (
@@ -21,7 +29,7 @@ export default function Pagination({ links }) {
                             size="small"
                             disabled
                             variant="outlined"
-                            sx={{ minWidth: 36 }}
+                            sx={{ minWidth: 40, minHeight: 40 }}
                         >
                             {content}
                         </Button>
@@ -34,10 +42,11 @@ export default function Pagination({ links }) {
                         component={Link}
                         href={link.url}
                         preserveScroll
+                        prefetch
                         size="small"
                         variant={link.active ? 'contained' : 'outlined'}
                         color={link.active ? 'primary' : 'inherit'}
-                        sx={{ minWidth: 36 }}
+                        sx={{ minWidth: 40, minHeight: 40 }}
                     >
                         {content}
                     </Button>

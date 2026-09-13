@@ -22,7 +22,16 @@ const colors = {
 
 const shadow = '0 2px 8px rgba(51, 38, 28, 0.08)';
 const radius = 10;
-const chartPalette = [colors.jam, colors.butter, colors.sage];
+const controlHeight = 40;
+const headerHeight = 64;
+const layout = {
+    controlHeight,
+    headerHeight,
+    pageGutter: { xs: 2, md: 3 },
+    sectionGap: 3,
+    cardPad: { xs: 2, sm: 3 },
+};
+const chartPalette = [colors.jam, colors.butter, colors.sage, '#C46B3A', '#7A5C3E', '#D4A574'];
 
 const bakeryTheme = createTheme({
     spacing: 8,
@@ -61,43 +70,43 @@ const bakeryTheme = createTheme({
         },
     },
     typography: {
-        fontFamily: '"Archivo", "Helvetica", "Arial", sans-serif',
+        fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
         h1: {
-            fontFamily: 'Fraunces, Georgia, serif',
+            fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
             fontWeight: 700,
             fontSize: '2.5rem',
             lineHeight: 1.1,
             letterSpacing: '-0.03em',
         },
         h2: {
-            fontFamily: 'Fraunces, Georgia, serif',
+            fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
             fontWeight: 700,
             fontSize: '2rem',
             lineHeight: 1.15,
             letterSpacing: '-0.03em',
         },
         h3: {
-            fontFamily: 'Fraunces, Georgia, serif',
+            fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
             fontWeight: 600,
             fontSize: '1.75rem',
             lineHeight: 1.2,
             letterSpacing: '-0.02em',
         },
         h4: {
-            fontFamily: 'Fraunces, Georgia, serif',
+            fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
             fontWeight: 600,
             fontSize: '1.5rem',
             lineHeight: 1.2,
             letterSpacing: '-0.02em',
         },
         h5: {
-            fontFamily: 'Fraunces, Georgia, serif',
+            fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
             fontWeight: 600,
             fontSize: '1.35rem',
             lineHeight: 1.25,
         },
         h6: {
-            fontFamily: 'Fraunces, Georgia, serif',
+            fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
             fontWeight: 600,
             fontSize: '1.15rem',
             lineHeight: 1.3,
@@ -107,7 +116,7 @@ const bakeryTheme = createTheme({
         body1: { fontSize: '0.9375rem', lineHeight: 1.55 },
         body2: { fontSize: '0.8125rem', lineHeight: 1.5 },
         overline: {
-            fontFamily: '"Archivo", "Helvetica", "Arial", sans-serif',
+            fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
             fontWeight: 700,
             fontSize: '0.6875rem',
             letterSpacing: '0.14em',
@@ -161,8 +170,12 @@ const bakeryTheme = createTheme({
                 root: {
                     borderRadius: radius,
                     boxShadow: 'none',
-                    minHeight: 40,
-                    px: 2,
+                    minHeight: controlHeight,
+                    paddingLeft: 16,
+                    paddingRight: 16,
+                    paddingTop: 8,
+                    paddingBottom: 8,
+                    lineHeight: 1.25,
                     '&:hover': { boxShadow: 'none' },
                 },
                 containedPrimary: {
@@ -182,13 +195,26 @@ const bakeryTheme = createTheme({
                         backgroundColor: 'rgba(51, 38, 28, 0.04)',
                     },
                 },
-                sizeSmall: { minHeight: 32 },
+                sizeSmall: {
+                    minHeight: controlHeight,
+                    paddingLeft: 14,
+                    paddingRight: 14,
+                },
+                sizeLarge: {
+                    minHeight: 48,
+                    paddingLeft: 20,
+                    paddingRight: 20,
+                },
             },
         },
         MuiPaper: {
             defaultProps: { elevation: 0 },
             styleOverrides: {
-                root: { backgroundImage: 'none', backgroundColor: colors.cream },
+                root: {
+                    backgroundImage: 'none',
+                    backgroundColor: colors.cream,
+                    borderRadius: radius,
+                },
                 outlined: {
                     borderColor: colors.border,
                     boxShadow: shadow,
@@ -203,6 +229,14 @@ const bakeryTheme = createTheme({
                     boxShadow: shadow,
                     borderRadius: radius,
                     backgroundColor: colors.cream,
+                },
+            },
+        },
+        MuiCardContent: {
+            styleOverrides: {
+                root: {
+                    padding: 24,
+                    '&:last-child': { paddingBottom: 24 },
                 },
             },
         },
@@ -225,13 +259,27 @@ const bakeryTheme = createTheme({
                 },
             },
         },
+        MuiToolbar: {
+            styleOverrides: {
+                root: {
+                    minHeight: headerHeight,
+                    paddingLeft: 16,
+                    paddingRight: 16,
+                    '@media (min-width: 900px)': {
+                        minHeight: headerHeight,
+                        paddingLeft: 24,
+                        paddingRight: 24,
+                    },
+                },
+            },
+        },
         MuiTableHead: {
             styleOverrides: {
                 root: {
                     backgroundColor: colors.wheatLight,
                     '& .MuiTableCell-head': {
                         color: colors.muted,
-                        fontFamily: '"Archivo", "Helvetica", "Arial", sans-serif',
+                        fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
                         fontSize: '0.6875rem',
                         fontWeight: 700,
                         letterSpacing: '0.1em',
@@ -245,6 +293,12 @@ const bakeryTheme = createTheme({
                 root: {
                     borderColor: colors.border,
                     fontSize: '0.875rem',
+                    padding: '14px 16px',
+                    verticalAlign: 'middle',
+                },
+                head: {
+                    padding: '12px 16px',
+                    lineHeight: 1.2,
                 },
             },
         },
@@ -254,6 +308,21 @@ const bakeryTheme = createTheme({
                     borderRadius: radius,
                     boxShadow: shadow,
                 },
+            },
+        },
+        MuiDialogTitle: {
+            styleOverrides: {
+                root: { padding: '24px 24px 12px' },
+            },
+        },
+        MuiDialogContent: {
+            styleOverrides: {
+                root: { padding: '8px 24px 16px' },
+            },
+        },
+        MuiDialogActions: {
+            styleOverrides: {
+                root: { padding: '16px 24px 24px', gap: 8 },
             },
         },
         MuiAlert: {
@@ -266,6 +335,7 @@ const bakeryTheme = createTheme({
                 root: {
                     borderRadius: radius,
                     backgroundColor: colors.cream,
+                    minHeight: controlHeight,
                     '& .MuiOutlinedInput-notchedOutline': {
                         borderColor: colors.border,
                     },
@@ -276,30 +346,49 @@ const bakeryTheme = createTheme({
                         borderColor: colors.jam,
                     },
                 },
+                input: {
+                    padding: '10px 14px',
+                    boxSizing: 'border-box',
+                },
+                inputSizeSmall: {
+                    padding: '8.5px 14px',
+                },
             },
         },
         MuiChip: {
             styleOverrides: {
                 root: {
                     borderRadius: 999,
+                    height: 24,
                     fontWeight: 600,
-                    fontFamily: '"Archivo", "Helvetica", "Arial", sans-serif',
+                    fontFamily: '"Poppins", "Helvetica", "Arial", sans-serif',
                 },
+                sizeSmall: { height: 24 },
+            },
+        },
+        MuiIconButton: {
+            styleOverrides: {
+                root: { width: controlHeight, height: controlHeight, minWidth: controlHeight, minHeight: controlHeight },
+                sizeSmall: { width: 32, height: 32, minWidth: 32, minHeight: 32 },
             },
         },
         MuiListItemButton: {
             styleOverrides: {
-                root: { borderRadius: radius },
+                root: { borderRadius: radius, minHeight: controlHeight },
             },
         },
         MuiTabs: {
             styleOverrides: {
+                root: { minHeight: 48 },
                 indicator: { backgroundColor: colors.jam, height: 3, borderRadius: 999 },
             },
         },
         MuiTab: {
             styleOverrides: {
                 root: {
+                    minHeight: 48,
+                    paddingLeft: 16,
+                    paddingRight: 16,
                     textTransform: 'none',
                     fontWeight: 600,
                     color: colors.muted,
@@ -326,5 +415,5 @@ const bakeryTheme = createTheme({
     },
 });
 
-export { colors, shadow, radius, chartPalette };
+export { colors, shadow, radius, chartPalette, layout, controlHeight, headerHeight };
 export default bakeryTheme;

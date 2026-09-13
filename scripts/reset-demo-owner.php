@@ -16,15 +16,18 @@ $tenant = Tenant::query()
     ->orWhere('name', 'Demo Bakery')
     ->firstOrFail();
 
-$tenant->run(function () use ($ownerEmail) {
+$username = 'owner';
+
+$tenant->run(function () use ($ownerEmail, $username) {
     $user = User::query()->orderBy('id')->first();
     $user->update([
         'email' => $ownerEmail,
+        'username' => $username,
         'password' => Hash::make('password'),
     ]);
-    echo "Updated owner to {$user->fresh()->email} / password\n";
+    echo "Updated owner to {$user->fresh()->email} / {$user->fresh()->username} / password\n";
 });
 
-app(TenantUserDirectory::class)->register($ownerEmail, $tenant->id);
+app(TenantUserDirectory::class)->register($ownerEmail, $tenant->id, $username);
 
 echo "Registered {$ownerEmail} in central tenant user directory for tenant {$tenant->id}\n";

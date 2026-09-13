@@ -66,6 +66,7 @@ Route::middleware('web')->group(function () {
 
         Route::get('pos', [PosController::class, 'index'])->name('tenant.pos.index');
         Route::post('pos', [PosController::class, 'store'])->name('tenant.pos.store');
+        Route::get('pos/tickets', [PosController::class, 'tickets'])->name('tenant.pos.tickets');
 
         Route::resource('customers', CustomerController::class)->only(['index', 'store', 'show', 'update'])
             ->names('tenant.customers');
@@ -80,6 +81,9 @@ Route::middleware('web')->group(function () {
 
         Route::patch('orders/{order}/fulfill', [OrderController::class, 'fulfill'])
             ->name('tenant.orders.fulfill');
+        Route::post('orders/{order}/void', [OrderController::class, 'void'])
+            ->middleware('permission:pos.refund')
+            ->name('tenant.orders.void');
 
         Route::get('debts', [BusinessLiabilityController::class, 'index'])->name('tenant.debts.index');
         Route::post('debts', [BusinessLiabilityController::class, 'store'])->name('tenant.debts.store');

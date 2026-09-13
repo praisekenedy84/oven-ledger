@@ -50,6 +50,9 @@ class DemoDataSeeder extends Seeder
     /** @var array<string, CustomerAddress> */
     protected array $addresses = [];
 
+    /** @var array<string, User> */
+    protected array $staff = [];
+
     public function run(): void
     {
         $this->seedBranches();
@@ -101,12 +104,14 @@ class DemoDataSeeder extends Seeder
         $staff = [
             [
                 'email' => 'owner@demo.test',
+                'username' => 'owner',
                 'name' => 'Amina Owner',
                 'role' => 'owner',
                 'branches' => $allBranchIds,
             ],
             [
                 'email' => 'manager@demo.test',
+                'username' => 'manager',
                 'name' => 'Juma Mkude',
                 'role' => 'branch_manager',
                 'branches' => [
@@ -116,12 +121,14 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'email' => 'cashier@demo.test',
+                'username' => 'cashier',
                 'name' => 'Neema Ally',
                 'role' => 'cashier',
                 'branches' => [$this->branches['Main Branch']->id],
             ],
             [
                 'email' => 'baker@demo.test',
+                'username' => 'baker',
                 'name' => 'Baraka Mushi',
                 'role' => 'production_staff',
                 'branches' => [$this->branches['Main Branch']->id],
@@ -133,10 +140,15 @@ class DemoDataSeeder extends Seeder
                 ['email' => $row['email']],
                 [
                     'name' => $row['name'],
+                    'username' => $row['username'],
                     'password' => Hash::make('password'),
                     'email_verified_at' => now(),
                 ]
             );
+
+            if (! filled($user->username)) {
+                $user->update(['username' => $row['username']]);
+            }
 
             $roleId = $roles[$row['role']] ?? null;
 
@@ -151,9 +163,10 @@ class DemoDataSeeder extends Seeder
             }
 
             $user->branches()->syncWithoutDetaching($row['branches']);
+            $this->staff[$row['role']] = $user;
 
             if ($tenantId) {
-                $directory->register($row['email'], $tenantId);
+                $directory->register($row['email'], $tenantId, $user->username);
             }
         }
     }
@@ -761,6 +774,7 @@ class DemoDataSeeder extends Seeder
                     ['product' => 'Queen cake', 'qty' => 6],
                 ],
                 [['method' => 'cash', 'amount' => null]],
+                ['cashier' => 'cashier'],
             );
             $this->createSale(
                 $masaki,
@@ -772,6 +786,7 @@ class DemoDataSeeder extends Seeder
                     ['product' => 'Cookie pack', 'qty' => 2],
                 ],
                 [['method' => 'mobile_money', 'amount' => null, 'provider' => 'M-Pesa']],
+                ['cashier' => 'branch_manager'],
             );
             $this->createSale(
                 $mlimani,
@@ -782,6 +797,7 @@ class DemoDataSeeder extends Seeder
                     ['product' => 'Sausage roll', 'qty' => 4],
                 ],
                 [['method' => 'card', 'amount' => null]],
+                ['cashier' => 'branch_manager'],
             );
         }
 
@@ -1028,7 +1044,7 @@ class DemoDataSeeder extends Seeder
     /**
      * @param  list<array{product: string, qty: float|int}>  $items
      * @param  list<array{method: string, amount: float|int|null, provider?: string}>  $payments
-     * @param  array{customer?: string, preOrder?: bool, status?: string, fulfillment?: string, address?: string, requestedAt?: Carbon, deposit?: float|int}  $options
+     * @param  array{customer?: string, preOrder?: bool, status?: string, fulfillment?: string, address?: string, requestedAt?: Carbon, deposit?: float|int, cashier?: string}  $options
      */
     protected function createSale(
         Branch $branch,
@@ -1066,8 +1082,14 @@ class DemoDataSeeder extends Seeder
         $customer = isset($options['customer']) ? $this->customers[$options['customer']] : null;
         $address = isset($options['address']) ? $this->addresses[$options['address']] : null;
 
+        $cashierKey = $options['cashier'] ?? ($channel === 'retail' ? 'cashier' : 'owner');
+        if ($branch->name !== 'Main Branch' && ($options['cashier'] ?? null) === null && $channel !== 'retail') {
+            $cashierKey = 'branch_manager';
+        }
+
         $order = new Order([
             'branch_id' => $branch->id,
+            'created_by' => $this->staff[$cashierKey]->id ?? $this->staff['owner']->id ?? null,
             'customer_id' => $customer?->id,
             'channel' => $channel,
             'status' => $options['status'] ?? 'completed',

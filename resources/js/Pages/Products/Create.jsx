@@ -40,9 +40,9 @@ export default function Create() {
                 component="form"
                 onSubmit={submit}
                 variant="outlined"
-                sx={{ mx: 'auto', maxWidth: 560, p: 3, borderRadius: 3 }}
+                sx={{ mx: 'auto', maxWidth: 560, p: 3, borderRadius: 1 }}
             >
-                <Stack spacing={2.5}>
+                <Stack spacing={2}>
                     <Box>
                         <InputLabel value="Name" />
                         <TextInput

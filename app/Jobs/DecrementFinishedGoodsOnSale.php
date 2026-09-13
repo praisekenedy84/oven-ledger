@@ -24,6 +24,10 @@ class DecrementFinishedGoodsOnSale implements ShouldQueue
                 ->lockForUpdate()
                 ->findOrFail($this->orderId);
 
+            if ($order->isVoided() || $order->stock_deducted) {
+                return;
+            }
+
             foreach ($order->items as $item) {
                 $stock = BranchFinishedGoodsStock::query()
                     ->where('branch_id', $order->branch_id)
@@ -35,6 +39,8 @@ class DecrementFinishedGoodsOnSale implements ShouldQueue
                     $stock->decrement('quantity_on_hand', (float) $item->quantity);
                 }
             }
+
+            $order->forceFill(['stock_deducted' => true])->save();
         });
     }
 }

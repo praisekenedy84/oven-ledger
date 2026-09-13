@@ -30,6 +30,8 @@ class EnsureBranchNotSuspended
                 ->exists();
         });
 
+        $request->attributes->set('branch_suspended', $suspended);
+
         if ($suspended) {
             abort(403, 'This branch is currently suspended.');
         }

@@ -33,4 +33,15 @@ class ReceivableAgingTest extends TestCase
         $this->assertSame(0.0, $buckets['outstanding']);
         $this->assertNull($buckets['oldest_unpaid_at']);
     }
+
+    public function test_it_treats_sale_reversals_like_payments(): void
+    {
+        $buckets = ReceivableAging::buckets([
+            ['type' => 'charge', 'amount' => 90, 'entry_date' => '2026-09-01'],
+            ['type' => 'reversal', 'amount' => 90, 'entry_date' => '2026-09-02'],
+        ], '2026-09-13');
+
+        $this->assertSame(0.0, $buckets['outstanding']);
+        $this->assertNull($buckets['oldest_unpaid_at']);
+    }
 }

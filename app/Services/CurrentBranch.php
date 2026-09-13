@@ -10,26 +10,45 @@ class CurrentBranch
 {
     public const SESSION_KEY = 'current_branch_id';
 
+    protected bool $idResolved = false;
+
+    protected ?int $resolvedId = null;
+
+    protected Branch|null|false $branchCache = false;
+
+    protected ?array $availableBranchesCache = null;
+
     public function id(): ?int
     {
+        if ($this->idResolved) {
+            return $this->resolvedId;
+        }
+
         $branchId = session(self::SESSION_KEY);
 
         if ($branchId === null) {
-            return $this->defaultBranchId();
+            $this->resolvedId = $this->defaultBranchId();
+        } elseif (! $this->userCanAccessBranch((int) $branchId)) {
+            $this->resolvedId = $this->defaultBranchId();
+        } else {
+            $this->resolvedId = (int) $branchId;
         }
 
-        if (! $this->userCanAccessBranch((int) $branchId)) {
-            return $this->defaultBranchId();
-        }
+        $this->idResolved = true;
 
-        return (int) $branchId;
+        return $this->resolvedId;
     }
 
     public function branch(): ?Branch
     {
-        $branchId = $this->id();
+        if ($this->branchCache !== false) {
+            return $this->branchCache;
+        }
 
-        return $branchId ? Branch::query()->find($branchId) : null;
+        $branchId = $this->id();
+        $this->branchCache = $branchId ? Branch::query()->find($branchId) : null;
+
+        return $this->branchCache;
     }
 
     public function set(int $branchId): void
@@ -39,25 +58,32 @@ class CurrentBranch
         }
 
         session([self::SESSION_KEY => $branchId]);
+        $this->idResolved = true;
+        $this->resolvedId = $branchId;
+        $this->branchCache = false;
     }
 
     public function availableBranches(): array
     {
+        if ($this->availableBranchesCache !== null) {
+            return $this->availableBranchesCache;
+        }
+
         $user = Auth::user();
 
         if (! $user instanceof User) {
-            return [];
+            return $this->availableBranchesCache = [];
         }
 
         if ($user->hasPermission('reports.view_all_branches')) {
-            return Branch::query()
+            return $this->availableBranchesCache = Branch::query()
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get()
                 ->all();
         }
 
-        return $user->branches()
+        return $this->availableBranchesCache = $user->branches()
             ->where('is_active', true)
             ->orderBy('name')
             ->get()

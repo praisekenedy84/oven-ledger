@@ -28,7 +28,7 @@ class ReceivableAging
                 continue;
             }
 
-            if ($type !== 'payment' || $amount <= 0) {
+            if (! in_array($type, ['payment', 'reversal'], true) || $amount <= 0) {
                 continue;
             }
 

@@ -22,6 +22,7 @@ import { Head, useForm } from '@inertiajs/react';
 export default function Index({ staff, roles, branches }) {
     const form = useForm({
         name: '',
+        username: '',
         email: '',
         password: '',
         role_id: roles[0]?.id ?? '',
@@ -49,16 +50,16 @@ export default function Index({ staff, roles, branches }) {
                 onSubmit={(e) => {
                     e.preventDefault();
                     form.post(route('tenant.staff.store'), {
-                        onSuccess: () => form.reset('name', 'email', 'password'),
+                        onSuccess: () => form.reset('name', 'username', 'email', 'password'),
                     });
                 }}
                 variant="outlined"
-                sx={{ mb: 3, p: 3, borderRadius: 3 }}
+                sx={{ mb: 3, p: 3, borderRadius: 1 }}
             >
                 <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
                     Add staff member
                 </Typography>
-                <Stack spacing={2.5}>
+                <Stack spacing={2}>
                     <Box
                         sx={{
                             display: 'grid',
@@ -73,6 +74,15 @@ export default function Index({ staff, roles, branches }) {
                                 onChange={(e) => form.setData('name', e.target.value)}
                             />
                             <InputError message={form.errors.name} />
+                        </Box>
+                        <Box>
+                            <InputLabel value="Username" />
+                            <TextInput
+                                value={form.data.username}
+                                autoComplete="username"
+                                onChange={(e) => form.setData('username', e.target.value)}
+                            />
+                            <InputError message={form.errors.username} />
                         </Box>
                         <Box>
                             <InputLabel value="Email" />
@@ -134,6 +144,7 @@ export default function Index({ staff, roles, branches }) {
             <DataTable
                 columns={[
                     { label: 'Name' },
+                    { label: 'Username' },
                     { label: 'Email' },
                     { label: 'Role' },
                     { label: 'Branches' },
@@ -142,9 +153,10 @@ export default function Index({ staff, roles, branches }) {
                 {staff.data.map((member) => (
                     <DataTableRow key={member.id}>
                         <DataTableCell sx={{ fontWeight: 600 }}>{member.name}</DataTableCell>
+                        <DataTableCell>{member.username}</DataTableCell>
                         <DataTableCell>{member.email}</DataTableCell>
                         <DataTableCell>
-                            {member.user_roles?.[0]?.role?.name ?? '—'}
+                            {member.user_roles?.[0]?.role?.name ?? 'â€”'}
                         </DataTableCell>
                         <DataTableCell>
                             {member.branches?.map((b) => b.name).join(', ') || 'All'}

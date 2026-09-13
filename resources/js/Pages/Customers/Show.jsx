@@ -9,6 +9,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import StatusBadge from '@/Components/StatusBadge';
 import TextInput from '@/Components/TextInput';
 import SurfaceCard from '@/Components/SurfaceCard';
+import VoidSaleDialog, { canRefundSales } from '@/Components/VoidSaleDialog';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
@@ -22,14 +23,14 @@ import {
     Stack,
     Typography,
 } from '@mui/material';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 function AgingCard({ aging }) {
     const buckets = [
-        { key: 'current', label: '0–30 days' },
-        { key: 'days_31_60', label: '31–60' },
-        { key: 'days_61_90', label: '61–90' },
+        { key: 'current', label: '0â€“30 days' },
+        { key: 'days_31_60', label: '31â€“60' },
+        { key: 'days_61_90', label: '61â€“90' },
         { key: 'days_90_plus', label: '90+' },
     ];
 
@@ -75,7 +76,9 @@ function AgingCard({ aging }) {
 }
 
 export default function Show({ customer, ledger, orders, outstanding, aging, priceList = [] }) {
+    const canRefund = canRefundSales(usePage().props.auth);
     const [editingAddress, setEditingAddress] = useState(null);
+    const [voidTarget, setVoidTarget] = useState(null);
 
     const profileForm = useForm({
         name: customer.name,
@@ -128,7 +131,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
             <PageHeader
                 eyebrow={`${customer.type} account`}
                 title={customer.name}
-                description={`${customer.phone || 'No phone'} · credit terms ${customer.payment_terms || 'not set'}`}
+                description={`${customer.phone || 'No phone'} Â· credit terms ${customer.payment_terms || 'not set'}`}
                 backHref={route('tenant.customers.index')}
                 actions={
                     <StatusBadge
@@ -185,7 +188,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                         profileForm.put(route('tenant.customers.update', customer.id));
                     }}
                     variant="outlined"
-                    sx={{ p: 3, borderRadius: 3 }}
+                    sx={{ p: 3, borderRadius: 1 }}
                 >
                     <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
                         Profile
@@ -271,7 +274,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                         });
                     }}
                     variant="outlined"
-                    sx={{ p: 3, borderRadius: 3 }}
+                    sx={{ p: 3, borderRadius: 1 }}
                 >
                     <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
                         Record a payment
@@ -344,7 +347,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                 </DataTable>
             </SurfaceCard>
 
-            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 1, mb: 3 }}>
                 <Typography variant="h6" sx={{ mb: 1 }}>
                     Delivery notes
                 </Typography>
@@ -411,8 +414,8 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                         <DataTableRow key={address.id}>
                             <DataTableCell sx={{ fontWeight: 600 }}>{address.label}</DataTableCell>
                             <DataTableCell>{address.address_text}</DataTableCell>
-                            <DataTableCell>{address.phone || '—'}</DataTableCell>
-                            <DataTableCell>{address.notes || '—'}</DataTableCell>
+                            <DataTableCell>{address.phone || 'â€”'}</DataTableCell>
+                            <DataTableCell>{address.notes || 'â€”'}</DataTableCell>
                             <DataTableCell>
                                 <Stack direction="row" spacing={1}>
                                     <Button
@@ -476,7 +479,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                         <DataTableCell sx={{ fontWeight: 600 }}>
                             <Money amount={entry.balance_after} />
                         </DataTableCell>
-                        <DataTableCell>{entry.notes || '—'}</DataTableCell>
+                        <DataTableCell>{entry.notes || 'â€”'}</DataTableCell>
                     </DataTableRow>
                 ))}
             </DataTable>
@@ -488,6 +491,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
             <DataTable
                 columns={[
                     { label: 'When' },
+                    { label: 'Cashier' },
                     { label: 'Channel' },
                     { label: 'Fulfillment' },
                     { label: 'Total' },
@@ -502,6 +506,9 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                             {formatDateTime(order.requested_fulfillment_at || order.created_at)}
                         </DataTableCell>
                         <DataTableCell>
+                            {order.sold_by?.name ?? 'Unassigned'}
+                        </DataTableCell>
+                        <DataTableCell>
                             <StatusBadge status={order.channel} />
                         </DataTableCell>
                         <DataTableCell>
@@ -509,7 +516,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                                 status={order.fulfillment_type}
                                 label={
                                     order.is_pre_order
-                                        ? `Pre-order · ${order.fulfillment_type}`
+                                        ? `Pre-order Â· ${order.fulfillment_type}`
                                         : order.fulfillment_type
                                 }
                             />
@@ -521,21 +528,46 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                             <StatusBadge status={order.status} />
                         </DataTableCell>
                         <DataTableCell>
-                            {order.status !== 'completed' && (
-                                <Button
-                                    size="small"
-                                    onClick={() =>
-                                        router.patch(route('tenant.orders.fulfill', order.id))
-                                    }
-                                >
-                                    Mark fulfilled
-                                </Button>
-                            )}
+                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                {order.status === 'pending' && (
+                                    <Button
+                                        size="small"
+                                        onClick={() =>
+                                            router.patch(route('tenant.orders.fulfill', order.id))
+                                        }
+                                    >
+                                        Mark fulfilled
+                                    </Button>
+                                )}
+                                {canRefund && order.status !== 'voided' && (
+                                    <Button
+                                        size="small"
+                                        color="error"
+                                        variant="outlined"
+                                        onClick={() => setVoidTarget({
+                                            ...order,
+                                            cashier: order.sold_by,
+                                            items: (order.items ?? []).map((item) => ({
+                                                name: item.product?.name ?? 'Item',
+                                                quantity: item.quantity,
+                                            })),
+                                        })}
+                                    >
+                                        Void
+                                    </Button>
+                                )}
+                            </Stack>
                         </DataTableCell>
                     </DataTableRow>
                 ))}
             </DataTable>
             <Pagination links={orders.links} />
+
+            <VoidSaleDialog
+                order={voidTarget}
+                open={Boolean(voidTarget)}
+                onClose={() => setVoidTarget(null)}
+            />
         </TenantLayout>
     );
 }

@@ -17,9 +17,21 @@ class RecipeController extends Controller
     public function index(): Response
     {
         return Inertia::render('Recipes/Index', [
-            'recipes' => Recipe::query()->with(['product', 'ingredients.rawMaterial'])->latest()->paginate(20),
-            'products' => Product::query()->where('type', 'produced')->orderBy('name')->get(),
-            'rawMaterials' => RawMaterial::query()->orderBy('name')->get(),
+            'recipes' => Recipe::query()
+                ->with([
+                    'product:id,name',
+                    'ingredients:id,recipe_id,raw_material_id,quantity,unit',
+                    'ingredients.rawMaterial:id,name,unit_of_measure',
+                ])
+                ->latest()
+                ->paginate(20),
+            'products' => Product::query()
+                ->where('type', 'produced')
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'rawMaterials' => RawMaterial::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'unit_of_measure']),
         ]);
     }
 

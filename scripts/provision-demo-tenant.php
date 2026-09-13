@@ -23,6 +23,7 @@ if ($tenant) {
     $tenant = app(TenantProvisioner::class)->provision([
         'name' => 'Demo Bakery',
         'owner_name' => 'Amina Owner',
+        'owner_username' => 'owner',
         'owner_email' => $ownerEmail,
         'owner_phone' => '255700000000',
         'owner_password' => 'password',
@@ -49,7 +50,7 @@ $tenant->run(function () {
 
 echo "Demo data seeded.\n";
 echo "Logins (shared URL /login), password for all: password\n";
-echo "  owner@demo.test     Amina Owner (all branches)\n";
-echo "  manager@demo.test   Juma Mkude (Masaki + Mlimani)\n";
-echo "  cashier@demo.test   Neema Ally (Main Branch)\n";
-echo "  baker@demo.test     Baraka Mushi (Main Branch production)\n";
+echo "  owner / owner@demo.test     Amina Owner (all branches)\n";
+echo "  manager / manager@demo.test Juma Mkude (Masaki + Mlimani)\n";
+echo "  cashier / cashier@demo.test Neema Ally (Main Branch)\n";
+echo "  baker / baker@demo.test     Baraka Mushi (Main Branch production)\n";

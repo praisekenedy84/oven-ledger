@@ -10,8 +10,9 @@ import TextInput from '@/Components/TextInput';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDate } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
-import { Box, FormControl, MenuItem, Select, Stack, Typography } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import { Head, router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 
 const NEXT_STATUS = {
     planned: 'baking',
@@ -39,17 +40,38 @@ export default function Index({ batches, products, recipes }) {
         (r) => String(r.product_id) === String(createForm.data.product_id),
     );
 
+    const [qtyDialog, setQtyDialog] = useState({ open: false, batch: null, status: null, quantity: '' });
+
     const transition = (batch, status) => {
-        const payload = { status };
         if (status === 'ready' || status === 'dispatched') {
-            const qty = window.prompt('Actual quantity produced (optional):');
-            if (qty) {
-                payload.actual_quantity = qty;
-            }
+            setQtyDialog({
+                open: true,
+                batch,
+                status,
+                quantity: batch.actual_quantity ?? batch.planned_quantity ?? '',
+            });
+            return;
         }
-        router.patch(route('tenant.production-batches.transition', batch.id), payload, {
+
+        router.patch(route('tenant.production-batches.transition', batch.id), { status }, {
             preserveScroll: true,
         });
+    };
+
+    const confirmQuantity = () => {
+        if (!qtyDialog.batch || !qtyDialog.status) {
+            return;
+        }
+
+        router.patch(
+            route('tenant.production-batches.transition', qtyDialog.batch.id),
+            {
+                status: qtyDialog.status,
+                actual_quantity: qtyDialog.quantity || null,
+            },
+            { preserveScroll: true },
+        );
+        setQtyDialog({ open: false, batch: null, status: null, quantity: '' });
     };
 
     const rows = batches.data ?? [];
@@ -263,6 +285,40 @@ export default function Index({ batches, products, recipes }) {
             )}
 
             <Pagination links={batches.links} />
+
+            <Dialog
+                open={qtyDialog.open}
+                onClose={() => setQtyDialog({ open: false, batch: null, status: null, quantity: '' })}
+                fullWidth
+                maxWidth="xs"
+            >
+                <DialogTitle>Actual quantity</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {qtyDialog.batch?.product?.name
+                            ? `How many ${qtyDialog.batch.product.name} came out of this batch?`
+                            : 'Optional — leave blank to keep the planned quantity.'}
+                    </Typography>
+                    <TextField
+                        autoFocus
+                        fullWidth
+                        type="number"
+                        label="Quantity produced"
+                        value={qtyDialog.quantity}
+                        onChange={(e) => setQtyDialog((prev) => ({ ...prev, quantity: e.target.value }))}
+                    />
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button
+                        onClick={() => setQtyDialog({ open: false, batch: null, status: null, quantity: '' })}
+                    >
+                        Cancel
+                    </Button>
+                    <Button variant="contained" onClick={confirmQuantity}>
+                        Mark {qtyDialog.status}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </TenantLayout>
     );
 }

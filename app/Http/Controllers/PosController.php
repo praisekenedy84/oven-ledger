@@ -14,6 +14,7 @@ use App\Services\CurrentBranch;
 use App\Services\CustomerLedger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -28,15 +29,71 @@ class PosController extends Controller
 
     public function index(): Response
     {
+        $branchId = $this->currentBranch->id();
+
         return Inertia::render('Pos/Index', [
-            'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
+            'products' => Product::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'type', 'unit_of_measure', 'category']),
             'customers' => Customer::query()
                 ->where('is_active', true)
-                ->with('addresses')
+                ->with('addresses:id,customer_id,label,address_text')
                 ->orderBy('name')
-                ->get(),
-            'priceLists' => PriceList::query()->get(),
+                ->get(['id', 'name', 'type', 'phone']),
+            'priceLists' => PriceList::query()->get(['product_id', 'channel', 'price']),
+            'todayTicketCount' => Order::query()
+                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                ->whereDate('created_at', now()->toDateString())
+                ->count(),
         ]);
+    }
+
+    public function tickets(Request $request): Response
+    {
+        $branchId = $request->input('branch_id', $this->currentBranch->id());
+        $allDays = $request->boolean('all');
+        $date = $this->parseTicketDate($request->input('date'), $allDays ? null : now()->toDateString());
+
+        $query = Order::query()
+            ->with(['soldBy:id,name', 'voidedBy:id,name', 'customer:id,name', 'items.product:id,name'])
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when(! $allDays && $date, fn ($q) => $q->whereDate('created_at', $date));
+
+        $summaryQuery = (clone $query);
+
+        $tickets = $query
+            ->latest()
+            ->paginate(40)
+            ->withQueryString()
+            ->through(fn (Order $order) => $order->toTicketArray());
+
+        return Inertia::render('Pos/Tickets', [
+            'tickets' => $tickets,
+            'summary' => [
+                'count' => (clone $summaryQuery)->where('status', 'completed')->count(),
+                'total' => (float) (clone $summaryQuery)->where('status', 'completed')->sum('total_amount'),
+                'voided' => (clone $summaryQuery)->where('status', 'voided')->count(),
+            ],
+            'filters' => [
+                'branch_id' => $branchId,
+                'date' => $date,
+                'all' => $allDays,
+            ],
+        ]);
+    }
+
+    protected function parseTicketDate(mixed $value, ?string $fallback): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return $fallback;
+        }
+
+        try {
+            return Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return $fallback;
+        }
     }
 
     public function store(Request $request): RedirectResponse
@@ -110,21 +167,21 @@ class PosController extends Controller
             ]);
         }
 
-        $order = DB::transaction(function () use ($validated, $branchId, $customer, $isPreOrder, $fulfillmentType, $deliveryAddressId) {
+        $soldBy = $request->user()?->id;
+
+        $order = DB::transaction(function () use ($validated, $branchId, $customer, $isPreOrder, $fulfillmentType, $deliveryAddressId, $soldBy) {
             $total = 0;
             $lineItems = [];
+            $channel = $validated['channel'] === 'custom' ? 'retail' : $validated['channel'];
+            $productIds = collect($validated['items'])->pluck('product_id')->unique()->all();
+            $prices = PriceList::query()
+                ->where('channel', $channel)
+                ->whereIn('product_id', $productIds)
+                ->pluck('price', 'product_id');
 
             foreach ($validated['items'] as $item) {
-                $price = PriceList::query()
-                    ->where('product_id', $item['product_id'])
-                    ->where('channel', $validated['channel'] === 'custom' ? 'retail' : $validated['channel'])
-                    ->value('price');
-
-                if ($price === null) {
-                    $price = 0;
-                }
-
-                $lineTotal = (float) $price * (float) $item['quantity'];
+                $price = (float) ($prices[$item['product_id']] ?? 0);
+                $lineTotal = $price * (float) $item['quantity'];
                 $total += $lineTotal;
 
                 $lineItems[] = [
@@ -162,6 +219,7 @@ class PosController extends Controller
 
             $order = Order::create([
                 'branch_id' => $branchId,
+                'created_by' => $soldBy,
                 'customer_id' => $customer?->id,
                 'channel' => $validated['channel'],
                 'status' => $isPreOrder ? 'pending' : 'completed',

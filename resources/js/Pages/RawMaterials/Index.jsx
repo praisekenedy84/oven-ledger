@@ -56,7 +56,7 @@ export default function Index({ rawMaterials }) {
                 sx={{
                     mb: 3,
                     p: 3,
-                    borderRadius: 3,
+                    borderRadius: 1,
                     display: 'grid',
                     gap: 2,
                     gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr 1fr' },
@@ -154,7 +154,7 @@ export default function Index({ rawMaterials }) {
                             <>
                                 <DataTableCell sx={{ fontWeight: 600 }}>{item.name}</DataTableCell>
                                 <DataTableCell>{item.unit_of_measure}</DataTableCell>
-                                <DataTableCell>{item.reorder_threshold ?? '—'}</DataTableCell>
+                                <DataTableCell>{item.reorder_threshold ?? 'â€”'}</DataTableCell>
                                 <DataTableCell>
                                     <Button size="small" onClick={() => startEdit(item)}>
                                         Edit

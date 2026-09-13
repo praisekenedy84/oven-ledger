@@ -1,29 +1,13 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
+import AppSidebar from '@/Components/AppSidebar';
 import BuildUpdatePrompt from '@/Components/BuildUpdatePrompt';
 import FlashMessage from '@/Components/FlashMessage';
-import { colors } from '@/theme/bakeryTheme';
-import { isRouteActive, resolveNavIcon, userInitials } from '@/theme/nav';
-import LogoutIcon from '@mui/icons-material/Logout';
+import { colors, layout } from '@/theme/bakeryTheme';
+import { resolveNavIcon } from '@/theme/nav';
 import MenuIcon from '@mui/icons-material/Menu';
-import {
-    AppBar,
-    Avatar,
-    Box,
-    Drawer,
-    IconButton,
-    List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
-    Toolbar,
-    Typography,
-    useMediaQuery,
-} from '@mui/material';
+import { AppBar, Box, IconButton, Toolbar, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
-
-const DRAWER_WIDTH = 240;
+import { router, usePage } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
 
 const NAV = [
     { label: 'Dashboard', route: 'platform.dashboard' },
@@ -34,104 +18,25 @@ const NAV = [
 
 export default function PlatformLayout({ title, children }) {
     const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
     const { auth } = usePage().props;
     const [mobileOpen, setMobileOpen] = useState(false);
-    const navItems = NAV.filter(
-        (item) =>
-            item.route !== 'platform.roles.index' ||
-            (auth.permissions ?? []).includes('roles.manage'),
-    );
 
-    const drawer = (
-        <Box
-            sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                bgcolor: colors.ink,
-                color: colors.cream,
-            }}
-        >
-            <Box
-                sx={{
-                    height: 64,
-                    display: 'flex',
-                    alignItems: 'center',
-                    px: 2,
-                    borderBottom: '1px solid rgba(255,255,255,0.1)',
-                }}
-            >
-                <Box sx={{ color: colors.cream }}>
-                    <ApplicationLogo />
-                </Box>
-            </Box>
-
-            <List sx={{ flex: 1, overflowY: 'auto', px: 1.5, py: 1.5 }}>
-                {navItems.map((item) => {
-                    const active = isRouteActive(item.route);
-                    const Icon = resolveNavIcon(item.route);
-                    return (
-                        <ListItemButton
-                            key={item.route}
-                            component={Link}
-                            href={route(item.route)}
-                            onClick={() => setMobileOpen(false)}
-                            sx={{
-                                mb: 0.5,
-                                color: active ? colors.cream : colors.wheatLight,
-                                bgcolor: active ? colors.jam : 'transparent',
-                                '&:hover': {
-                                    bgcolor: active ? colors.jam : 'rgba(251,246,234,0.08)',
-                                    color: colors.cream,
-                                },
-                            }}
-                        >
-                            <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
-                                <Icon fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText
-                                primary={item.label}
-                                primaryTypographyProps={{ fontWeight: 600, fontSize: 14 }}
-                            />
-                        </ListItemButton>
-                    );
-                })}
-            </List>
-
-            <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.1)', p: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
-                    <Avatar
-                        sx={{
-                            width: 32,
-                            height: 32,
-                            fontSize: 12,
-                            bgcolor: colors.butter,
-                            color: colors.ink,
-                            fontWeight: 700,
-                        }}
-                    >
-                        {userInitials(auth.user?.name)}
-                    </Avatar>
-                    <Typography variant="caption" sx={{ color: colors.wheatLight }} noWrap>
-                        {auth.user?.name}
-                    </Typography>
-                </Box>
-                <ListItemButton
-                    onClick={() => router.post(route('platform.logout'))}
-                    sx={{
-                        color: colors.wheatLight,
-                        px: 1,
-                        '&:hover': { bgcolor: 'rgba(251,246,234,0.08)', color: colors.cream },
-                    }}
-                >
-                    <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
-                        <LogoutIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: 14 }} />
-                </ListItemButton>
-            </Box>
-        </Box>
+    const navItems = useMemo(
+        () =>
+            NAV.filter(
+                (item) =>
+                    item.route !== 'platform.roles.index' ||
+                    (auth.permissions ?? []).includes('roles.manage'),
+            ).map((item) => ({
+                key: item.route,
+                label: item.label,
+                route_name: item.route,
+                href: route(item.route),
+                children: [],
+                Icon: resolveNavIcon(item.route),
+            })),
+        [auth.permissions],
     );
 
     return (
@@ -139,30 +44,13 @@ export default function PlatformLayout({ title, children }) {
             <FlashMessage />
             <BuildUpdatePrompt />
 
-            <Box component="nav" sx={{ width: { lg: DRAWER_WIDTH }, flexShrink: { lg: 0 } }}>
-                <Drawer
-                    variant="temporary"
-                    open={mobileOpen}
-                    onClose={() => setMobileOpen(false)}
-                    ModalProps={{ keepMounted: true }}
-                    sx={{
-                        display: { xs: 'block', lg: 'none' },
-                        '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box' },
-                    }}
-                >
-                    {drawer}
-                </Drawer>
-                <Drawer
-                    variant="permanent"
-                    open
-                    sx={{
-                        display: { xs: 'none', lg: 'block' },
-                        '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box' },
-                    }}
-                >
-                    {drawer}
-                </Drawer>
-            </Box>
+            <AppSidebar
+                navItems={navItems}
+                userName={auth.user?.name}
+                onLogout={() => router.post(route('platform.logout'))}
+                mobileOpen={mobileOpen}
+                onMobileClose={() => setMobileOpen(false)}
+            />
 
             <Box
                 sx={{
@@ -174,7 +62,7 @@ export default function PlatformLayout({ title, children }) {
                 }}
             >
                 <AppBar position="sticky">
-                    <Toolbar sx={{ gap: 1.5, minHeight: 64 }}>
+                    <Toolbar sx={{ gap: 2, minHeight: layout.headerHeight }}>
                         {!isDesktop && (
                             <IconButton
                                 edge="start"
@@ -184,7 +72,7 @@ export default function PlatformLayout({ title, children }) {
                                 <MenuIcon />
                             </IconButton>
                         )}
-                        <Typography variant="h6" sx={{ flex: 1 }}>
+                        <Typography variant="h6" noWrap sx={{ flex: 1, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
                             {title}
                         </Typography>
                         <Typography
@@ -197,7 +85,7 @@ export default function PlatformLayout({ title, children }) {
                     </Toolbar>
                 </AppBar>
 
-                <Box component="main" sx={{ flex: 1, p: { xs: 2, lg: 3 } }}>
+                <Box component="main" sx={{ flex: 1, p: layout.pageGutter }}>
                     {children}
                 </Box>
             </Box>

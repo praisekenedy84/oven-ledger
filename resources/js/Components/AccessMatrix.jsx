@@ -115,7 +115,7 @@ export default function AccessMatrix({ columns, rows, value, onChange }) {
                             key={role.id}
                             sx={{
                                 border: `1px solid ${colors.border}`,
-                                borderRadius: 3,
+                                borderRadius: 1,
                                 overflow: 'hidden',
                                 bgcolor: colors.surfaceRaised,
                             }}
@@ -212,7 +212,7 @@ export default function AccessMatrix({ columns, rows, value, onChange }) {
         <TableContainer
             sx={{
                 border: `1px solid ${colors.border}`,
-                borderRadius: 3,
+                borderRadius: 1,
                 maxHeight: '70vh',
                 bgcolor: colors.surfaceRaised,
             }}

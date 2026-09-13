@@ -161,7 +161,7 @@ export default function Index({ roles, permissionGroups, menuRows }) {
                         sx={{
                             px: 1.75,
                             py: 1.25,
-                            borderRadius: 3,
+                            borderRadius: 1,
                             minWidth: 160,
                             bgcolor: colors.surfaceRaised,
                         }}
@@ -173,7 +173,7 @@ export default function Index({ roles, permissionGroups, menuRows }) {
                             )}
                         </Stack>
                         <Typography variant="caption" color="text.secondary">
-                            {role.users_count} staff · {matrix[role.id]?.permission_ids.length ?? 0} permissions
+                            {role.users_count} staff Â· {matrix[role.id]?.permission_ids.length ?? 0} permissions
                         </Typography>
                         <Stack direction="row" spacing={0.75} sx={{ mt: 1 }}>
                             <SecondaryButton
@@ -210,7 +210,7 @@ export default function Index({ roles, permissionGroups, menuRows }) {
                 ))}
             </Stack>
 
-            <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+            <Paper variant="outlined" sx={{ borderRadius: 1, overflow: 'hidden' }}>
                 <Box
                     sx={{
                         px: 2,
@@ -241,7 +241,7 @@ export default function Index({ roles, permissionGroups, menuRows }) {
                         mt: 2,
                         px: 2,
                         py: 1.5,
-                        borderRadius: 3,
+                        borderRadius: 1,
                         bgcolor: colors.ink,
                         color: colors.cream,
                         display: 'flex',
