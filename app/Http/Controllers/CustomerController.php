@@ -51,6 +51,7 @@ class CustomerController extends Controller
                 'type' => $type,
                 'search' => $search,
             ],
+            'totals' => Customer::receivablesSummary(),
         ]);
     }
 

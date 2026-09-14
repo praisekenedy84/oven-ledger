@@ -73,6 +73,7 @@ class ReportExporter
             'sales_by_channel' => $this->channelTotals($from, $to, $branchId),
             'sales_by_product' => $this->reports->productSales($from, $to, $branchId, $productSearch, $productId),
             'expenses' => $this->reports->expenseBreakdown($statement, $dailySales),
+            'operating_expenses' => $this->reports->operatingExpenseEntries($from, $to, $branchId),
         ];
     }
 
@@ -208,15 +209,28 @@ class ReportExporter
         $daily = $book->createSheet();
         $daily->setTitle('Daily costs');
         $this->paintTable($daily, $payload, $theme, 'Money going out each day', [
-            'Day', 'Ingredient cost', 'Waste', 'Creditor payments', 'Owner drawings', 'Total out',
+            'Day', 'Ingredient cost', 'Waste', 'Shop costs', 'Creditor payments', 'Owner drawings', 'Total out',
         ], collect($payload['expenses']['daily'])->map(fn (array $day) => [
             $day['date'],
             $day['ingredient_cost'],
             $day['waste_cost'],
+            $day['operating_expenses'] ?? 0,
             $day['debt_payments'],
             $day['drawings'],
             $day['total'],
-        ])->all(), [1, 2, 3, 4, 5]);
+        ])->all(), [1, 2, 3, 4, 5, 6]);
+
+        $shop = $book->createSheet();
+        $shop->setTitle('Rent and fees');
+        $this->paintTable($shop, $payload, $theme, 'Rent, fees, and other shop costs', [
+            'Day', 'Type', 'Paid to / for', 'Amount', 'Notes',
+        ], collect($payload['operating_expenses'] ?? [])->map(fn (array $row) => [
+            $row['date'],
+            $row['label'],
+            $row['payee'],
+            $row['amount'],
+            $row['notes'] ?? '',
+        ])->all(), [3]);
 
         $book->setActiveSheetIndex(0);
 

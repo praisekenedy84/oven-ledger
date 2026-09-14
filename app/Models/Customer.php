@@ -70,4 +70,33 @@ class Customer extends Model
                 ->limit(1),
         ]);
     }
+
+    /**
+     * @return array{total_owed: float, customers_owing: int, by_type: array<string, float>}
+     */
+    public static function receivablesSummary(): array
+    {
+        $byType = [
+            'retail' => 0.0,
+            'wholesale' => 0.0,
+            'restaurant' => 0.0,
+        ];
+
+        $owing = static::query()
+            ->withOutstandingBalance()
+            ->get()
+            ->filter(fn (self $customer) => (float) ($customer->outstanding_balance ?? 0) > 0.009);
+
+        foreach ($owing as $customer) {
+            $type = $customer->type;
+            $amount = (float) $customer->outstanding_balance;
+            $byType[$type] = round(($byType[$type] ?? 0) + $amount, 2);
+        }
+
+        return [
+            'total_owed' => round($owing->sum(fn (self $customer) => (float) $customer->outstanding_balance), 2),
+            'customers_owing' => $owing->count(),
+            'by_type' => $byType,
+        ];
+    }
 }

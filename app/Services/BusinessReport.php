@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\LiabilityPayment;
+use App\Models\OperatingExpense;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OwnerTransaction;
@@ -35,6 +36,7 @@ class BusinessReport
         }
 
         $wasteCost = $this->wasteCost($from, $to, $branchId, $unitCosts);
+        $operatingExpenses = $this->operatingExpenseTotal($from, $to, $branchId);
         $cashCollected = $this->collectedByMethod($from, $to, $branchId, credit: false);
         $creditSales = $this->collectedByMethod($from, $to, $branchId, credit: true);
         $debtPayments = $this->debtPayments($from, $to);
@@ -44,12 +46,13 @@ class BusinessReport
         $cogs = round($cogs, 2);
         $revenue = round($revenue, 2);
         $grossProfit = round($revenue - $cogs, 2);
-        $operatingProfit = round($revenue - $cogs - $wasteCost, 2);
+        $operatingProfit = round($revenue - $cogs - $wasteCost - $operatingExpenses, 2);
 
         return [
             'revenue' => $revenue,
             'ingredient_cost' => $cogs,
             'waste_cost' => $wasteCost,
+            'operating_expenses' => $operatingExpenses,
             'gross_profit' => $grossProfit,
             'profit' => $operatingProfit,
             'is_profit' => $operatingProfit > 0.009,
@@ -62,7 +65,7 @@ class BusinessReport
             'capital_in' => $lifetimeOwner['capital_in'],
             'drawings' => $lifetimeOwner['drawings'],
             'capital_remaining' => round($lifetimeOwner['capital_in'] - $lifetimeOwner['drawings'], 2),
-            'money_used' => round($cogs + $wasteCost + $debtPayments + $periodOwner['drawings'], 2),
+            'money_used' => round($cogs + $wasteCost + $operatingExpenses + $debtPayments + $periodOwner['drawings'], 2),
         ];
     }
 
@@ -134,7 +137,17 @@ class BusinessReport
                 ->get()
         );
 
-        return $days->map(function (string $day) use ($sales, $cogsByDay, $wasteByDay, $tenderByDay, $debtsByDay, $drawingsByDay) {
+        $shopCostsByDay = $this->sumByDay(
+            OperatingExpense::query()
+                ->selectRaw('DATE(incurred_at) as day')
+                ->selectRaw('SUM(amount) as total')
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+                ->whereBetween('incurred_at', [$from, $to])
+                ->groupBy('day')
+                ->get()
+        );
+
+        return $days->map(function (string $day) use ($sales, $cogsByDay, $wasteByDay, $tenderByDay, $debtsByDay, $drawingsByDay, $shopCostsByDay) {
             $row = $sales->get($day);
             $tender = $tenderByDay->get($day);
             $revenue = round((float) ($row?->revenue ?? 0), 2);
@@ -142,8 +155,9 @@ class BusinessReport
             $waste = round((float) ($wasteByDay[$day] ?? 0), 2);
             $debts = round((float) ($debtsByDay[$day] ?? 0), 2);
             $drawings = round((float) ($drawingsByDay[$day] ?? 0), 2);
-            $profit = round($revenue - $cogs - $waste, 2);
-            $outflow = round($cogs + $waste + $debts + $drawings, 2);
+            $shopCosts = round((float) ($shopCostsByDay[$day] ?? 0), 2);
+            $profit = round($revenue - $cogs - $waste - $shopCosts, 2);
+            $outflow = round($cogs + $waste + $debts + $drawings + $shopCosts, 2);
 
             return [
                 'date' => $day,
@@ -159,6 +173,7 @@ class BusinessReport
                 'credit' => round((float) ($tender?->credit ?? 0), 2),
                 'ingredient_cost' => $cogs,
                 'waste_cost' => $waste,
+                'operating_expenses' => $shopCosts,
                 'debt_payments' => $debts,
                 'drawings' => $drawings,
                 'outflow' => $outflow,
@@ -250,6 +265,11 @@ class BusinessReport
                 'amount' => $statement['waste_cost'],
             ],
             [
+                'key' => 'operating_expenses',
+                'label' => 'Rent, fees, and other shop costs',
+                'amount' => $statement['operating_expenses'] ?? 0,
+            ],
+            [
                 'key' => 'debt_payments',
                 'label' => 'Paid to creditors',
                 'amount' => $statement['debt_payments'],
@@ -268,11 +288,33 @@ class BusinessReport
                 'date' => $day['date'],
                 'ingredient_cost' => $day['ingredient_cost'],
                 'waste_cost' => $day['waste_cost'],
+                'operating_expenses' => $day['operating_expenses'] ?? 0,
                 'debt_payments' => $day['debt_payments'],
                 'drawings' => $day['drawings'],
                 'total' => $day['outflow'],
             ])->all(),
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function operatingExpenseEntries(Carbon $from, Carbon $to, ?int $branchId = null): array
+    {
+        return OperatingExpense::query()
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+            ->whereBetween('incurred_at', [$from, $to])
+            ->orderByDesc('incurred_at')
+            ->get()
+            ->map(fn (OperatingExpense $row) => [
+                'date' => $row->incurred_at?->toDateString(),
+                'category' => $row->category,
+                'label' => OperatingExpense::categoryLabel($row->category),
+                'payee' => $row->payee,
+                'amount' => round((float) $row->amount, 2),
+                'notes' => $row->notes,
+            ])
+            ->all();
     }
 
     protected function productSalesQuery(
@@ -353,6 +395,14 @@ class BusinessReport
             ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->whereBetween('logged_at', [$from, $to])
             ->get(['product_id', 'quantity', 'logged_at']);
+    }
+
+    protected function operatingExpenseTotal(Carbon $from, Carbon $to, ?int $branchId): float
+    {
+        return round((float) OperatingExpense::query()
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+            ->whereBetween('incurred_at', [$from, $to])
+            ->sum('amount'), 2);
     }
 
     protected function collectedByMethod(Carbon $from, Carbon $to, ?int $branchId, bool $credit): float

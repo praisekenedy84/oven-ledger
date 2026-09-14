@@ -54,6 +54,7 @@ class MenuCatalogTest extends TestCase
         $this->assertContains('tenant.customers', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.debts', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.capital', $catalog->defaultVisibleKeys('branch_manager'));
+        $this->assertContains('tenant.expenses', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.shop', $catalog->defaultVisibleKeys('branch_manager'));
     }
 

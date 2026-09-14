@@ -271,6 +271,12 @@ export default function Reports({
                         <StatementRow label="Ingredient and stock cost" value={statement.ingredient_cost} muted />
                         <StatementRow label="Waste write-off" value={statement.waste_cost ?? 0} muted />
                         <StatementRow
+                            label="Rent, fees, and other shop costs"
+                            value={statement.operating_expenses ?? 0}
+                            href={route('tenant.expenses.index')}
+                            muted
+                        />
+                        <StatementRow
                             label={statement.is_loss ? 'Final loss' : 'Final profit'}
                             value={statement.profit}
                             strong
@@ -306,7 +312,12 @@ export default function Reports({
                             value={statement.drawings_period ?? 0}
                             href={route('tenant.capital.index')}
                         />
-                        <StatementRow label="Money used (cost + waste + debts + drawings)" value={statement.money_used ?? 0} strong />
+                        <StatementRow
+                            label="Rent, fees, and other shop costs"
+                            value={statement.operating_expenses ?? 0}
+                            href={route('tenant.expenses.index')}
+                        />
+                        <StatementRow label="Money used (cost + waste + shop bills + debts + drawings)" value={statement.money_used ?? 0} strong />
                     </SurfaceCard>
                 </Box>
             )}
@@ -568,12 +579,17 @@ export default function Reports({
                         </Typography>
                         <Typography variant="h6">Money going out</Typography>
                         <Typography variant="body2" color="text.secondary">
-                            Ingredient cost, waste, creditor payments, and drawings for {rangeLabel}.
+                            Baking costs plus rent, fees, creditor payments, and drawings for {rangeLabel}.
                         </Typography>
                     </Box>
-                    <Typography variant="h6">
-                        <Money amount={expenseBreakdown.total ?? 0} />
-                    </Typography>
+                    <Stack spacing={0.5} alignItems={{ sm: 'flex-end' }}>
+                        <Typography variant="h6">
+                            <Money amount={expenseBreakdown.total ?? 0} />
+                        </Typography>
+                        <Button size="small" component={Link} href={route('tenant.expenses.index')}>
+                            Record a shop expense
+                        </Button>
+                    </Stack>
                 </Stack>
                 <Box sx={{ mb: 2 }}>
                     <LineChart
@@ -590,6 +606,12 @@ export default function Reports({
                                 label: 'Waste',
                                 values: (expenseBreakdown.daily ?? []).map((day) => day.waste_cost),
                                 color: colors.jam,
+                            },
+                            {
+                                key: 'shop',
+                                label: 'Rent and fees',
+                                values: (expenseBreakdown.daily ?? []).map((day) => day.operating_expenses ?? 0),
+                                color: colors.ink,
                             },
                             {
                                 key: 'out',

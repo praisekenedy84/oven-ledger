@@ -25,6 +25,7 @@ class TenantDatabaseSeeder extends Seeder
             ['key' => 'wholesale.manage_clients', 'label' => 'Manage wholesale clients', 'group' => 'wholesale'],
             ['key' => 'customers.manage', 'label' => 'Manage customers', 'group' => 'customers'],
             ['key' => 'debts.manage', 'label' => 'Manage business debts', 'group' => 'debts'],
+            ['key' => 'expenses.manage', 'label' => 'Manage shop expenses', 'group' => 'expenses'],
             ['key' => 'staff.manage', 'label' => 'Manage staff', 'group' => 'staff'],
             ['key' => 'roles.manage', 'label' => 'Manage roles and menus', 'group' => 'staff'],
             ['key' => 'branches.manage', 'label' => 'Manage branches', 'group' => 'branches'],
@@ -46,7 +47,7 @@ class TenantDatabaseSeeder extends Seeder
             'branch_manager' => Permission::whereIn('key', [
                 'pos.sell', 'pos.refund', 'inventory.view', 'inventory.transfer',
                 'production.manage', 'reports.view_own_branch', 'wholesale.manage_clients',
-                'customers.manage', 'debts.manage', 'staff.manage', 'catalog.manage', 'shop.manage',
+                'customers.manage', 'debts.manage', 'expenses.manage', 'staff.manage', 'catalog.manage', 'shop.manage',
             ])->pluck('id')->all(),
             'cashier' => Permission::whereIn('key', ['pos.sell'])->pluck('id')->all(),
             'production_staff' => Permission::whereIn('key', [

@@ -7,6 +7,7 @@ import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalMallOutlinedIcon from '@mui/icons-material/LocalMallOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
 import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
@@ -29,6 +30,8 @@ const NAV_ICONS = {
     'tenant.customers.index': PeopleOutlinedIcon,
     'tenant.debts.index': AccountBalanceOutlinedIcon,
     'tenant.capital.index': SavingsOutlinedIcon,
+    'tenant.expenses.index': PaymentsOutlinedIcon,
+    'tenant.expenses': PaymentsOutlinedIcon,
     'tenant.reports.index': AssessmentOutlinedIcon,
     'tenant.branches.index': BusinessOutlinedIcon,
     'tenant.staff.index': BadgeOutlinedIcon,
@@ -73,6 +76,9 @@ export function resolveNavIcon(routeName, key) {
     }
     if (routeName?.startsWith('tenant.capital')) {
         return SavingsOutlinedIcon;
+    }
+    if (routeName?.startsWith('tenant.expenses')) {
+        return PaymentsOutlinedIcon;
     }
     if (routeName?.startsWith('tenant.reports') || routeName?.startsWith('platform.audit')) {
         return AssessmentOutlinedIcon;

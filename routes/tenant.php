@@ -10,6 +10,7 @@ use App\Http\Controllers\CustomerAddressController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerLedgerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OwnerTransactionController;
@@ -97,6 +98,9 @@ Route::middleware('web')->group(function () {
 
         Route::get('capital', [OwnerTransactionController::class, 'index'])->name('tenant.capital.index');
         Route::post('capital', [OwnerTransactionController::class, 'store'])->name('tenant.capital.store');
+
+        Route::get('expenses', [ExpenseController::class, 'index'])->name('tenant.expenses.index');
+        Route::post('expenses', [ExpenseController::class, 'store'])->name('tenant.expenses.store');
 
         Route::get('reports', [ReportController::class, 'index'])->name('tenant.reports.index');
         Route::get('reports/export', [ReportController::class, 'export'])->name('tenant.reports.export');

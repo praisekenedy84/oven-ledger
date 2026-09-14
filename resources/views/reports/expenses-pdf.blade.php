@@ -113,7 +113,7 @@
             <div class="meta">{{ $branch_name }} · Printed {{ $generated_at }}</div>
             <p class="note">
                 Money that left the business in this range: the cost of goods sold, waste written off,
-                payments to creditors, and owner drawings. This is a cost sheet, not a full set of accounts.
+                rent and other shop bills, payments to creditors, and owner drawings. This is a cost sheet, not a full set of accounts.
             </p>
 
             @php
@@ -155,6 +155,7 @@
                         <th>Day</th>
                         <th class="num">Ingredient cost</th>
                         <th class="num">Waste</th>
+                        <th class="num">Shop costs</th>
                         <th class="num">Creditors</th>
                         <th class="num">Drawings</th>
                         <th class="num">Total out</th>
@@ -166,12 +167,37 @@
                             <td>{{ \Carbon\Carbon::parse($day['date'])->format('D d M') }}</td>
                             <td class="num">{{ number_format($day['ingredient_cost']) }}</td>
                             <td class="num">{{ number_format($day['waste_cost']) }}</td>
+                            <td class="num">{{ number_format($day['operating_expenses'] ?? 0) }}</td>
                             <td class="num">{{ number_format($day['debt_payments']) }}</td>
                             <td class="num">{{ number_format($day['drawings']) }}</td>
                             <td class="num"><strong>{{ number_format($day['total']) }}</strong></td>
                         </tr>
                     @empty
-                        <tr><td colspan="6">No costs recorded in this range.</td></tr>
+                        <tr><td colspan="7">No costs recorded in this range.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+
+            <h2>Rent, fees, and other shop costs</h2>
+            <table class="grid">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Type</th>
+                        <th>Paid to / for</th>
+                        <th class="num">TZS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($operating_expenses ?? [] as $row)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($row['date'])->format('D d M') }}</td>
+                            <td>{{ $row['label'] }}</td>
+                            <td>{{ $row['payee'] }}@if (! empty($row['notes'])) — {{ $row['notes'] }}@endif</td>
+                            <td class="num">{{ number_format($row['amount']) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4">No rent, fees, or other shop bills in this range.</td></tr>
                     @endforelse
                 </tbody>
             </table>

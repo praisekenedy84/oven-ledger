@@ -41,6 +41,7 @@ return [
         'wholesale' => 'Wholesale',
         'customers' => 'Customers',
         'debts' => 'Debts',
+        'expenses' => 'Expenses',
         'staff' => 'Staff & access',
         'branches' => 'Branches',
         'catalog' => 'Catalog',

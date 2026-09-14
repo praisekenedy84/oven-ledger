@@ -6,10 +6,12 @@ import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import PrimaryButton from '@/Components/PrimaryButton';
 import StatusBadge from '@/Components/StatusBadge';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
 import TenantLayout from '@/Layouts/TenantLayout';
 import useDebouncedValue from '@/hooks/useDebouncedValue';
-import { Box, Button, FormControl, MenuItem, Paper, Select, Stack } from '@mui/material';
+import { colors } from '@/theme/bakeryTheme';
+import { Box, Button, FormControl, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
@@ -20,7 +22,7 @@ const TYPES = [
     { value: 'restaurant', label: 'Restaurant' },
 ];
 
-export default function Index({ customers, filters }) {
+export default function Index({ customers, filters, totals = { total_owed: 0, customers_owing: 0, by_type: {} } }) {
     const [search, setSearch] = useState(filters.search ?? '');
     const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -39,7 +41,7 @@ export default function Index({ customers, filters }) {
         router.get(route('tenant.customers.index'), next, {
             preserveState: true,
             preserveScroll: true,
-            only: ['customers', 'filters'],
+            only: ['customers', 'filters', 'totals'],
         });
     };
 
@@ -63,6 +65,61 @@ export default function Index({ customers, filters }) {
                 title="Customers"
                 description="Retail, wholesale, and restaurant accounts — with delivery details and a running balance."
             />
+
+            <Box
+                sx={{
+                    display: 'grid',
+                    gap: 3,
+                    gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 1fr)' },
+                    mb: 3,
+                }}
+            >
+                <SurfaceCard>
+                    <Typography variant="overline" sx={{ color: colors.jam }}>
+                        They owe us
+                    </Typography>
+                    <Typography variant="h4" sx={{ color: colors.ink, mt: 0.5 }}>
+                        <Money amount={totals.total_owed} />
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        Unpaid credit across every customer account.
+                    </Typography>
+                </SurfaceCard>
+                <SurfaceCard>
+                    <Typography variant="overline" sx={{ color: colors.butter }}>
+                        Open accounts
+                    </Typography>
+                    <Typography variant="h4" sx={{ color: colors.ink, mt: 0.5 }}>
+                        {totals.customers_owing ?? 0}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {totals.customers_owing === 1
+                            ? 'Customer still has a balance.'
+                            : 'Customers still have a balance.'}
+                    </Typography>
+                </SurfaceCard>
+                <SurfaceCard>
+                    <Typography variant="overline" sx={{ color: colors.sage }}>
+                        By type
+                    </Typography>
+                    <Stack spacing={0.75} sx={{ mt: 1 }}>
+                        {[
+                            { key: 'wholesale', label: 'Wholesale' },
+                            { key: 'restaurant', label: 'Restaurant' },
+                            { key: 'retail', label: 'Retail' },
+                        ].map((row) => (
+                            <Stack key={row.key} direction="row" justifyContent="space-between" spacing={2}>
+                                <Typography variant="body2" color="text.secondary">
+                                    {row.label}
+                                </Typography>
+                                <Typography variant="body2" fontWeight={600}>
+                                    <Money amount={totals.by_type?.[row.key] ?? 0} />
+                                </Typography>
+                            </Stack>
+                        ))}
+                    </Stack>
+                </SurfaceCard>
+            </Box>
 
             <Paper
                 component="form"
