@@ -7,7 +7,7 @@ import { formatDateTime, formatMoney } from '@/lib/format';
 import { colors, chartPalette } from '@/theme/bakeryTheme';
 import { resolveNavIcon } from '@/theme/nav';
 import { Box, Button, Stack, Typography } from '@mui/material';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 
 const CHANNEL_COLORS = {
     retail: chartPalette[0],
@@ -451,14 +451,37 @@ export default function Dashboard({
                             </Typography>
                         )}
                         {wholesaleDue.map((order) => (
-                            <Stack key={order.id} direction="row" justifyContent="space-between" spacing={1}>
-                                <Box>
+                            <Stack
+                                key={order.id}
+                                direction={{ xs: 'column', sm: 'row' }}
+                                justifyContent="space-between"
+                                alignItems={{ sm: 'center' }}
+                                spacing={1}
+                            >
+                                <Box sx={{ minWidth: 0 }}>
                                     <Typography variant="subtitle2">{order.customer?.name ?? 'Account'}</Typography>
                                     <Typography variant="caption" color="text.secondary">
                                         {formatDateTime(order.requested_fulfillment_at || order.due_date || order.created_at)}
                                     </Typography>
                                 </Box>
-                                <StatusBadge status={order.channel} />
+                                <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+                                    <StatusBadge status={order.channel} />
+                                    {order.status === 'pending' && (
+                                        <Button
+                                            size="small"
+                                            variant="contained"
+                                            onClick={() =>
+                                                router.patch(
+                                                    route('tenant.orders.fulfill', order.id),
+                                                    {},
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                        >
+                                            Mark fulfilled
+                                        </Button>
+                                    )}
+                                </Stack>
                             </Stack>
                         ))}
                     </Stack>

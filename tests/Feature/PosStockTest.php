@@ -170,6 +170,31 @@ class PosStockTest extends TestCase
         });
     }
 
+    public function test_tickets_page_lists_pending_pre_orders_for_fulfillment(): void
+    {
+        [$tenant, $user] = $this->provisionedOwner();
+        $productId = $this->seedSellableProduct($tenant, [10]);
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->post(route('tenant.pos.store'), $this->salePayload($productId, 2, [
+                'is_pre_order' => true,
+                'requested_fulfillment_at' => now()->addDay()->toDateTimeString(),
+            ]))
+            ->assertSessionHas('success', 'Pre-order recorded.');
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->get(route('tenant.pos.tickets', ['all' => 1]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Pos/Tickets')
+                ->where('summary.pending', 1)
+                ->has('tickets.data', 1)
+                ->where('tickets.data.0.status', 'pending')
+                ->where('tickets.data.0.is_pre_order', true));
+    }
+
     /**
      * @return array{0: Tenant, 1: User}
      */

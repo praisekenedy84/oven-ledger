@@ -528,12 +528,17 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                             <StatusBadge status={order.status} />
                         </DataTableCell>
                         <DataTableCell>
-                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Stack direction="row" spacing={1} justifyContent="flex-end" useFlexGap flexWrap="wrap">
                                 {order.status === 'pending' && (
                                     <Button
                                         size="small"
+                                        variant="contained"
                                         onClick={() =>
-                                            router.patch(route('tenant.orders.fulfill', order.id))
+                                            router.patch(
+                                                route('tenant.orders.fulfill', order.id),
+                                                {},
+                                                { preserveScroll: true },
+                                            )
                                         }
                                     >
                                         Mark fulfilled

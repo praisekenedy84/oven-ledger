@@ -88,6 +88,7 @@ class PosController extends Controller
                 'count' => (clone $summaryQuery)->where('status', 'completed')->count(),
                 'total' => (float) (clone $summaryQuery)->where('status', 'completed')->sum('total_amount'),
                 'voided' => (clone $summaryQuery)->where('status', 'voided')->count(),
+                'pending' => (clone $summaryQuery)->where('status', 'pending')->count(),
             ],
             'filters' => [
                 'branch_id' => $branchId,

@@ -102,6 +102,8 @@ class Order extends Model
             'status' => $this->status,
             'total_amount' => (float) $this->total_amount,
             'is_pre_order' => (bool) $this->is_pre_order,
+            'fulfillment_type' => $this->fulfillment_type,
+            'requested_fulfillment_at' => $this->requested_fulfillment_at,
             'void_reason' => $this->void_reason,
             'voided_at' => $this->voided_at,
             'cashier' => $this->soldBy?->only(['id', 'name']),
