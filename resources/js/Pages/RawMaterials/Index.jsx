@@ -22,6 +22,7 @@ export default function Index({ rawMaterials }) {
         unit_of_measure: 'kg',
         reorder_threshold: '',
         unit_cost: '',
+        current_stock: '',
     });
 
     const editForm = useForm({
@@ -47,7 +48,7 @@ export default function Index({ rawMaterials }) {
 
             <PageHeader
                 title="Raw materials"
-                description="Ingredients and supplies used in production. Restock from Inventory to keep a running trail."
+                description="Ingredients and supplies used in production. Optional current stock records what you already have on hand; restock later from Inventory."
             />
 
             <Paper
@@ -65,7 +66,7 @@ export default function Index({ rawMaterials }) {
                     borderRadius: 1,
                     display: 'grid',
                     gap: 2,
-                    gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr 1fr 1fr' },
+                    gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr 1fr 1fr 1fr' },
                 }}
             >
                 <Box>
@@ -82,6 +83,17 @@ export default function Index({ rawMaterials }) {
                         value={createForm.data.unit_of_measure}
                         onChange={(e) => createForm.setData('unit_of_measure', e.target.value)}
                     />
+                </Box>
+                <Box>
+                    <InputLabel value="Current stock" />
+                    <TextInput
+                        type="number"
+                        inputProps={{ min: 0, step: '0.001' }}
+                        value={createForm.data.current_stock}
+                        onChange={(e) => createForm.setData('current_stock', e.target.value)}
+                        placeholder="Optional"
+                    />
+                    <InputError message={createForm.errors.current_stock} />
                 </Box>
                 <Box>
                     <InputLabel value="Reorder at" />

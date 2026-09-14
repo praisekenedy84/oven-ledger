@@ -39,6 +39,34 @@ class RawMaterialInventory
         );
     }
 
+    public function openingBalance(
+        int $branchId,
+        int $rawMaterialId,
+        float $quantity,
+        ?float $unitCost = null,
+        ?string $notes = null,
+        $occurredAt = null,
+    ): RawMaterialStockMovement {
+        $quantity = round($quantity, 3);
+
+        if ($quantity <= 0) {
+            throw ValidationException::withMessages([
+                'current_stock' => 'Current stock must be greater than zero when provided.',
+            ]);
+        }
+
+        return $this->apply(
+            branchId: $branchId,
+            rawMaterialId: $rawMaterialId,
+            type: RawMaterialStockMovement::TYPE_OPENING,
+            signedQuantity: $quantity,
+            unitCost: $unitCost,
+            notes: $notes ?? 'Opening balance',
+            occurredAt: $occurredAt,
+            allowNegative: false,
+        );
+    }
+
     public function consumeForBatch(ProductionBatch $batch, int $rawMaterialId, float $quantity): ?RawMaterialStockMovement
     {
         $quantity = round($quantity, 3);

@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\RawMaterial;
 use App\Models\RawMaterialStockMovement;
 use App\Services\CurrentBranch;
+use App\Services\RawMaterialInventory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,6 +16,7 @@ class RawMaterialController extends Controller
 {
     public function __construct(
         protected CurrentBranch $currentBranch,
+        protected RawMaterialInventory $rawMaterialInventory,
     ) {}
 
     public function index(): Response
@@ -72,9 +75,35 @@ class RawMaterialController extends Controller
             'unit_of_measure' => ['required', 'string', 'max:50'],
             'reorder_threshold' => ['nullable', 'numeric', 'min:0'],
             'unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'current_stock' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        RawMaterial::create($validated);
+        $currentStock = isset($validated['current_stock']) && $validated['current_stock'] !== ''
+            ? (float) $validated['current_stock']
+            : 0.0;
+
+        unset($validated['current_stock']);
+
+        if ($currentStock > 0 && ! $this->currentBranch->id()) {
+            return back()->withErrors([
+                'current_stock' => 'Select a branch before recording current stock.',
+            ])->withInput();
+        }
+
+        DB::transaction(function () use ($validated, $currentStock) {
+            $material = RawMaterial::create($validated);
+
+            if ($currentStock > 0) {
+                $this->rawMaterialInventory->openingBalance(
+                    (int) $this->currentBranch->id(),
+                    $material->id,
+                    $currentStock,
+                    isset($validated['unit_cost']) && $validated['unit_cost'] !== ''
+                        ? (float) $validated['unit_cost']
+                        : null,
+                );
+            }
+        });
 
         return back()->with('success', 'Raw material created.');
     }
