@@ -19,6 +19,7 @@ class Product extends Model
         'category',
         'product_category_id',
         'cost_price',
+        'reorder_threshold',
         'is_active',
     ];
 
@@ -27,6 +28,7 @@ class Product extends Model
         return [
             'is_active' => 'boolean',
             'cost_price' => 'decimal:2',
+            'reorder_threshold' => 'decimal:3',
         ];
     }
 

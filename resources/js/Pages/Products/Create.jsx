@@ -45,6 +45,7 @@ export default function Create({ categories = [], rawMaterials = [] }) {
         product_category_id: defaultCategory?.id ?? '',
         unit_of_measure: 'pcs',
         cost_price: '',
+        reorder_threshold: '',
         is_active: true,
         prices: { retail: '', wholesale: '', restaurant: '' },
         expected_yield: '',
@@ -125,6 +126,20 @@ export default function Create({ categories = [], rawMaterials = [] }) {
                                 />
                                 <InputError message={errors.unit_of_measure} />
                             </Box>
+                        </Box>
+                        <Box>
+                            <InputLabel value="Shelf reorder at" />
+                            <TextInput
+                                type="number"
+                                inputProps={{ min: 0, step: '0.001' }}
+                                value={data.reorder_threshold}
+                                onChange={(e) => setData('reorder_threshold', e.target.value)}
+                                placeholder="e.g. 12"
+                            />
+                            <InputError message={errors.reorder_threshold} />
+                            <Typography variant="caption" color="text.secondary">
+                                Alert when shelf stock falls to this number or below. Leave blank to only warn when empty.
+                            </Typography>
                         </Box>
                     </FormSection>
 

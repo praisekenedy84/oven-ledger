@@ -57,6 +57,7 @@ export default function Show({
         product_category_id: product.product_category_id ?? product.product_category?.id ?? '',
         unit_of_measure: product.unit_of_measure,
         cost_price: product.cost_price ?? '',
+        reorder_threshold: product.reorder_threshold ?? '',
         is_active: product.is_active,
         prices: {
             retail: prices.retail ?? '',
@@ -162,6 +163,20 @@ export default function Show({
                                         onChange={(e) => setData('unit_of_measure', e.target.value)}
                                     />
                                 </Box>
+                            </Box>
+                            <Box>
+                                <InputLabel value="Shelf reorder at" />
+                                <TextInput
+                                    type="number"
+                                    inputProps={{ min: 0, step: '0.001' }}
+                                    value={data.reorder_threshold}
+                                    onChange={(e) => setData('reorder_threshold', e.target.value)}
+                                    placeholder="e.g. 12"
+                                />
+                                <InputError message={errors.reorder_threshold} />
+                                <Typography variant="caption" color="text.secondary">
+                                    Alert when shelf stock falls to this number or below. Leave blank to only warn when empty.
+                                </Typography>
                             </Box>
                         </FormSection>
 

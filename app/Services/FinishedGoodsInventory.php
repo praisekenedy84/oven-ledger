@@ -5,13 +5,12 @@ namespace App\Services;
 use App\Models\BranchFinishedGoodsStock;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class FinishedGoodsInventory
 {
-    public const LOW_STOCK_THRESHOLD = 8;
-
     public function __construct(
         protected RawMaterialInventory $rawMaterials,
     ) {}
@@ -43,8 +42,70 @@ class FinishedGoodsInventory
     }
 
     /**
+     * Aggregated shelf rows for the inventory screen (one line per product).
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function shelfSnapshot(?int $branchId): Collection
+    {
+        return BranchFinishedGoodsStock::query()
+            ->with('product:id,name,type,unit_of_measure,reorder_threshold')
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->orderBy('id')
+            ->get()
+            ->groupBy('product_id')
+            ->map(function (Collection $rows) {
+                /** @var BranchFinishedGoodsStock $first */
+                $first = $rows->first();
+                $quantity = round((float) $rows->sum(fn (BranchFinishedGoodsStock $row) => (float) $row->quantity_on_hand), 3);
+                $threshold = $first->product?->reorder_threshold;
+                $thresholdValue = $threshold === null ? null : (float) $threshold;
+
+                return [
+                    'id' => $first->id,
+                    'product_id' => $first->product_id,
+                    'quantity_on_hand' => $quantity,
+                    'product' => $first->product,
+                    'reorder_threshold' => $thresholdValue,
+                    'is_low' => $this->isBelowReorder($quantity, $thresholdValue),
+                ];
+            })
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function lowStockAlerts(?int $branchId, int $limit = 8): Collection
+    {
+        return $this->shelfSnapshot($branchId)
+            ->filter(fn (array $row) => $row['is_low'])
+            ->sortBy('quantity_on_hand')
+            ->take($limit)
+            ->values()
+            ->map(fn (array $row) => [
+                'id' => 'fg-'.$row['id'],
+                'kind' => 'finished',
+                'name' => $row['product']?->name,
+                'quantity' => $row['quantity_on_hand'],
+                'unit' => $row['product']?->unit_of_measure,
+                'threshold' => $row['reorder_threshold'],
+            ]);
+    }
+
+    public function isBelowReorder(float $quantityOnHand, ?float $reorderThreshold): bool
+    {
+        if ($reorderThreshold === null) {
+            return $quantityOnHand <= 0;
+        }
+
+        return $quantityOnHand <= $reorderThreshold;
+    }
+
+    /**
      * Put finished goods on the shelf without a production batch (small bakeries).
      * Uses the product recipe to deduct raw materials so P&amp;L stays honest.
+     * Adds to the existing shelf row for this product instead of creating a duplicate.
      */
     public function receive(int $branchId, int $productId, float $quantity, ?string $notes = null): BranchFinishedGoodsStock
     {
@@ -66,12 +127,36 @@ class FinishedGoodsInventory
 
             $this->deductRecipeIngredients($branchId, $product, $quantity, $reference);
 
-            return BranchFinishedGoodsStock::query()->create([
-                'branch_id' => $branchId,
-                'product_id' => $product->id,
-                'quantity_on_hand' => $quantity,
+            $rows = BranchFinishedGoodsStock::query()
+                ->where('branch_id', $branchId)
+                ->where('product_id', $product->id)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            if ($rows->isEmpty()) {
+                return BranchFinishedGoodsStock::query()->create([
+                    'branch_id' => $branchId,
+                    'product_id' => $product->id,
+                    'quantity_on_hand' => $quantity,
+                    'batch_reference' => $reference,
+                ]);
+            }
+
+            /** @var BranchFinishedGoodsStock $primary */
+            $primary = $rows->first();
+            $mergedExtras = (float) $rows->slice(1)->sum(fn (BranchFinishedGoodsStock $row) => (float) $row->quantity_on_hand);
+
+            foreach ($rows->slice(1) as $extra) {
+                $extra->delete();
+            }
+
+            $primary->forceFill([
+                'quantity_on_hand' => round((float) $primary->quantity_on_hand + $mergedExtras + $quantity, 3),
                 'batch_reference' => $reference,
-            ]);
+            ])->save();
+
+            return $primary->fresh();
         });
     }
 

@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BranchFinishedGoodsStock;
 use App\Models\BranchRawMaterialStock;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductionBatch;
 use App\Services\BusinessReport;
 use App\Services\CurrentBranch;
+use App\Services\FinishedGoodsInventory;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -19,6 +19,7 @@ class DashboardController extends Controller
     public function __construct(
         protected CurrentBranch $currentBranch,
         protected BusinessReport $reports,
+        protected FinishedGoodsInventory $finishedGoodsInventory,
     ) {}
 
     public function index(): Response
@@ -54,21 +55,7 @@ class DashboardController extends Controller
             ])
             ->values();
 
-        $finishedAlerts = BranchFinishedGoodsStock::query()
-            ->with('product:id,name,type,unit_of_measure')
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->where('quantity_on_hand', '<=', 8)
-            ->orderBy('quantity_on_hand')
-            ->limit(8)
-            ->get()
-            ->map(fn (BranchFinishedGoodsStock $row) => [
-                'id' => 'fg-'.$row->id,
-                'kind' => 'finished',
-                'name' => $row->product?->name,
-                'quantity' => $row->quantity_on_hand,
-                'unit' => $row->product?->unit_of_measure,
-                'threshold' => 8,
-            ]);
+        $finishedAlerts = $this->finishedGoodsInventory->lowStockAlerts($branchId);
 
         $wholesaleDue = Order::query()
             ->with(['customer:id,name,type'])

@@ -94,6 +94,67 @@ class SimpleStockToPosTest extends TestCase
         });
     }
 
+    public function test_adding_shelf_stock_again_increments_the_same_row(): void
+    {
+        [$tenant, $user, $productId] = $this->provisionedSmallBakery();
+
+        $session = [InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()];
+
+        $this->actingAs($user)
+            ->withSession($session)
+            ->post(route('tenant.inventory.receive'), [
+                'product_id' => $productId,
+                'quantity' => 10,
+            ])
+            ->assertSessionHas('success');
+
+        $this->actingAs($user)
+            ->withSession($session)
+            ->post(route('tenant.inventory.receive'), [
+                'product_id' => $productId,
+                'quantity' => 5,
+            ])
+            ->assertSessionHas('success');
+
+        $tenant->run(function () use ($productId) {
+            $rows = BranchFinishedGoodsStock::query()
+                ->where('product_id', $productId)
+                ->get();
+
+            $this->assertCount(1, $rows);
+            $this->assertSame(15.0, (float) $rows->first()->quantity_on_hand);
+        });
+    }
+
+    public function test_shelf_reorder_threshold_drives_inventory_low_status(): void
+    {
+        [$tenant, $user, $productId] = $this->provisionedSmallBakery();
+
+        $tenant->run(function () use ($productId) {
+            Product::query()->whereKey($productId)->update(['reorder_threshold' => 12]);
+            $branchId = \App\Models\Branch::query()->where('name', 'Main Branch')->value('id');
+
+            BranchFinishedGoodsStock::query()->create([
+                'branch_id' => $branchId,
+                'product_id' => $productId,
+                'quantity_on_hand' => 10,
+                'batch_reference' => 'SHELF-TEST-0001',
+            ]);
+        });
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->get(route('tenant.inventory.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Inventory/Index')
+                ->where('finishedGoodsStock.0.product_id', $productId)
+                ->where('finishedGoodsStock.0.quantity_on_hand', 10)
+                ->where('finishedGoodsStock.0.reorder_threshold', 12)
+                ->where('finishedGoodsStock.0.is_low', true)
+            );
+    }
+
     public function test_production_routes_are_blocked_for_small_bakeries(): void
     {
         [$tenant, $user] = $this->provisionedSmallBakery();

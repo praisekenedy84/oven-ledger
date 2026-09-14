@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\BranchFinishedGoodsStock;
 use App\Models\BranchRawMaterialStock;
 use App\Models\BusinessLiability;
 use App\Models\Customer;
@@ -14,6 +13,7 @@ class StaffNotificationFeed
 {
     public function __construct(
         protected CurrentBranch $currentBranch,
+        protected FinishedGoodsInventory $finishedGoodsInventory,
     ) {}
 
     /**
@@ -168,30 +168,29 @@ class StaffNotificationFeed
             })
             ->values();
 
-        $finished = BranchFinishedGoodsStock::query()
-            ->with('product:id,name,unit_of_measure')
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->where('quantity_on_hand', '<=', 8)
-            ->orderBy('quantity_on_hand')
-            ->limit(8)
-            ->get()
-            ->map(function (BranchFinishedGoodsStock $row) {
-                $name = $row->product?->name ?? 'Finished good';
-                $qty = (float) $row->quantity_on_hand;
-                $unit = $row->product?->unit_of_measure ?? '';
+        $finished = $this->finishedGoodsInventory
+            ->lowStockAlerts($branchId)
+            ->map(function (array $row) {
+                $name = $row['name'] ?? 'Finished good';
+                $qty = (float) ($row['quantity'] ?? 0);
+                $unit = $row['unit'] ?? '';
+                $threshold = $row['threshold'];
+                $why = $threshold === null
+                    ? 'out of stock'
+                    : "at or below your reorder line of {$threshold}";
 
                 return [
-                    'id' => 'fg-stock-'.$row->id,
+                    'id' => 'fg-stock-'.str_replace('fg-', '', (string) ($row['id'] ?? $name)),
                     'kind' => 'alert',
                     'category' => 'inventory',
                     'title' => "{$name} shelf is low",
-                    'body' => trim("{$qty} {$unit} on hand — bake or restock"),
+                    'body' => trim("{$qty} {$unit} on hand — {$why}"),
                     'href' => route('tenant.inventory.index', [], false),
                     'action_label' => 'Open inventory',
                     'sort_at' => '8'.(int) max(0, 100000 - ($qty * 1000)),
                     'meta' => [
-                        'product_id' => $row->product_id,
                         'quantity' => $qty,
+                        'threshold' => $threshold,
                     ],
                 ];
             })

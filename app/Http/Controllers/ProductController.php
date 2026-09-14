@@ -80,6 +80,7 @@ class ProductController extends Controller
                 'category' => $category->name,
                 'product_category_id' => $category->id,
                 'cost_price' => $category->isHardware() ? ($validated['cost_price'] ?? null) : null,
+                'reorder_threshold' => $this->nullableDecimal($validated['reorder_threshold'] ?? null),
                 'is_active' => $validated['is_active'] ?? true,
             ]);
 
@@ -135,6 +136,7 @@ class ProductController extends Controller
                 'category' => $category->name,
                 'product_category_id' => $category->id,
                 'cost_price' => $category->isHardware() ? ($validated['cost_price'] ?? null) : null,
+                'reorder_threshold' => $this->nullableDecimal($validated['reorder_threshold'] ?? null),
                 'is_active' => $validated['is_active'] ?? $product->is_active,
             ]);
 
@@ -194,6 +196,7 @@ class ProductController extends Controller
             'product_category_id' => ['required', 'exists:product_categories,id'],
             'unit_of_measure' => ['required', 'string', 'max:50'],
             'cost_price' => [Rule::requiredIf(fn () => $category?->isHardware() ?? false), 'nullable', 'numeric', 'min:0'],
+            'reorder_threshold' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['boolean'],
             'prices' => ['nullable', 'array'],
             'prices.retail' => ['nullable', 'numeric', 'min:0'],
@@ -205,5 +208,14 @@ class ProductController extends Controller
             'ingredients.*.quantity' => [$requiresRecipe ? 'required' : 'nullable', 'numeric', 'min:0.001'],
             'ingredients.*.unit' => [$requiresRecipe ? 'required' : 'nullable', 'string', 'max:50'],
         ]);
+    }
+
+    private function nullableDecimal(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (float) $value;
     }
 }
