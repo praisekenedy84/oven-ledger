@@ -52,19 +52,20 @@ class MenuCatalogTest extends TestCase
         $this->assertNull($catalog->defaultVisibleKeys('owner'));
         $this->assertNotContains('tenant.roles', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.customers', $catalog->defaultVisibleKeys('branch_manager'));
+        $this->assertContains('tenant.sales.list', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.debts', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.capital', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.expenses', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.shop', $catalog->defaultVisibleKeys('branch_manager'));
     }
 
-    public function test_customers_menu_is_not_gated_by_wholesale(): void
+    public function test_sales_menu_is_nested_under_sales_group(): void
     {
-        $customers = collect((new MenuCatalog)->tenantDefinitions())
-            ->firstWhere('key', 'tenant.customers');
+        $salesList = collect((new MenuCatalog)->tenantDefinitions())
+            ->firstWhere('key', 'tenant.sales.list');
 
-        $this->assertNotNull($customers);
-        $this->assertNull($customers['feature_key']);
-        $this->assertSame('tenant.customers.index', $customers['route_name']);
+        $this->assertNotNull($salesList);
+        $this->assertSame('tenant.sales', $salesList['parent_key']);
+        $this->assertSame('tenant.sales.index', $salesList['route_name']);
     }
 }
