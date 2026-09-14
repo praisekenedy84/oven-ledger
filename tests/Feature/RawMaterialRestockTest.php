@@ -35,6 +35,69 @@ class RawMaterialRestockTest extends TestCase
         }
     }
 
+    public function test_creating_raw_material_with_current_stock_sets_opening_balance(): void
+    {
+        [$tenant, $user] = $this->provisionedBakery(withMaterial: false);
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->post(route('tenant.raw-materials.store'), [
+                'name' => 'Sugar',
+                'unit_of_measure' => 'kg',
+                'reorder_threshold' => 2,
+                'unit_cost' => 2500,
+                'current_stock' => 12.5,
+            ])
+            ->assertSessionHas('success', 'Raw material created.');
+
+        $tenant->run(function () {
+            $material = RawMaterial::query()->where('name', 'Sugar')->first();
+            $this->assertNotNull($material);
+
+            $this->assertSame(12.5, (float) BranchRawMaterialStock::query()
+                ->where('raw_material_id', $material->id)
+                ->value('quantity_on_hand'));
+
+            $movement = RawMaterialStockMovement::query()
+                ->where('raw_material_id', $material->id)
+                ->first();
+
+            $this->assertNotNull($movement);
+            $this->assertSame('opening', $movement->type);
+            $this->assertSame(12.5, (float) $movement->quantity);
+            $this->assertSame(12.5, (float) $movement->quantity_after);
+            $this->assertSame(2500.0, (float) $movement->unit_cost);
+            $this->assertSame('Opening balance', $movement->notes);
+        });
+    }
+
+    public function test_creating_raw_material_without_current_stock_leaves_zero_on_hand(): void
+    {
+        [$tenant, $user] = $this->provisionedBakery(withMaterial: false);
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->post(route('tenant.raw-materials.store'), [
+                'name' => 'Yeast',
+                'unit_of_measure' => 'kg',
+                'reorder_threshold' => 1,
+                'unit_cost' => 8000,
+            ])
+            ->assertSessionHas('success', 'Raw material created.');
+
+        $tenant->run(function () {
+            $material = RawMaterial::query()->where('name', 'Yeast')->first();
+            $this->assertNotNull($material);
+
+            $this->assertFalse(
+                BranchRawMaterialStock::query()->where('raw_material_id', $material->id)->exists()
+            );
+            $this->assertFalse(
+                RawMaterialStockMovement::query()->where('raw_material_id', $material->id)->exists()
+            );
+        });
+    }
+
     public function test_restock_increases_on_hand_and_writes_a_movement(): void
     {
         [$tenant, $user, $flourId] = $this->provisionedBakery();
@@ -220,9 +283,9 @@ class RawMaterialRestockTest extends TestCase
     }
 
     /**
-     * @return array{0: Tenant, 1: User, 2: int, 3?: int}
+     * @return array{0: Tenant, 1: User, 2?: int, 3?: int}
      */
-    protected function provisionedBakery(bool $withProduct = false): array
+    protected function provisionedBakery(bool $withProduct = false, bool $withMaterial = true): array
     {
         $suffix = uniqid();
         $email = "amina.rawstock.{$suffix}@example.test";
@@ -236,7 +299,11 @@ class RawMaterialRestockTest extends TestCase
             'max_branches' => 1,
         ]);
 
-        $ids = $tenant->run(function () use ($withProduct) {
+        $ids = $tenant->run(function () use ($withProduct, $withMaterial) {
+            if (! $withMaterial) {
+                return [];
+            }
+
             $flour = RawMaterial::query()->create([
                 'name' => 'Wheat flour',
                 'unit_of_measure' => 'kg',
