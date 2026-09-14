@@ -22,6 +22,8 @@
     --color-danger: #9c2b3a;
     --shadow-card: 0 2px 8px rgb(51 38 28 / 0.08);
     --radius-card: 10px;
+    --control-height: 48px;
+    --input-font-size: 1rem;
 }
 
 @layer base {
@@ -48,6 +50,30 @@
     textarea {
         color: var(--color-ink);
         caret-color: var(--color-ink);
+        font-size: var(--input-font-size);
+        line-height: 1.5;
+        overflow: visible;
+    }
+
+    .MuiOutlinedInput-root {
+        min-height: var(--control-height);
+        align-items: center;
+    }
+
+    .MuiInputBase-input,
+    .MuiOutlinedInput-input {
+        min-height: var(--control-height);
+        box-sizing: border-box;
+    }
+
+    @media (max-width: 899px) {
+        .MuiInputBase-input,
+        .MuiOutlinedInput-input,
+        input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+        textarea,
+        select {
+            font-size: 16px;
+        }
     }
 
     input[type='password'],

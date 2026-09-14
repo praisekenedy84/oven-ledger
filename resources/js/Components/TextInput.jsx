@@ -43,9 +43,12 @@ export default forwardRef(function TextInput(
                 aria-pressed={visible}
                 onClick={() => setVisible((current) => !current)}
                 onMouseDown={(event) => event.preventDefault()}
-                size="small"
                 sx={{
                     color: colors.muted,
+                    width: { xs: 44, sm: 40 },
+                    height: { xs: 44, sm: 40 },
+                    minWidth: { xs: 44, sm: 40 },
+                    minHeight: { xs: 44, sm: 40 },
                     '&:hover': { color: colors.ink, bgcolor: 'rgba(51, 38, 28, 0.06)' },
                 }}
             >
@@ -65,9 +68,11 @@ export default forwardRef(function TextInput(
             className={className}
             inputRef={localRef}
             fullWidth
-            size="small"
             sx={[
                 {
+                    '& .MuiOutlinedInput-root': {
+                        minHeight: 48,
+                    },
                     '& .MuiInputBase-input, & .MuiInputBase-input:focus, & .MuiInputBase-input:focus-visible':
                         {
                             outline: 'none',
@@ -76,6 +81,12 @@ export default forwardRef(function TextInput(
                             color: colors.ink,
                             caretColor: colors.ink,
                             WebkitTextFillColor: colors.ink,
+                            fontSize: '1rem',
+                            lineHeight: 1.5,
+                            minHeight: 48,
+                            paddingTop: '12px',
+                            paddingBottom: '12px',
+                            overflow: 'visible',
                         },
                     ...(isPassword
                         ? {

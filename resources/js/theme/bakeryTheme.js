@@ -22,7 +22,20 @@ const colors = {
 
 const shadow = '0 2px 8px rgba(51, 38, 28, 0.08)';
 const radius = 10;
-const controlHeight = 40;
+// 48px keeps text legible, meets touch-target guidance, and avoids iOS zoom (<16px inputs).
+const controlHeight = 48;
+const inputFontSize = '1rem';
+const inputLineHeight = 1.5;
+const inputPaddingY = 12;
+const inputPaddingX = 14;
+const inputComfortStyles = {
+    fontSize: inputFontSize,
+    lineHeight: inputLineHeight,
+    padding: `${inputPaddingY}px ${inputPaddingX}px`,
+    boxSizing: 'border-box',
+    minHeight: controlHeight,
+    overflow: 'visible',
+};
 const nativeFocusReset = {
     appearance: 'none',
     backgroundColor: 'transparent',
@@ -387,6 +400,7 @@ const bakeryTheme = createTheme({
                 },
                 input: {
                     ...nativeFocusReset,
+                    ...inputComfortStyles,
                     '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus': {
                         WebkitBoxShadow: '0 0 0 1000px #FFFDF8 inset',
                         WebkitTextFillColor: colors.ink,
@@ -406,8 +420,12 @@ const bakeryTheme = createTheme({
                     backgroundColor: '#FFFDF8',
                     color: colors.ink,
                     minHeight: controlHeight,
+                    alignItems: 'center',
                     outline: 'none',
                     boxShadow: 'none',
+                    '@media (max-width: 899px)': {
+                        minHeight: controlHeight,
+                    },
                     '&:focus, &:focus-visible, &.Mui-focused': {
                         outline: 'none',
                         boxShadow: 'none',
@@ -436,11 +454,10 @@ const bakeryTheme = createTheme({
                 },
                 input: {
                     ...nativeFocusReset,
-                    padding: '10px 14px',
-                    boxSizing: 'border-box',
+                    ...inputComfortStyles,
                 },
                 inputSizeSmall: {
-                    padding: '8.5px 14px',
+                    ...inputComfortStyles,
                 },
             },
         },
