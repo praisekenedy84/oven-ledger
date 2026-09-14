@@ -22,6 +22,7 @@ use App\Http\Controllers\RawMaterialController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\ShopSettingController;
 use App\Http\Controllers\StaffController;
 use App\Http\Middleware\EnsureBranchNotSuspended;
@@ -91,6 +92,9 @@ Route::middleware('web')->group(function () {
             ->name('tenant.orders.fulfill');
         Route::post('orders/{order}/void', [OrderController::class, 'void'])
             ->name('tenant.orders.void');
+
+        Route::get('sales', [SaleController::class, 'index'])->name('tenant.sales.index');
+        Route::get('sales/export', [SaleController::class, 'export'])->name('tenant.sales.export');
 
         Route::get('debts', [BusinessLiabilityController::class, 'index'])->name('tenant.debts.index');
         Route::post('debts', [BusinessLiabilityController::class, 'store'])->name('tenant.debts.store');

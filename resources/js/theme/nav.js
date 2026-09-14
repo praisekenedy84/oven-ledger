@@ -36,6 +36,8 @@ const NAV_ICONS = {
     'tenant.expenses.index': PaymentsOutlinedIcon,
     'tenant.expenses': PaymentsOutlinedIcon,
     'tenant.reports.index': AssessmentOutlinedIcon,
+    'tenant.sales.index': ReceiptLongOutlinedIcon,
+    'tenant.sales.list': ReceiptLongOutlinedIcon,
     'tenant.branches.index': BusinessOutlinedIcon,
     'tenant.staff.index': BadgeOutlinedIcon,
     'tenant.shop.edit': StorefrontOutlinedIcon,
