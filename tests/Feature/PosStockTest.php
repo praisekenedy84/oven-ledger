@@ -160,7 +160,7 @@ class PosStockTest extends TestCase
         $this->actingAs($user)
             ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
             ->patch(route('tenant.orders.fulfill', $orderId))
-            ->assertSessionHas('success', 'Order marked as fulfilled.');
+            ->assertSessionHas('success', 'Order marked as sold.');
 
         $tenant->run(function () use ($productId) {
             $this->assertSame(7.0, (float) BranchFinishedGoodsStock::query()
@@ -193,6 +193,57 @@ class PosStockTest extends TestCase
                 ->has('tickets.data', 1)
                 ->where('tickets.data.0.status', 'pending')
                 ->where('tickets.data.0.is_pre_order', true));
+    }
+
+    public function test_staff_can_void_a_pending_pre_order(): void
+    {
+        [$tenant, $user] = $this->provisionedOwner();
+        $productId = $this->seedSellableProduct($tenant, [10]);
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->post(route('tenant.pos.store'), $this->salePayload($productId, 2, [
+                'is_pre_order' => true,
+            ]))
+            ->assertSessionHas('success', 'Pre-order recorded.');
+
+        $orderId = $tenant->run(fn () => Order::query()->value('id'));
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->post(route('tenant.orders.void', $orderId), [
+                'reason' => 'Customer cancelled the pre-order',
+            ])
+            ->assertSessionHas('success', 'Pre-order voided.');
+
+        $tenant->run(function () use ($orderId) {
+            $this->assertSame('voided', Order::query()->findOrFail($orderId)->status);
+        });
+    }
+
+    public function test_notifications_page_lists_pending_pre_order_alerts(): void
+    {
+        [$tenant, $user] = $this->provisionedOwner();
+        $productId = $this->seedSellableProduct($tenant, [10]);
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->post(route('tenant.pos.store'), $this->salePayload($productId, 2, [
+                'is_pre_order' => true,
+                'requested_fulfillment_at' => now()->subHour()->toDateTimeString(),
+            ]))
+            ->assertSessionHas('success', 'Pre-order recorded.');
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->get(route('tenant.notifications.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Notifications/Index')
+                ->where('unreadCount', fn ($count) => $count >= 1)
+                ->has('notifications')
+                ->where('notifications.0.category', 'pre_order')
+                ->where('notifications.0.href', '/pos/tickets?all=1'));
     }
 
     /**

@@ -2,6 +2,7 @@ import AppSidebar from '@/Components/AppSidebar';
 import BuildUpdatePrompt from '@/Components/BuildUpdatePrompt';
 import FlashMessage from '@/Components/FlashMessage';
 import ImpersonationBanner from '@/Components/ImpersonationBanner';
+import NotificationBell from '@/Components/NotificationBell';
 import { colors, layout } from '@/theme/bakeryTheme';
 import { prepareNavTree } from '@/theme/nav';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -96,7 +97,7 @@ export default function TenantLayout({ title, children }) {
                 }}
             >
                 <AppBar position="sticky">
-                    <Toolbar sx={{ gap: 2, minHeight: layout.headerHeight }}>
+                    <Toolbar sx={{ gap: 1.5, minHeight: layout.headerHeight }}>
                         {!isDesktop && (
                             <IconButton
                                 edge="start"
@@ -109,8 +110,13 @@ export default function TenantLayout({ title, children }) {
                         <Typography variant="h6" noWrap sx={{ flex: 1, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
                             {title}
                         </Typography>
+                        <NotificationBell />
                         {currentBranch && branches?.length <= 1 && (
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ display: { xs: 'none', sm: 'block' } }}
+                            >
                                 {currentBranch.name}
                             </Typography>
                         )}

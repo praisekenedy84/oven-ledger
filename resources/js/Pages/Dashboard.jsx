@@ -478,15 +478,15 @@ export default function Dashboard({
                                                 )
                                             }
                                         >
-                                            Mark fulfilled
+                                            Mark sold
                                         </Button>
                                     )}
                                 </Stack>
                             </Stack>
                         ))}
                     </Stack>
-                    <Button component={Link} href={route('tenant.customers.index')} prefetch size="small" sx={{ mt: 2 }}>
-                        Customer accounts
+                    <Button component={Link} href={route('tenant.pos.tickets', { all: 1 })} prefetch size="small" sx={{ mt: 2 }}>
+                        Open tickets
                     </Button>
                 </SurfaceCard>
             </Box>

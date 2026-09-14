@@ -4,7 +4,7 @@ import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
-import VoidSaleDialog, { canRefundSales } from '@/Components/VoidSaleDialog';
+import VoidSaleDialog, { canVoidOrder } from '@/Components/VoidSaleDialog';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDateTime } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
@@ -16,13 +16,12 @@ function ticketItems(ticket) {
     return (ticket.items ?? []).map((item) => `${item.quantity} ${item.name}`).join(', ');
 }
 
-function fulfillOrder(orderId) {
+function markSold(orderId) {
     router.patch(route('tenant.orders.fulfill', orderId), {}, { preserveScroll: true });
 }
 
 export default function Tickets({ tickets, summary, filters }) {
     const { auth } = usePage().props;
-    const canRefund = canRefundSales(auth);
     const [voidTarget, setVoidTarget] = useState(null);
     const showingAll = Boolean(filters.all);
     const title = showingAll ? 'All tickets' : 'Today’s tickets';
@@ -46,11 +45,7 @@ export default function Tickets({ tickets, summary, filters }) {
             <PageHeader
                 eyebrow="Till tape"
                 title={title}
-                description={
-                    canRefund
-                        ? 'Every sale and open pre-order at this branch. Mark pre-orders fulfilled when they are collected, or void a wrongly placed ticket.'
-                        : 'Every sale and open pre-order at this branch. Mark pre-orders fulfilled when they are collected.'
-                }
+                description="Every sale and open pre-order at this branch. Mark pre-orders as sold when collected, or void if they should not stand."
                 backHref={route('tenant.pos.index')}
                 actions={
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
@@ -164,7 +159,9 @@ export default function Tickets({ tickets, summary, filters }) {
                                 label={
                                     ticket.is_pre_order && ticket.status === 'pending'
                                         ? 'Pre-order'
-                                        : undefined
+                                        : ticket.status === 'completed'
+                                          ? 'Sold'
+                                          : undefined
                                 }
                             />
                         </DataTableCell>
@@ -174,12 +171,12 @@ export default function Tickets({ tickets, summary, filters }) {
                                     <Button
                                         size="small"
                                         variant="contained"
-                                        onClick={() => fulfillOrder(ticket.id)}
+                                        onClick={() => markSold(ticket.id)}
                                     >
-                                        Mark fulfilled
+                                        Mark sold
                                     </Button>
                                 )}
-                                {canRefund && ticket.status !== 'voided' && (
+                                {canVoidOrder(auth, ticket) && (
                                     <Button
                                         size="small"
                                         color="error"

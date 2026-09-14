@@ -103,3 +103,19 @@ export default function VoidSaleDialog({ order, open, onClose }) {
 export function canRefundSales(auth) {
     return (auth?.permissions ?? []).includes('pos.refund');
 }
+
+export function canVoidOrder(auth, order) {
+    const permissions = auth?.permissions ?? [];
+    const canRefund = permissions.includes('pos.refund');
+    const canSell = permissions.includes('pos.sell');
+
+    if (!order || order.status === 'voided') {
+        return false;
+    }
+
+    if (order.status === 'pending') {
+        return canSell || canRefund;
+    }
+
+    return canRefund;
+}

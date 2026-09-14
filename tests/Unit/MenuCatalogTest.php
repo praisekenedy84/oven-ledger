@@ -46,7 +46,7 @@ class MenuCatalogTest extends TestCase
         $catalog = new MenuCatalog;
 
         $this->assertSame(
-            ['tenant.dashboard', 'tenant.pos', 'tenant.pos.tickets'],
+            ['tenant.dashboard', 'tenant.notifications', 'tenant.pos', 'tenant.pos.tickets'],
             $catalog->defaultVisibleKeys('cashier')
         );
         $this->assertNull($catalog->defaultVisibleKeys('owner'));
