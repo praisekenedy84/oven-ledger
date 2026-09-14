@@ -650,7 +650,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                 sx={{
                                     display: 'flex',
                                     gap: 1.5,
-                                    alignItems: 'flex-start',
+                                    alignItems: 'center',
                                     p: 1.25,
                                     borderRadius: 2,
                                     border: `1px solid ${colors.border}`,
@@ -659,13 +659,14 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                             >
                                 <ProductVisual
                                     product={line}
-                                    size={44}
+                                    size={52}
                                 />
 
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Stack
                                         direction="row"
                                         justifyContent="space-between"
+                                        alignItems="baseline"
                                         spacing={1}
                                     >
                                         <Typography
@@ -684,38 +685,59 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                         </Typography>
                                     </Stack>
 
-                                    <Typography variant="caption" color="text.secondary">
+                                    <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                        sx={{ display: 'block', mt: 0.25 }}
+                                    >
                                         {formatMoney(line.unit_price)} each
                                         {isPreOrder
                                             ? ''
                                             : ` · ${shelfLabel(productById[line.product_id] ?? line)}`}
                                     </Typography>
 
-                                    <Stack
-                                        direction="row"
-                                        alignItems="center"
-                                        spacing={0.5}
-                                        sx={{ mt: 1 }}
+                                    <Box
+                                        sx={{
+                                            mt: 1,
+                                            display: 'inline-flex',
+                                            alignItems: 'stretch',
+                                            height: 36,
+                                            border: `1px solid ${colors.border}`,
+                                            borderRadius: 1,
+                                            overflow: 'hidden',
+                                            bgcolor: colors.cream,
+                                        }}
                                     >
                                         <IconButton
                                             size="small"
                                             type="button"
                                             onClick={() => bumpQty(line.product_id, -1)}
                                             sx={{
-                                                border: `1px solid ${colors.border}`,
-                                                width: 40,
-                                                height: 40,
+                                                width: 36,
+                                                height: 36,
+                                                borderRadius: 0,
+                                                color: colors.ink,
                                             }}
                                         >
                                             <RemoveIcon sx={{ fontSize: 18 }} />
                                         </IconButton>
-                                        <Typography
-                                            variant="body2"
-                                            fontWeight={700}
-                                            sx={{ minWidth: 28, textAlign: 'center' }}
+                                        <Box
+                                            sx={{
+                                                minWidth: 36,
+                                                px: 0.5,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                borderLeft: `1px solid ${colors.border}`,
+                                                borderRight: `1px solid ${colors.border}`,
+                                                fontWeight: 700,
+                                                fontSize: '0.875rem',
+                                                lineHeight: 1,
+                                                color: colors.ink,
+                                            }}
                                         >
                                             {line.quantity}
-                                        </Typography>
+                                        </Box>
                                         <IconButton
                                             size="small"
                                             type="button"
@@ -726,14 +748,15 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                             }
                                             onClick={() => bumpQty(line.product_id, 1)}
                                             sx={{
-                                                border: `1px solid ${colors.border}`,
-                                                width: 40,
-                                                height: 40,
+                                                width: 36,
+                                                height: 36,
+                                                borderRadius: 0,
+                                                color: colors.ink,
                                             }}
                                         >
                                             <AddIcon sx={{ fontSize: 18 }} />
                                         </IconButton>
-                                    </Stack>
+                                    </Box>
                                 </Box>
                             </Box>
                         ))}
@@ -1066,17 +1089,20 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                         <Stack direction="row" spacing={1} flexShrink={0}>
                             <Button
                                 size="small"
-                                variant="outlined"
+                                variant="contained"
                                 onClick={() => {
                                     setOptionsOpen(true);
                                     setTicketOpen(true);
                                 }}
                                 sx={{
-                                    color: colors.cream,
-                                    borderColor: 'rgba(251,246,234,0.35)',
+                                    color: colors.ink,
+                                    bgcolor: colors.cream,
+                                    boxShadow: 'none',
+                                    border: `1px solid ${colors.wheatLight}`,
                                     '&:hover': {
-                                        borderColor: colors.cream,
-                                        bgcolor: 'rgba(251,246,234,0.08)',
+                                        bgcolor: colors.wheatLight,
+                                        color: colors.ink,
+                                        boxShadow: 'none',
                                     },
                                 }}
                             >
