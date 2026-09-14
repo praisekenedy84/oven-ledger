@@ -9,8 +9,9 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import TenantLayout from '@/Layouts/TenantLayout';
+import { formatQuantity } from '@/lib/format';
 import { Box, Button, Paper, Stack } from '@mui/material';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function Index({ rawMaterials }) {
@@ -46,7 +47,7 @@ export default function Index({ rawMaterials }) {
 
             <PageHeader
                 title="Raw materials"
-                description="Ingredients and supplies used in production."
+                description="Ingredients and supplies used in production. Restock from Inventory to keep a running trail."
             />
 
             <Paper
@@ -111,6 +112,7 @@ export default function Index({ rawMaterials }) {
             <DataTable
                 columns={[
                     { label: 'Name' },
+                    { label: 'On hand' },
                     { label: 'Unit' },
                     { label: 'Reorder threshold' },
                     { label: 'Price / unit' },
@@ -120,7 +122,7 @@ export default function Index({ rawMaterials }) {
                 {rawMaterials.data.map((item) => (
                     <DataTableRow key={item.id}>
                         {editing === item.id ? (
-                            <DataTableCell colSpan={5}>
+                            <DataTableCell colSpan={6}>
                                 <Box
                                     component="form"
                                     onSubmit={(e) => {
@@ -177,6 +179,9 @@ export default function Index({ rawMaterials }) {
                         ) : (
                             <>
                                 <DataTableCell sx={{ fontWeight: 600 }}>{item.name}</DataTableCell>
+                                <DataTableCell>
+                                    {formatQuantity(item.quantity_on_hand ?? 0)}
+                                </DataTableCell>
                                 <DataTableCell>{item.unit_of_measure}</DataTableCell>
                                 <DataTableCell>{item.reorder_threshold ?? '—'}</DataTableCell>
                                 <DataTableCell>
@@ -184,6 +189,13 @@ export default function Index({ rawMaterials }) {
                                 </DataTableCell>
                                 <DataTableCell>
                                     <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                        <Button
+                                            component={Link}
+                                            href={route('tenant.raw-materials.show', item.id)}
+                                            size="small"
+                                        >
+                                            History
+                                        </Button>
                                         <Button size="small" onClick={() => startEdit(item)}>
                                             Edit
                                         </Button>

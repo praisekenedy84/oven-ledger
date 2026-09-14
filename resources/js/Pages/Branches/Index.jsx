@@ -102,8 +102,8 @@ export default function Index({ branches, maxBranches, branchCount }) {
                 {branches.map((branch) => (
                     <DataTableRow key={branch.id}>
                         <DataTableCell sx={{ fontWeight: 600 }}>{branch.name}</DataTableCell>
-                        <DataTableCell>{branch.address || 'â€”'}</DataTableCell>
-                        <DataTableCell>{branch.phone || 'â€”'}</DataTableCell>
+                        <DataTableCell>{branch.address || '—'}</DataTableCell>
+                        <DataTableCell>{branch.phone || '—'}</DataTableCell>
                         <DataTableCell>
                             <StatusBadge status={branch.is_active ? 'active' : 'inactive'} />
                         </DataTableCell>

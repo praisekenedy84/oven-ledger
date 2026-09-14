@@ -218,6 +218,11 @@ function ColorField({ label, value, error, onChange }) {
                         borderRadius: 1,
                         bgcolor: colors.cream,
                         cursor: 'pointer',
+                        outline: 'none',
+                        '&:focus, &:focus-visible': {
+                            outline: 'none',
+                            borderColor: colors.jam,
+                        },
                     }}
                 />
                 <TextInput

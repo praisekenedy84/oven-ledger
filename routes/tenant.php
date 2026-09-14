@@ -57,7 +57,7 @@ Route::middleware('web')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('tenant.dashboard');
 
         Route::resource('products', ProductController::class)->names('tenant.products');
-        Route::resource('raw-materials', RawMaterialController::class)->only(['index', 'store', 'update', 'destroy'])->names('tenant.raw-materials');
+        Route::resource('raw-materials', RawMaterialController::class)->only(['index', 'show', 'store', 'update', 'destroy'])->names('tenant.raw-materials');
         Route::resource('recipes', RecipeController::class)->only(['index', 'store', 'show', 'update', 'destroy'])->names('tenant.recipes');
 
         Route::get('production-batches', [ProductionBatchController::class, 'index'])->name('tenant.production-batches.index');
@@ -65,6 +65,8 @@ Route::middleware('web')->group(function () {
         Route::patch('production-batches/{productionBatch}/transition', [ProductionBatchController::class, 'transition'])->name('tenant.production-batches.transition');
 
         Route::get('inventory', [InventoryController::class, 'index'])->name('tenant.inventory.index');
+        Route::post('inventory/restock', [InventoryController::class, 'restock'])->name('tenant.inventory.restock');
+        Route::post('inventory/raw-waste', [InventoryController::class, 'logRawWaste'])->name('tenant.inventory.raw-waste');
         Route::post('inventory/waste', [InventoryController::class, 'logWaste'])->name('tenant.inventory.waste');
 
         Route::get('pos', [PosController::class, 'index'])->name('tenant.pos.index');
@@ -97,6 +99,7 @@ Route::middleware('web')->group(function () {
         Route::post('capital', [OwnerTransactionController::class, 'store'])->name('tenant.capital.store');
 
         Route::get('reports', [ReportController::class, 'index'])->name('tenant.reports.index');
+        Route::get('reports/export', [ReportController::class, 'export'])->name('tenant.reports.export');
 
         Route::get('shop', [ShopSettingController::class, 'edit'])->name('tenant.shop.edit');
         Route::post('shop', [ShopSettingController::class, 'update'])->name('tenant.shop.update');

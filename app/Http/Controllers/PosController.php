@@ -12,6 +12,8 @@ use App\Models\PriceList;
 use App\Models\Product;
 use App\Services\CurrentBranch;
 use App\Services\CustomerLedger;
+use App\Services\FinishedGoodsInventory;
+use App\Services\ProductionInventory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -25,17 +27,29 @@ class PosController extends Controller
     public function __construct(
         protected CurrentBranch $currentBranch,
         protected CustomerLedger $ledger,
+        protected FinishedGoodsInventory $inventory,
+        protected ProductionInventory $productionInventory,
     ) {}
 
     public function index(): Response
     {
         $branchId = $this->currentBranch->id();
+        $this->productionInventory->postOutstanding($branchId);
+        $stockByProduct = $this->inventory->quantitiesOnHand($branchId);
 
         return Inertia::render('Pos/Index', [
             'products' => Product::query()
                 ->where('is_active', true)
                 ->orderBy('name')
-                ->get(['id', 'name', 'type', 'unit_of_measure', 'category']),
+                ->get(['id', 'name', 'type', 'unit_of_measure', 'category'])
+                ->map(fn (Product $product) => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'type' => $product->type,
+                    'unit_of_measure' => $product->unit_of_measure,
+                    'category' => $product->category,
+                    'quantity_on_hand' => $stockByProduct[$product->id] ?? 0,
+                ]),
             'customers' => Customer::query()
                 ->where('is_active', true)
                 ->with('addresses:id,customer_id,label,address_text')
@@ -169,6 +183,13 @@ class PosController extends Controller
 
         $soldBy = $request->user()?->id;
 
+        if (! $isPreOrder) {
+            $this->inventory->assertAvailable(
+                $branchId,
+                $this->inventory->requestedQuantities($validated['items']),
+            );
+        }
+
         $order = DB::transaction(function () use ($validated, $branchId, $customer, $isPreOrder, $fulfillmentType, $deliveryAddressId, $soldBy) {
             $total = 0;
             $lineItems = [];
@@ -274,6 +295,8 @@ class PosController extends Controller
                     'Sale #'.$order->id,
                 );
             }
+
+            $this->inventory->deductForOrder($order);
 
             return $order;
         });

@@ -115,13 +115,35 @@ class BusinessReport
             ->get()
             ->keyBy(fn ($row) => Carbon::parse($row->day)->toDateString());
 
-        return $days->map(function (string $day) use ($sales, $cogsByDay, $wasteByDay, $tenderByDay) {
+        $debtsByDay = $this->sumByDay(
+            LiabilityPayment::query()
+                ->selectRaw('DATE(paid_at) as day')
+                ->selectRaw('SUM(amount) as total')
+                ->whereBetween('paid_at', [$from, $to])
+                ->groupBy('day')
+                ->get()
+        );
+
+        $drawingsByDay = $this->sumByDay(
+            OwnerTransaction::query()
+                ->selectRaw('DATE(transacted_at) as day')
+                ->selectRaw('SUM(amount) as total')
+                ->where('type', 'drawing')
+                ->whereBetween('transacted_at', [$from, $to])
+                ->groupBy('day')
+                ->get()
+        );
+
+        return $days->map(function (string $day) use ($sales, $cogsByDay, $wasteByDay, $tenderByDay, $debtsByDay, $drawingsByDay) {
             $row = $sales->get($day);
             $tender = $tenderByDay->get($day);
             $revenue = round((float) ($row?->revenue ?? 0), 2);
             $cogs = round((float) ($cogsByDay[$day] ?? 0), 2);
             $waste = round((float) ($wasteByDay[$day] ?? 0), 2);
+            $debts = round((float) ($debtsByDay[$day] ?? 0), 2);
+            $drawings = round((float) ($drawingsByDay[$day] ?? 0), 2);
             $profit = round($revenue - $cogs - $waste, 2);
+            $outflow = round($cogs + $waste + $debts + $drawings, 2);
 
             return [
                 'date' => $day,
@@ -137,10 +159,157 @@ class BusinessReport
                 'credit' => round((float) ($tender?->credit ?? 0), 2),
                 'ingredient_cost' => $cogs,
                 'waste_cost' => $waste,
+                'debt_payments' => $debts,
+                'drawings' => $drawings,
+                'outflow' => $outflow,
                 'profit' => $profit,
                 'is_loss' => $profit < -0.009,
             ];
         })->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function productSales(Carbon $from, Carbon $to, ?int $branchId = null, ?string $search = null, ?int $productId = null): array
+    {
+        $unitCosts = $this->economics->unitCostMap();
+
+        return $this->productSalesQuery($from, $to, $branchId, $search, $productId)
+            ->select(
+                'products.id',
+                'products.name',
+                'products.type',
+                'products.unit_of_measure',
+                DB::raw('SUM(order_items.quantity) as quantity'),
+                DB::raw('SUM(order_items.line_total) as revenue'),
+            )
+            ->groupBy('products.id', 'products.name', 'products.type', 'products.unit_of_measure')
+            ->orderByDesc('revenue')
+            ->limit(80)
+            ->get()
+            ->map(function ($row) use ($unitCosts) {
+                $quantity = (float) $row->quantity;
+                $revenue = round((float) $row->revenue, 2);
+                $cost = round(($unitCosts[$row->id] ?? 0) * $quantity, 2);
+
+                return [
+                    'id' => (int) $row->id,
+                    'name' => $row->name,
+                    'type' => $row->type,
+                    'unit' => $row->unit_of_measure,
+                    'quantity' => $quantity,
+                    'revenue' => $revenue,
+                    'cost' => $cost,
+                    'profit' => round($revenue - $cost, 2),
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function productDailyTrend(Carbon $from, Carbon $to, ?int $branchId = null, ?string $search = null, ?int $productId = null): array
+    {
+        $byDay = $this->productSalesQuery($from, $to, $branchId, $search, $productId)
+            ->selectRaw('DATE(orders.created_at) as day')
+            ->selectRaw('SUM(order_items.line_total) as revenue')
+            ->selectRaw('SUM(order_items.quantity) as quantity')
+            ->groupBy('day')
+            ->get()
+            ->keyBy(fn ($row) => Carbon::parse($row->day)->toDateString());
+
+        return $this->eachDay($from, $to)->map(function (string $day) use ($byDay) {
+            $row = $byDay->get($day);
+
+            return [
+                'date' => $day,
+                'revenue' => round((float) ($row?->revenue ?? 0), 2),
+                'quantity' => (float) ($row?->quantity ?? 0),
+            ];
+        })->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $statement
+     * @param  list<array<string, mixed>>  $daily
+     * @return array<string, mixed>
+     */
+    public function expenseBreakdown(array $statement, array $daily): array
+    {
+        $lines = [
+            [
+                'key' => 'ingredient_cost',
+                'label' => 'Ingredient and stock cost',
+                'amount' => $statement['ingredient_cost'],
+            ],
+            [
+                'key' => 'waste_cost',
+                'label' => 'Waste write-off',
+                'amount' => $statement['waste_cost'],
+            ],
+            [
+                'key' => 'debt_payments',
+                'label' => 'Paid to creditors',
+                'amount' => $statement['debt_payments'],
+            ],
+            [
+                'key' => 'drawings',
+                'label' => 'Owner drawings',
+                'amount' => $statement['drawings_period'],
+            ],
+        ];
+
+        return [
+            'lines' => $lines,
+            'total' => $statement['money_used'],
+            'daily' => collect($daily)->map(fn (array $day) => [
+                'date' => $day['date'],
+                'ingredient_cost' => $day['ingredient_cost'],
+                'waste_cost' => $day['waste_cost'],
+                'debt_payments' => $day['debt_payments'],
+                'drawings' => $day['drawings'],
+                'total' => $day['outflow'],
+            ])->all(),
+        ];
+    }
+
+    protected function productSalesQuery(
+        Carbon $from,
+        Carbon $to,
+        ?int $branchId,
+        ?string $search,
+        ?int $productId,
+    ) {
+        $needle = trim((string) $search);
+
+        return OrderItem::query()
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->where('orders.status', 'completed')
+            ->whereBetween('orders.created_at', [$from, $to])
+            ->when($branchId, fn ($query) => $query->where('orders.branch_id', $branchId))
+            ->when($productId, fn ($query) => $query->where('products.id', $productId))
+            ->when($needle !== '', function ($query) use ($needle) {
+                $query->whereRaw('LOWER(products.name) LIKE ?', ['%'.mb_strtolower($needle).'%']);
+            });
+    }
+
+    /**
+     * @param  Collection<int, object>  $rows
+     * @return array<string, float>
+     */
+    protected function sumByDay(Collection $rows): array
+    {
+        $totals = [];
+
+        foreach ($rows as $row) {
+            $day = Carbon::parse($row->day)->toDateString();
+            $totals[$day] = (float) $row->total;
+        }
+
+        return $totals;
     }
 
     /**

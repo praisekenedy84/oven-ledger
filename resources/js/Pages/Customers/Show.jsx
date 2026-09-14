@@ -28,9 +28,9 @@ import { useState } from 'react';
 
 function AgingCard({ aging }) {
     const buckets = [
-        { key: 'current', label: '0â€“30 days' },
-        { key: 'days_31_60', label: '31â€“60' },
-        { key: 'days_61_90', label: '61â€“90' },
+        { key: 'current', label: '0-30 days' },
+        { key: 'days_31_60', label: '31-60' },
+        { key: 'days_61_90', label: '61-90' },
         { key: 'days_90_plus', label: '90+' },
     ];
 
@@ -131,7 +131,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
             <PageHeader
                 eyebrow={`${customer.type} account`}
                 title={customer.name}
-                description={`${customer.phone || 'No phone'} Â· credit terms ${customer.payment_terms || 'not set'}`}
+                description={`${customer.phone || 'No phone'} · credit terms ${customer.payment_terms || 'not set'}`}
                 backHref={route('tenant.customers.index')}
                 actions={
                     <StatusBadge
@@ -414,8 +414,8 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                         <DataTableRow key={address.id}>
                             <DataTableCell sx={{ fontWeight: 600 }}>{address.label}</DataTableCell>
                             <DataTableCell>{address.address_text}</DataTableCell>
-                            <DataTableCell>{address.phone || 'â€”'}</DataTableCell>
-                            <DataTableCell>{address.notes || 'â€”'}</DataTableCell>
+                            <DataTableCell>{address.phone || '—'}</DataTableCell>
+                            <DataTableCell>{address.notes || '—'}</DataTableCell>
                             <DataTableCell>
                                 <Stack direction="row" spacing={1}>
                                     <Button
@@ -479,7 +479,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                         <DataTableCell sx={{ fontWeight: 600 }}>
                             <Money amount={entry.balance_after} />
                         </DataTableCell>
-                        <DataTableCell>{entry.notes || 'â€”'}</DataTableCell>
+                        <DataTableCell>{entry.notes || '—'}</DataTableCell>
                     </DataTableRow>
                 ))}
             </DataTable>
@@ -516,7 +516,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                                 status={order.fulfillment_type}
                                 label={
                                     order.is_pre_order
-                                        ? `Pre-order Â· ${order.fulfillment_type}`
+                                        ? `Pre-order · ${order.fulfillment_type}`
                                         : order.fulfillment_type
                                 }
                             />

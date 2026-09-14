@@ -1,3 +1,15 @@
+export function formatQuantity(value) {
+    const amount = Number(value ?? 0);
+
+    if (!Number.isFinite(amount)) {
+        return '0';
+    }
+
+    return new Intl.NumberFormat('en-TZ', {
+        maximumFractionDigits: 3,
+    }).format(amount);
+}
+
 export function formatMoney(amount, { prefix = 'TZS ' } = {}) {
     const value = Number(amount ?? 0);
     const formatted = new Intl.NumberFormat('en-TZ', {

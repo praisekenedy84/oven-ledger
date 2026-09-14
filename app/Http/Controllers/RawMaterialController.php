@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\RawMaterial;
+use App\Models\RawMaterialStockMovement;
+use App\Services\CurrentBranch;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -10,10 +12,56 @@ use Inertia\Response;
 
 class RawMaterialController extends Controller
 {
+    public function __construct(
+        protected CurrentBranch $currentBranch,
+    ) {}
+
     public function index(): Response
     {
+        $branchId = $this->currentBranch->id();
+
         return Inertia::render('RawMaterials/Index', [
-            'rawMaterials' => RawMaterial::query()->latest()->paginate(20),
+            'rawMaterials' => RawMaterial::query()
+                ->with(['branchStock' => fn ($query) => $query->when(
+                    $branchId,
+                    fn ($inner) => $inner->where('branch_id', $branchId)
+                )])
+                ->latest()
+                ->paginate(20)
+                ->through(function (RawMaterial $material) {
+                    return [
+                        ...$material->only([
+                            'id', 'name', 'unit_of_measure', 'reorder_threshold', 'unit_cost',
+                        ]),
+                        'quantity_on_hand' => (float) ($material->branchStock->first()?->quantity_on_hand ?? 0),
+                    ];
+                }),
+        ]);
+    }
+
+    public function show(RawMaterial $rawMaterial): Response
+    {
+        $branchId = $this->currentBranch->id();
+
+        $rawMaterial->load(['branchStock' => fn ($query) => $query->when(
+            $branchId,
+            fn ($inner) => $inner->where('branch_id', $branchId)
+        )]);
+
+        return Inertia::render('RawMaterials/Show', [
+            'rawMaterial' => [
+                ...$rawMaterial->only([
+                    'id', 'name', 'unit_of_measure', 'reorder_threshold', 'unit_cost',
+                ]),
+                'quantity_on_hand' => (float) ($rawMaterial->branchStock->first()?->quantity_on_hand ?? 0),
+            ],
+            'movements' => RawMaterialStockMovement::query()
+                ->where('raw_material_id', $rawMaterial->id)
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+                ->orderByDesc('occurred_at')
+                ->orderByDesc('id')
+                ->paginate(20)
+                ->withQueryString(),
         ]);
     }
 
@@ -57,6 +105,10 @@ class RawMaterialController extends Controller
 
         if ($rawMaterial->branchStock()->where('quantity_on_hand', '>', 0)->exists()) {
             return back()->with('error', 'This raw material still has stock and cannot be deleted.');
+        }
+
+        if ($rawMaterial->stockMovements()->exists()) {
+            return back()->with('error', 'This raw material has stock history and cannot be deleted.');
         }
 
         $rawMaterial->branchStock()->delete();

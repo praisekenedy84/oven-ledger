@@ -104,7 +104,7 @@ export default function Show({
                         <Row label="Owner">
                             {tenant.owner_name} ({tenant.owner_email})
                         </Row>
-                        <Row label="Phone">{tenant.owner_phone || 'â€”'}</Row>
+                        <Row label="Phone">{tenant.owner_phone || '—'}</Row>
                         <Row label="Branches">
                             <UsageBar value={branchCount} max={tenant.max_branches} />
                         </Row>

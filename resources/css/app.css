@@ -42,22 +42,6 @@
         overflow-x: hidden;
     }
 
-    .MuiInputBase-input,
-    .MuiOutlinedInput-input {
-        appearance: none;
-        background-color: transparent;
-        border: none;
-        outline: none;
-        box-shadow: none;
-    }
-
-    .MuiInputBase-input:focus,
-    .MuiOutlinedInput-input:focus {
-        border: none;
-        outline: none;
-        box-shadow: none;
-    }
-
     .MuiInputBase-input:-webkit-autofill,
     .MuiInputBase-input:-webkit-autofill:hover,
     .MuiInputBase-input:-webkit-autofill:focus {
@@ -66,4 +50,53 @@
         box-shadow: 0 0 0 1000px var(--color-cream) inset;
         transition: background-color 9999s ease-out 0s;
     }
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+textarea,
+select,
+.MuiInputBase-input,
+.MuiOutlinedInput-input,
+.MuiSelect-select,
+.MuiSelect-nativeInput {
+    outline: none;
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):focus,
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+.MuiInputBase-root:focus,
+.MuiInputBase-root:focus-visible,
+.MuiInputBase-root.Mui-focused,
+.MuiOutlinedInput-root:focus,
+.MuiOutlinedInput-root:focus-visible,
+.MuiOutlinedInput-root.Mui-focused,
+.MuiInputBase-input:focus,
+.MuiInputBase-input:focus-visible,
+.MuiOutlinedInput-input:focus,
+.MuiOutlinedInput-input:focus-visible,
+.MuiSelect-select:focus,
+.MuiSelect-select:focus-visible,
+.MuiSelect-nativeInput:focus,
+.MuiSelect-nativeInput:focus-visible {
+    outline: none !important;
+    outline-offset: 0;
+    box-shadow: none;
+}
+
+input:-moz-focusring,
+textarea:-moz-focusring,
+select:-moz-focusring {
+    outline: none;
+}
+
+input::-moz-focus-inner {
+    border: 0;
+}
+
+.MuiOutlinedInput-notchedOutline {
+    outline: none;
 }

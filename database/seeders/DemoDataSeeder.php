@@ -15,10 +15,12 @@ use App\Models\OwnerTransaction;
 use App\Models\Payment;
 use App\Models\PriceList;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\ProductionBatch;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\RawMaterial;
+use App\Models\RawMaterialStockMovement;
 use App\Models\Recipe;
 use App\Models\RecipeIngredient;
 use App\Models\Role;
@@ -26,7 +28,6 @@ use App\Models\StockTransfer;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\UserRole;
-use App\Models\ProductCategory;
 use App\Models\WasteLog;
 use App\Services\CustomerLedger;
 use App\Services\TenantUserDirectory;
@@ -422,13 +423,32 @@ class DemoDataSeeder extends Seeder
 
         foreach ($rawByBranch as $branchId => $rows) {
             foreach ($rows as $name => $qty) {
+                $material = $this->materials[$name];
                 BranchRawMaterialStock::query()->updateOrCreate(
                     [
                         'branch_id' => $branchId,
-                        'raw_material_id' => $this->materials[$name]->id,
+                        'raw_material_id' => $material->id,
                     ],
                     ['quantity_on_hand' => $qty]
                 );
+
+                $hasHistory = RawMaterialStockMovement::query()
+                    ->where('branch_id', $branchId)
+                    ->where('raw_material_id', $material->id)
+                    ->exists();
+
+                if (! $hasHistory && $qty > 0) {
+                    RawMaterialStockMovement::query()->create([
+                        'branch_id' => $branchId,
+                        'raw_material_id' => $material->id,
+                        'type' => RawMaterialStockMovement::TYPE_OPENING,
+                        'quantity' => $qty,
+                        'quantity_after' => $qty,
+                        'unit_cost' => $material->unit_cost,
+                        'notes' => 'Opening balance',
+                        'occurred_at' => now()->subDays(8),
+                    ]);
+                }
             }
         }
 
@@ -1144,6 +1164,7 @@ class DemoDataSeeder extends Seeder
 
             if ($payment['method'] === 'credit_account' && $amount <= 0) {
                 $pendingCredit = $payment;
+
                 continue;
             }
 

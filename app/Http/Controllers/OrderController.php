@@ -3,14 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Services\FinishedGoodsInventory;
 use App\Services\SaleCorrection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
-    public function fulfill(Order $order): RedirectResponse
+    public function fulfill(Order $order, FinishedGoodsInventory $inventory): RedirectResponse
     {
         if ($order->isVoided()) {
             throw ValidationException::withMessages([
@@ -22,7 +24,16 @@ class OrderController extends Controller
             return back()->with('success', 'Order is already fulfilled.');
         }
 
-        $order->update(['status' => 'completed']);
+        DB::transaction(function () use ($order, $inventory) {
+            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
+
+            if ($locked->status === 'completed') {
+                return;
+            }
+
+            $locked->update(['status' => 'completed']);
+            $inventory->deductForOrder($locked);
+        });
 
         return back()->with('success', 'Order marked as fulfilled.');
     }

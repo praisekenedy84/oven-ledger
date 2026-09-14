@@ -106,7 +106,7 @@ export default function Index({ roles, permissionGroups }) {
                             {role.is_default && <Chip size="small" label="Default" sx={{ height: 22 }} />}
                         </Stack>
                         <Typography variant="caption" color="text.secondary">
-                            {role.users_count} admins Â· {matrix[role.id]?.length ?? 0} permissions
+                            {role.users_count} admins · {matrix[role.id]?.length ?? 0} permissions
                         </Typography>
                         <Stack direction="row" spacing={0.75} sx={{ mt: 1 }}>
                             <SecondaryButton

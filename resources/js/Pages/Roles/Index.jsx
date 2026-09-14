@@ -173,7 +173,7 @@ export default function Index({ roles, permissionGroups, menuRows }) {
                             )}
                         </Stack>
                         <Typography variant="caption" color="text.secondary">
-                            {role.users_count} staff Â· {matrix[role.id]?.permission_ids.length ?? 0} permissions
+                            {role.users_count} staff · {matrix[role.id]?.permission_ids.length ?? 0} permissions
                         </Typography>
                         <Stack direction="row" spacing={0.75} sx={{ mt: 1 }}>
                             <SecondaryButton

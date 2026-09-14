@@ -10,27 +10,32 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\BusinessReport;
 use App\Services\CurrentBranch;
+use App\Services\ReportExporter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
     public function __construct(
         protected CurrentBranch $currentBranch,
         protected BusinessReport $reports,
+        protected ReportExporter $exporter,
     ) {}
 
     public function index(Request $request): Response
     {
-        $branchId = $request->input('branch_id', $this->currentBranch->id());
-        $branchId = $branchId === '' || $branchId === null ? null : (int) $branchId;
-        $dateFrom = $this->parseDate($request->input('date_from'), now()->subDays(6)->toDateString());
-        $dateTo = $this->parseDate($request->input('date_to'), now()->toDateString());
-        $staffUserId = $request->input('staff_user_id');
-        $staffUserId = $staffUserId === '' || $staffUserId === null ? null : (int) $staffUserId;
+        $filters = $this->resolvedFilters($request);
+        $branchId = $filters['branch_id'];
+        $dateFrom = $filters['date_from'];
+        $dateTo = $filters['date_to'];
+        $staffUserId = $filters['staff_user_id'];
+        $productSearch = $filters['product_search'];
+        $productId = $filters['product_id'];
 
         $from = Carbon::parse($dateFrom)->startOfDay();
         $to = Carbon::parse($dateTo)->endOfDay();
@@ -120,6 +125,9 @@ class ReportController extends Controller
 
         $profitLoss = $this->reports->statement($from, $to, $branchId);
         $dailySales = $this->reports->dailySales($from, $to, $branchId);
+        $salesByProduct = $this->reports->productSales($from, $to, $branchId, $productSearch, $productId);
+        $productTrend = $this->reports->productDailyTrend($from, $to, $branchId, $productSearch, $productId);
+        $expenseBreakdown = $this->reports->expenseBreakdown($profitLoss, $dailySales);
 
         return Inertia::render('Reports/Index', [
             'salesByChannel' => $salesByChannel,
@@ -134,19 +142,55 @@ class ReportController extends Controller
             'profitLoss' => $profitLoss,
             'economics' => $profitLoss,
             'dailySales' => $dailySales,
+            'salesByProduct' => $salesByProduct,
+            'productTrend' => $productTrend,
+            'expenseBreakdown' => $expenseBreakdown,
             'preOrdersPending' => Order::query()
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->where('is_pre_order', true)
                 ->where('status', 'pending')
                 ->count(),
             'branches' => Branch::query()->orderBy('name')->get(['id', 'name']),
-            'filters' => [
-                'branch_id' => $branchId,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
-                'staff_user_id' => $staffUserId,
-            ],
+            'filters' => $filters,
         ]);
+    }
+
+    public function export(Request $request): HttpResponse|StreamedResponse
+    {
+        $kind = $request->input('kind') === 'expenses' ? 'expenses' : 'sales';
+        $format = $request->input('format') === 'xlsx' ? 'xlsx' : 'pdf';
+        $filters = $this->resolvedFilters($request);
+        $from = Carbon::parse($filters['date_from'])->startOfDay();
+        $to = Carbon::parse($filters['date_to'])->endOfDay();
+
+        return $this->exporter->download(
+            $kind,
+            $format,
+            $from,
+            $to,
+            $filters['branch_id'],
+            $filters['product_search'],
+            $filters['product_id'],
+        );
+    }
+
+    /**
+     * @return array{branch_id: int|null, date_from: string, date_to: string, staff_user_id: int|null, product_search: string, product_id: int|null}
+     */
+    protected function resolvedFilters(Request $request): array
+    {
+        $branchId = $request->input('branch_id', $this->currentBranch->id());
+        $staffUserId = $request->input('staff_user_id');
+        $productId = $request->input('product_id');
+
+        return [
+            'branch_id' => $branchId === '' || $branchId === null ? null : (int) $branchId,
+            'date_from' => $this->parseDate($request->input('date_from'), now()->subDays(6)->toDateString()),
+            'date_to' => $this->parseDate($request->input('date_to'), now()->toDateString()),
+            'staff_user_id' => $staffUserId === '' || $staffUserId === null ? null : (int) $staffUserId,
+            'product_search' => trim((string) $request->input('product_search', '')),
+            'product_id' => $productId === '' || $productId === null ? null : (int) $productId,
+        ];
     }
 
     protected function parseDate(mixed $value, string $fallback): string

@@ -156,7 +156,7 @@ export default function Index({ staff, roles, branches }) {
                         <DataTableCell>{member.username}</DataTableCell>
                         <DataTableCell>{member.email}</DataTableCell>
                         <DataTableCell>
-                            {member.user_roles?.[0]?.role?.name ?? 'â€”'}
+                            {member.user_roles?.[0]?.role?.name ?? '—'}
                         </DataTableCell>
                         <DataTableCell>
                             {member.branches?.map((b) => b.name).join(', ') || 'All'}

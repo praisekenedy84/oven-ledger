@@ -6,6 +6,7 @@ use App\Jobs\DeductRawMaterialsOnBatchComplete;
 use App\Models\Product;
 use App\Models\ProductionBatch;
 use App\Services\CurrentBranch;
+use App\Services\ProductionInventory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,11 +16,13 @@ class ProductionBatchController extends Controller
 {
     public function __construct(
         protected CurrentBranch $currentBranch,
+        protected ProductionInventory $productionInventory,
     ) {}
 
     public function index(): Response
     {
         $branchId = $this->currentBranch->id();
+        $this->productionInventory->postOutstanding($branchId);
 
         return Inertia::render('ProductionBatches/Index', [
             'batches' => ProductionBatch::query()
@@ -86,6 +89,7 @@ class ProductionBatchController extends Controller
         ]);
 
         if (in_array($validated['status'], ['ready', 'dispatched'], true)) {
+            $this->productionInventory->postCompletedBatch($productionBatch->fresh());
             DeductRawMaterialsOnBatchComplete::dispatch($productionBatch->id);
         }
 

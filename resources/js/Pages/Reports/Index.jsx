@@ -3,19 +3,38 @@ import DataTable, { DataTableCell, DataTableRow } from '@/Components/DataTable';
 import Money from '@/Components/Money';
 import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
+import ReportExportMenu from '@/Components/ReportExportMenu';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
 import VoidSaleDialog, { canRefundSales } from '@/Components/VoidSaleDialog';
 import TenantLayout from '@/Layouts/TenantLayout';
-import { formatDate, formatDateTime } from '@/lib/format';
+import useDebouncedValue from '@/hooks/useDebouncedValue';
+import { formatDate, formatDateTime, formatQuantity } from '@/lib/format';
 import { colors, chartPalette } from '@/theme/bakeryTheme';
-import { Box, Button, FormControl, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import {
+    Box,
+    Button,
+    Chip,
+    FormControl,
+    IconButton,
+    InputAdornment,
+    MenuItem,
+    Select,
+    Stack,
+    TextField,
+    Typography,
+} from '@mui/material';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const reportOnly = [
     'salesByChannel',
     'salesByProductType',
+    'salesByProduct',
+    'productTrend',
+    'expenseBreakdown',
     'salesByStaff',
     'tickets',
     'receivables',
@@ -27,6 +46,35 @@ const reportOnly = [
     'dailySales',
     'filters',
 ];
+
+function localIsoDate(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
+function shiftDays(days) {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+
+    return localIsoDate(date);
+}
+
+function monthStart() {
+    const date = new Date();
+    date.setDate(1);
+
+    return localIsoDate(date);
+}
+
+function chartDayLabel(value) {
+    return new Date(`${value}T00:00:00`).toLocaleDateString('en-TZ', {
+        weekday: 'short',
+        day: 'numeric',
+    });
+}
 
 function ticketItems(ticket) {
     return (ticket.items ?? []).map((item) => `${item.quantity} ${item.name}`).join(', ');
@@ -65,6 +113,9 @@ function StatementRow({ label, value, href, strong = false, muted = false, loss 
 export default function Reports({
     salesByChannel,
     salesByProductType,
+    salesByProduct = [],
+    productTrend = [],
+    expenseBreakdown = { lines: [], daily: [], total: 0 },
     salesByStaff = [],
     tickets,
     receivables = [],
@@ -80,8 +131,18 @@ export default function Reports({
     const { auth } = usePage().props;
     const canRefund = canRefundSales(auth);
     const [voidTarget, setVoidTarget] = useState(null);
+    const [productSearch, setProductSearch] = useState(filters.product_search ?? '');
+    const debouncedProductSearch = useDebouncedValue(productSearch, 300);
     const statement = profitLoss ?? economics;
     const daysWithSales = dailySales.filter((day) => day.tickets > 0 || day.voided_tickets > 0);
+    const selectedProduct = salesByProduct.find((row) => row.id === filters.product_id);
+    const productChartItems = salesByProduct.slice(0, 8);
+    const productViewLabel = selectedProduct
+        ? selectedProduct.name
+        : (filters.product_search || '').trim()
+          ? `Products matching “${filters.product_search.trim()}”`
+          : 'All products';
+    const rangeLabel = `${formatDate(filters.date_from)} – ${formatDate(filters.date_to)}`;
 
     const applyFilters = (next) => {
         router.get(
@@ -91,16 +152,28 @@ export default function Reports({
                 date_from: filters.date_from,
                 date_to: filters.date_to,
                 staff_user_id: filters.staff_user_id ?? '',
+                product_search: filters.product_search ?? '',
+                product_id: filters.product_id ?? '',
                 ...next,
             },
             { preserveState: true, preserveScroll: true, only: reportOnly },
         );
     };
 
-    const setToday = () => {
-        const today = new Date().toISOString().slice(0, 10);
-        applyFilters({ date_from: today, date_to: today });
-    };
+    useEffect(() => {
+        setProductSearch(filters.product_search ?? '');
+    }, [filters.product_search]);
+
+    useEffect(() => {
+        if ((debouncedProductSearch ?? '') === (filters.product_search ?? '')) {
+            return;
+        }
+
+        applyFilters({
+            product_search: debouncedProductSearch,
+            product_id: '',
+        });
+    }, [debouncedProductSearch]);
 
     return (
         <TenantLayout title="Reports">
@@ -109,12 +182,30 @@ export default function Reports({
             <PageHeader
                 eyebrow="Numbers"
                 title="Reports"
-                description="Profit or loss for the dates you pick, how money moved, and a day-by-day sales sheet."
+                description="Pick a date range for the graphs, search a product’s sales, and download sales or expenses as PDF or Excel."
                 actions={
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
-                        <Button size="small" variant="outlined" onClick={setToday}>
-                            Today
-                        </Button>
+                        {[
+                            { label: 'Today', range: { date_from: localIsoDate(), date_to: localIsoDate() } },
+                            { label: '7 days', range: { date_from: shiftDays(-6), date_to: localIsoDate() } },
+                            { label: '30 days', range: { date_from: shiftDays(-29), date_to: localIsoDate() } },
+                            { label: 'This month', range: { date_from: monthStart(), date_to: localIsoDate() } },
+                        ].map((preset) => {
+                            const active =
+                                filters.date_from === preset.range.date_from &&
+                                filters.date_to === preset.range.date_to;
+
+                            return (
+                                <Button
+                                    key={preset.label}
+                                    size="small"
+                                    variant={active ? 'contained' : 'outlined'}
+                                    onClick={() => applyFilters(preset.range)}
+                                >
+                                    {preset.label}
+                                </Button>
+                            );
+                        })}
                         <TextField
                             size="small"
                             type="date"
@@ -147,6 +238,7 @@ export default function Reports({
                                 </Select>
                             </FormControl>
                         ) : null}
+                        <ReportExportMenu filters={filters} />
                     </Stack>
                 }
             />
@@ -250,6 +342,141 @@ export default function Reports({
 
             <SurfaceCard sx={{ mb: 3 }}>
                 <Stack
+                    direction={{ xs: 'column', md: 'row' }}
+                    justifyContent="space-between"
+                    spacing={2}
+                    sx={{ mb: 2 }}
+                >
+                    <Box>
+                        <Typography variant="overline" sx={{ color: colors.jam }}>
+                            Product sales
+                        </Typography>
+                        <Typography variant="h6">Search what sold</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Graphs follow the date range and the product you look up.
+                        </Typography>
+                    </Box>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+                        <Chip size="small" label={rangeLabel} sx={{ bgcolor: colors.wheatLight }} />
+                        <Chip size="small" label={productViewLabel} sx={{ bgcolor: `${colors.jam}14` }} />
+                    </Stack>
+                </Stack>
+                <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="Search a product — mandazi, loaf, sugar…"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon fontSize="small" />
+                            </InputAdornment>
+                        ),
+                        endAdornment: (productSearch || filters.product_id) && (
+                            <InputAdornment position="end">
+                                <IconButton
+                                    size="small"
+                                    aria-label="Clear product search"
+                                    onClick={() => {
+                                        setProductSearch('');
+                                        applyFilters({ product_search: '', product_id: '' });
+                                    }}
+                                >
+                                    <CloseIcon fontSize="small" />
+                                </IconButton>
+                            </InputAdornment>
+                        ),
+                    }}
+                    sx={{ mb: 2, maxWidth: 420 }}
+                />
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gap: 2,
+                        gridTemplateColumns: { xs: '1fr', lg: '1.4fr 0.8fr' },
+                        mb: 2,
+                    }}
+                >
+                    <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                            {productViewLabel} over {rangeLabel}
+                        </Typography>
+                        <LineChart
+                            labels={productTrend.map((day) => chartDayLabel(day.date))}
+                            series={[
+                                {
+                                    key: 'product_sales',
+                                    label: 'Product sales',
+                                    values: productTrend.map((day) => day.revenue),
+                                    color: colors.jam,
+                                },
+                            ]}
+                            height={220}
+                        />
+                    </Box>
+                    <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                            Top matching products
+                        </Typography>
+                        <BarChart
+                            items={productChartItems.map((row, i) => ({
+                                label: row.name,
+                                value: row.revenue,
+                                color: chartPalette[i % chartPalette.length],
+                            }))}
+                            height={220}
+                        />
+                    </Box>
+                </Box>
+                <DataTable
+                    columns={[
+                        { label: 'Product' },
+                        { label: 'Type' },
+                        { label: 'Qty sold' },
+                        { label: 'Sales' },
+                        { label: 'Cost' },
+                        { label: 'Profit' },
+                    ]}
+                    emptyMessage="No product sales match this search and date range."
+                >
+                    {salesByProduct.map((row) => {
+                        const selected = filters.product_id === row.id;
+
+                        return (
+                            <DataTableRow
+                                key={row.id}
+                                onClick={() =>
+                                    applyFilters({
+                                        product_id: selected ? '' : row.id,
+                                    })
+                                }
+                                sx={{ bgcolor: selected ? `${colors.jam}0f` : undefined }}
+                            >
+                                <DataTableCell sx={{ fontWeight: 600 }}>{row.name}</DataTableCell>
+                                <DataTableCell>
+                                    <StatusBadge status={row.type} />
+                                </DataTableCell>
+                                <DataTableCell>
+                                    {formatQuantity(row.quantity)} {row.unit}
+                                </DataTableCell>
+                                <DataTableCell sx={{ fontWeight: 600 }}>
+                                    <Money amount={row.revenue} />
+                                </DataTableCell>
+                                <DataTableCell>
+                                    <Money amount={row.cost} />
+                                </DataTableCell>
+                                <DataTableCell sx={{ fontWeight: 700, color: row.profit < 0 ? colors.jam : colors.ink }}>
+                                    <Money amount={row.profit} />
+                                </DataTableCell>
+                            </DataTableRow>
+                        );
+                    })}
+                </DataTable>
+            </SurfaceCard>
+
+            <SurfaceCard sx={{ mb: 3 }}>
+                <Stack
                     direction={{ xs: 'column', sm: 'row' }}
                     justifyContent="space-between"
                     spacing={1}
@@ -261,18 +488,13 @@ export default function Reports({
                         </Typography>
                         <Typography variant="h6">Each day’s take</Typography>
                         <Typography variant="body2" color="text.secondary">
-                            Tickets, cash vs credit, cost, waste, and the day’s profit or loss.
+                            Tickets, cash vs credit, cost, waste, and the day’s profit or loss for {rangeLabel}.
                         </Typography>
                     </Box>
                 </Stack>
                 <Box sx={{ mb: 2 }}>
                     <LineChart
-                        labels={dailySales.map((day) =>
-                            new Date(`${day.date}T00:00:00`).toLocaleDateString('en-TZ', {
-                                weekday: 'short',
-                                day: 'numeric',
-                            }),
-                        )}
+                        labels={dailySales.map((day) => chartDayLabel(day.date))}
                         series={[
                             { key: 'sales', label: 'Sales', values: dailySales.map((day) => day.revenue), color: colors.jam },
                             {
@@ -331,6 +553,73 @@ export default function Reports({
                         No completed tickets in this range yet.
                     </Typography>
                 )}
+            </SurfaceCard>
+
+            <SurfaceCard sx={{ mb: 3 }}>
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    justifyContent="space-between"
+                    spacing={1}
+                    sx={{ mb: 1.5 }}
+                >
+                    <Box>
+                        <Typography variant="overline" sx={{ color: colors.sage }}>
+                            Expenses
+                        </Typography>
+                        <Typography variant="h6">Money going out</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Ingredient cost, waste, creditor payments, and drawings for {rangeLabel}.
+                        </Typography>
+                    </Box>
+                    <Typography variant="h6">
+                        <Money amount={expenseBreakdown.total ?? 0} />
+                    </Typography>
+                </Stack>
+                <Box sx={{ mb: 2 }}>
+                    <LineChart
+                        labels={(expenseBreakdown.daily ?? []).map((day) => chartDayLabel(day.date))}
+                        series={[
+                            {
+                                key: 'cost',
+                                label: 'Ingredient cost',
+                                values: (expenseBreakdown.daily ?? []).map((day) => day.ingredient_cost),
+                                color: colors.butter,
+                            },
+                            {
+                                key: 'waste',
+                                label: 'Waste',
+                                values: (expenseBreakdown.daily ?? []).map((day) => day.waste_cost),
+                                color: colors.jam,
+                            },
+                            {
+                                key: 'out',
+                                label: 'Total out',
+                                values: (expenseBreakdown.daily ?? []).map((day) => day.total),
+                                color: colors.sage,
+                            },
+                        ]}
+                        height={220}
+                    />
+                </Box>
+                <DataTable
+                    columns={[{ label: 'Cost' }, { label: 'Amount' }]}
+                    emptyMessage="No costs recorded in this range."
+                >
+                    {(expenseBreakdown.lines ?? []).map((line) => (
+                        <DataTableRow key={line.key}>
+                            <DataTableCell>{line.label}</DataTableCell>
+                            <DataTableCell sx={{ fontWeight: 600 }}>
+                                <Money amount={line.amount} />
+                            </DataTableCell>
+                        </DataTableRow>
+                    ))}
+                    <DataTableRow>
+                        <DataTableCell sx={{ fontWeight: 700 }}>Money used</DataTableCell>
+                        <DataTableCell sx={{ fontWeight: 700 }}>
+                            <Money amount={expenseBreakdown.total ?? 0} />
+                        </DataTableCell>
+                    </DataTableRow>
+                </DataTable>
             </SurfaceCard>
 
             <Box

@@ -1,7 +1,7 @@
 import PosLayout from '@/Layouts/PosLayout';
 import ProductVisual from '@/Components/ProductVisual';
 import TicketPanel from '@/Components/TicketPanel';
-import { formatMoney } from '@/lib/format';
+import { formatMoney, formatQuantity } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
@@ -45,15 +45,40 @@ const PAYMENT_METHODS = [
     { value: 'mobile_money', label: 'Mobile Money' },
 ];
 
-const ProductCard = memo(function ProductCard({ product, price, qtyInCart, onAdd }) {
+const LOW_STOCK = 8;
+
+function shelfQuantity(product) {
+    const quantity = Number(product?.quantity_on_hand);
+
+    return Number.isFinite(quantity) ? quantity : 0;
+}
+
+function shelfLabel(product) {
+    const quantity = shelfQuantity(product);
+    const unit = product?.unit_of_measure ? ` ${product.unit_of_measure}` : '';
+
+    if (quantity <= 0) {
+        return 'Out of stock';
+    }
+
+    return `${formatQuantity(quantity)}${unit} left`;
+}
+
+const ProductCard = memo(function ProductCard({ product, price, qtyInCart, allowOversell, onAdd }) {
     const inCart = qtyInCart > 0;
+    const onHand = shelfQuantity(product);
+    const outOfStock = onHand <= 0;
+    const atLimit = !allowOversell && qtyInCart >= onHand;
+    const lowStock = !outOfStock && onHand <= LOW_STOCK;
+    const canAdd = allowOversell || (!outOfStock && !atLimit);
 
     return (
         <Card
             sx={{
                 height: '100%',
-                borderColor: inCart ? colors.jam : colors.border,
-                '&:hover': { borderColor: colors.jam },
+                borderColor: outOfStock ? colors.border : inCart ? colors.jam : colors.border,
+                opacity: outOfStock && !allowOversell ? 0.72 : 1,
+                '&:hover': { borderColor: canAdd || inCart ? colors.jam : colors.border },
             }}
         >
             <CardContent
@@ -65,12 +90,31 @@ const ProductCard = memo(function ProductCard({ product, price, qtyInCart, onAdd
                     '&:last-child': { pb: 0 },
                 }}
             >
-                <ProductVisual
-                    product={product}
-                    size="100%"
-                    radius="10px 10px 0 0"
-                    sx={{ height: { xs: 88, sm: 120 }, width: '100%' }}
-                />
+                <Box sx={{ position: 'relative' }}>
+                    <ProductVisual
+                        product={product}
+                        size="100%"
+                        radius="10px 10px 0 0"
+                        sx={{
+                            height: { xs: 88, sm: 120 },
+                            width: '100%',
+                            filter: outOfStock ? 'grayscale(0.65)' : 'none',
+                        }}
+                    />
+                    <Chip
+                        label={shelfLabel(product)}
+                        size="small"
+                        sx={{
+                            position: 'absolute',
+                            left: 8,
+                            bottom: 8,
+                            height: 24,
+                            fontWeight: 700,
+                            bgcolor: outOfStock ? colors.jam : lowStock ? colors.butter : colors.sage,
+                            color: outOfStock || !lowStock ? colors.cream : colors.ink,
+                        }}
+                    />
+                </Box>
                 <Box sx={{ p: { xs: 1.25, sm: 2 }, display: 'flex', flexDirection: 'column', flex: 1, gap: 0.75 }}>
                     <Typography variant="subtitle2" sx={{ lineHeight: 1.25 }}>
                         {product.name}
@@ -85,10 +129,19 @@ const ProductCard = memo(function ProductCard({ product, price, qtyInCart, onAdd
                         fullWidth
                         variant={inCart ? 'outlined' : 'contained'}
                         color={inCart ? 'inherit' : 'primary'}
+                        disabled={!canAdd}
                         onClick={() => onAdd(product)}
                         sx={{ mt: 0.5, minHeight: 40 }}
                     >
-                        {inCart ? `Add more (${qtyInCart})` : 'Add to ticket'}
+                        {outOfStock && !allowOversell
+                            ? 'Out of stock'
+                            : atLimit
+                              ? `On ticket (${formatQuantity(qtyInCart)})`
+                              : inCart
+                                ? `Add more (${formatQuantity(qtyInCart)})`
+                                : allowOversell && outOfStock
+                                  ? 'Add to pre-order'
+                                  : 'Add to ticket'}
                     </Button>
                 </Box>
             </CardContent>
@@ -175,6 +228,14 @@ export default function Pos({ products, customers = [], clients = [], priceLists
         });
     }, [departmentProducts, category, search]);
 
+    const productById = useMemo(() => {
+        const map = {};
+        products.forEach((product) => {
+            map[product.id] = product;
+        });
+        return map;
+    }, [products]);
+
     const qtyByProduct = useMemo(() => {
         const map = {};
         ticket.forEach((line) => {
@@ -186,12 +247,19 @@ export default function Pos({ products, customers = [], clients = [], priceLists
     const addToTicket = useCallback(
         (product) => {
             const unitPrice = getPrice(product.id);
+            const onHand = shelfQuantity(product);
             setTicket((prev) => {
                 const existing = prev.find((l) => l.product_id === product.id);
+                const nextQty = (existing?.quantity ?? 0) + 1;
+
+                if (!isPreOrder && nextQty - onHand > 0.0005) {
+                    return prev;
+                }
+
                 if (existing) {
                     return prev.map((l) =>
                         l.product_id === product.id
-                            ? { ...l, quantity: l.quantity + 1 }
+                            ? { ...l, quantity: nextQty }
                             : l,
                     );
                 }
@@ -201,23 +269,32 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                         product_id: product.id,
                         name: product.name,
                         category: product.category,
+                        unit_of_measure: product.unit_of_measure,
                         quantity: 1,
                         unit_price: unitPrice,
                     },
                 ];
             });
         },
-        [getPrice],
+        [getPrice, isPreOrder],
     );
 
     const bumpQty = (productId, delta) => {
+        const onHand = shelfQuantity(productById[productId]);
         setTicket((prev) =>
             prev
-                .map((l) =>
-                    l.product_id === productId
-                        ? { ...l, quantity: l.quantity + delta }
-                        : l,
-                )
+                .map((l) => {
+                    if (l.product_id !== productId) {
+                        return l;
+                    }
+
+                    const nextQty = l.quantity + delta;
+                    if (!isPreOrder && delta > 0 && nextQty - onHand > 0.0005) {
+                        return l;
+                    }
+
+                    return { ...l, quantity: nextQty };
+                })
                 .filter((l) => l.quantity > 0),
         );
     };
@@ -234,6 +311,9 @@ export default function Pos({ products, customers = [], clients = [], priceLists
     const visibleCustomers = directory.filter(
         (c) => channel === 'retail' || channel === 'custom' || c.type === channel || c.type === 'retail',
     );
+    const stockBlockedLines = isPreOrder
+        ? []
+        : ticket.filter((line) => line.quantity - shelfQuantity(productById[line.product_id]) > 0.0005);
     const creditSale = paymentMethod === 'credit_account';
     const deposit = isPreOrder && depositAmount !== '' ? Number(depositAmount) : 0;
     const remainderOnAccount = creditSale
@@ -244,7 +324,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
 
     const submit = (e) => {
         e.preventDefault();
-        if (ticket.length === 0 || processing) {
+        if (ticket.length === 0 || processing || stockBlockedLines.length > 0) {
             return;
         }
 
@@ -445,7 +525,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                 </MenuItem>
                                 {customerAddresses.map((address) => (
                                     <MenuItem key={address.id} value={String(address.id)}>
-                                        {address.label} â€” {address.address_text}
+                                        {address.label} — {address.address_text}
                                     </MenuItem>
                                 ))}
                             </Select>
@@ -505,7 +585,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                     >
                         <ShoppingBagOutlinedIcon sx={{ fontSize: 40, opacity: 0.35, mb: 1 }} />
                         <Typography variant="body2">
-                            Tap products to add items to the ticket.
+                            Tap products to add items to the ticket. Sell only what is on the shelf.
                         </Typography>
                     </Box>
                 ) : (
@@ -552,6 +632,9 @@ export default function Pos({ products, customers = [], clients = [], priceLists
 
                                     <Typography variant="caption" color="text.secondary">
                                         {formatMoney(line.unit_price)} each
+                                        {isPreOrder
+                                            ? ''
+                                            : ` · ${shelfLabel(productById[line.product_id] ?? line)}`}
                                     </Typography>
 
                                     <Stack
@@ -582,6 +665,11 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                         <IconButton
                                             size="small"
                                             type="button"
+                                            disabled={
+                                                !isPreOrder &&
+                                                line.quantity >=
+                                                    shelfQuantity(productById[line.product_id])
+                                            }
                                             onClick={() => bumpQty(line.product_id, 1)}
                                             sx={{
                                                 border: `1px solid ${colors.border}`,
@@ -654,15 +742,24 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                     </Select>
                 </FormControl>
 
-                {(errors?.items ||
+                {(stockBlockedLines.length > 0 ||
+                    errors?.items ||
                     errors?.customer_id ||
                     errors?.delivery_address_id ||
                     errors?.payments) && (
                     <Typography variant="body2" color="error" sx={{ mb: 1.5 }}>
-                        {errors.items ||
-                            errors.customer_id ||
-                            errors.delivery_address_id ||
-                            errors.payments}
+                        {stockBlockedLines.length > 0
+                            ? stockBlockedLines
+                                  .map((line) =>
+                                      shelfQuantity(productById[line.product_id]) <= 0
+                                          ? `${line.name} is out of stock.`
+                                          : `${line.name}: only ${shelfLabel(productById[line.product_id])} on the shelf.`,
+                                  )
+                                  .join(' ')
+                            : errors.items ||
+                              errors.customer_id ||
+                              errors.delivery_address_id ||
+                              errors.payments}
                     </Typography>
                 )}
 
@@ -681,6 +778,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                     disabled={
                         processing ||
                         ticket.length === 0 ||
+                        stockBlockedLines.length > 0 ||
                         (remainderOnAccount > 0 && !customerId) ||
                         (fulfillmentType === 'delivery' && (!customerId || !deliveryAddressId))
                     }
@@ -691,7 +789,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                         fontSize: '1rem',
                     }}
                 >
-                    {processing ? 'Recordingâ€¦' : 'Confirm Payment'}
+                    {processing ? 'Recording...' : 'Confirm Payment'}
                 </Button>
             </Box>
         </TicketPanel>
@@ -736,7 +834,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                 Order line
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                                Bakery or tools — then build the ticket.
+                                Shelf counts stay on each card. Sell fewer than you have — leftover stays in stock.
                             </Typography>
                         </Box>
                         <Button
@@ -772,7 +870,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
 
                     <TextField
                         size="small"
-                        placeholder="Search productsâ€¦"
+                        placeholder="Search products..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         InputProps={{
@@ -858,6 +956,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                         product={product}
                                         price={getPrice(product.id)}
                                         qtyInCart={qtyByProduct[product.id] ?? 0}
+                                        allowOversell={isPreOrder}
                                         onAdd={addToTicket}
                                     />
                                 ))}

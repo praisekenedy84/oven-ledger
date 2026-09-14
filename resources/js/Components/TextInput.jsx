@@ -11,6 +11,7 @@ export default forwardRef(function TextInput(
         InputProps,
         inputProps,
         slotProps,
+        sx,
         ...props
     },
     ref,
@@ -60,6 +61,17 @@ export default forwardRef(function TextInput(
             inputRef={localRef}
             fullWidth
             size="small"
+            sx={[
+                {
+                    '& .MuiInputBase-input, & .MuiInputBase-input:focus, & .MuiInputBase-input:focus-visible':
+                        {
+                            outline: 'none',
+                            boxShadow: 'none',
+                            border: 'none',
+                        },
+                },
+                sx,
+            ]}
             slotProps={{
                 ...slotProps,
                 htmlInput: {

@@ -32,6 +32,10 @@ const STATUS_COLORS = {
     other: { bg: colors.wheatLight, color: colors.muted, border: colors.border },
     capital_injection: { bg: `${colors.sage}1f`, color: colors.sage },
     drawing: { bg: `${colors.jam}1a`, color: colors.jam },
+    restock: { bg: `${colors.sage}1f`, color: colors.sage },
+    production: { bg: `${colors.jam}1a`, color: colors.jam },
+    waste: { bg: `${colors.jam}1a`, color: colors.jam },
+    opening: { bg: colors.wheatLight, color: colors.muted, border: colors.border },
 };
 
 export default function StatusBadge({ status, label }) {
