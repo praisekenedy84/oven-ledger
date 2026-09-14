@@ -36,6 +36,7 @@ export default function Dashboard({
     salesTrend = { labels: [], series: [] },
     bestSellingProducts = [],
     bestSellingSummary = { total_quantity: 0, total_revenue: 0, product_count: 0 },
+    economics = null,
 }) {
     const bakingCount = todayBatches.filter((b) => ['baking', 'cooling', 'ready'].includes(b.status)).length;
     const dueCount = wholesaleDue.length;
@@ -89,6 +90,49 @@ export default function Dashboard({
                 <StatTile label="Orders due" value={dueCount} hint="Wholesale & restaurant" accent={colors.sage} delay={120} />
                 <StatTile label="7-day sales" value={formatMoney(weekSales)} hint="All channels" accent={colors.ink} delay={180} />
             </Box>
+
+            {economics && (
+                <SurfaceCard sx={{ mb: 3, ...riseSx(80) }}>
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        justifyContent="space-between"
+                        spacing={1}
+                        sx={{ mb: 2 }}
+                    >
+                        <Box>
+                            <Typography variant="overline" sx={{ color: economics.is_loss ? colors.jam : colors.sage }}>
+                                {economics.is_loss ? 'This week is a loss' : economics.is_profit ? 'This week is a profit' : 'This week is even'}
+                            </Typography>
+                            <Typography variant="h6">
+                                Capital, ingredient cost, and the week’s result
+                            </Typography>
+                        </Box>
+                        <Button component={Link} href={route('tenant.reports.index')} prefetch size="small">
+                            Full P&L
+                        </Button>
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 640 }}>
+                        This week’s sales minus ingredient cost and waste, using current buy-in prices.
+                    </Typography>
+                    <Box
+                        sx={{
+                            display: 'grid',
+                            gap: 2,
+                            gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(6, 1fr)' },
+                        }}
+                    >
+                        <InsightChip label="Capital in" value={formatMoney(economics.capital_in)} />
+                        <InsightChip label="Still in the business" value={formatMoney(economics.capital_remaining)} />
+                        <InsightChip label="7-day sales" value={formatMoney(economics.revenue)} />
+                        <InsightChip label="Ingredient / stock cost" value={formatMoney(economics.ingredient_cost)} />
+                        <InsightChip label="Waste" value={formatMoney(economics.waste_cost ?? 0)} />
+                        <InsightChip
+                            label={economics.is_loss ? '7-day loss' : '7-day profit'}
+                            value={formatMoney(Math.abs(economics.profit))}
+                        />
+                    </Box>
+                </SurfaceCard>
+            )}
 
             <Box
                 sx={{

@@ -330,6 +330,29 @@ const bakeryTheme = createTheme({
                 root: { borderRadius: radius },
             },
         },
+        MuiInputBase: {
+            styleOverrides: {
+                input: {
+                    appearance: 'none',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    '&:focus': {
+                        border: 'none',
+                        outline: 'none',
+                        boxShadow: 'none',
+                    },
+                    '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus': {
+                        WebkitBoxShadow: `0 0 0 1000px ${colors.cream} inset`,
+                        WebkitTextFillColor: colors.ink,
+                        caretColor: colors.ink,
+                        borderRadius: 'inherit',
+                        transition: 'background-color 9999s ease-out 0s',
+                    },
+                },
+            },
+        },
         MuiOutlinedInput: {
             styleOverrides: {
                 root: {
@@ -345,10 +368,22 @@ const bakeryTheme = createTheme({
                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                         borderColor: colors.jam,
                     },
+                    '&.Mui-focused': {
+                        boxShadow: 'none',
+                    },
                 },
                 input: {
                     padding: '10px 14px',
                     boxSizing: 'border-box',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    '&:focus': {
+                        border: 'none',
+                        outline: 'none',
+                        boxShadow: 'none',
+                    },
                 },
                 inputSizeSmall: {
                     padding: '8.5px 14px',
@@ -414,6 +449,74 @@ const bakeryTheme = createTheme({
         },
     },
 });
+
+function sanitizeHex(value) {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    return /^#[0-9A-Fa-f]{6}$/.test(value) ? value.toUpperCase() : null;
+}
+
+export function createBakeryTheme(brand = {}) {
+    const primary = sanitizeHex(brand?.primary_color) ?? colors.jam;
+    const accent = sanitizeHex(brand?.accent_color) ?? colors.butter;
+
+    return createTheme(bakeryTheme, {
+        palette: {
+            primary: {
+                main: primary,
+                contrastText: colors.cream,
+            },
+            secondary: {
+                main: accent,
+                contrastText: colors.ink,
+            },
+        },
+        components: {
+            MuiButton: {
+                styleOverrides: {
+                    containedPrimary: {
+                        backgroundColor: primary,
+                        '&:hover': { backgroundColor: primary },
+                    },
+                    containedSecondary: {
+                        backgroundColor: accent,
+                    },
+                },
+            },
+            MuiTabs: {
+                styleOverrides: {
+                    indicator: { backgroundColor: primary },
+                },
+            },
+            MuiSwitch: {
+                styleOverrides: {
+                    switchBase: {
+                        '&.Mui-checked': { color: primary },
+                        '&.Mui-checked + .MuiSwitch-track': { backgroundColor: primary },
+                    },
+                },
+            },
+            MuiCheckbox: {
+                styleOverrides: {
+                    root: {
+                        '&.Mui-checked, &.MuiCheckbox-indeterminate': { color: primary },
+                    },
+                },
+            },
+            MuiOutlinedInput: {
+                styleOverrides: {
+                    root: {
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: primary,
+                        },
+                    },
+                },
+            },
+        },
+    });
+}
 
 export { colors, shadow, radius, chartPalette, layout, controlHeight, headerHeight };
 export default bakeryTheme;

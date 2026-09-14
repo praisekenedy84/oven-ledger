@@ -15,7 +15,7 @@ class SetCurrentBranch
 
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && $request->has('branch_id')) {
+        if ($request->user('web') && $request->has('branch_id')) {
             $this->currentBranch->set((int) $request->input('branch_id'));
         } else {
             $this->currentBranch->id();

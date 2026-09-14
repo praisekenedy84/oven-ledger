@@ -1,6 +1,7 @@
 import AppSidebar from '@/Components/AppSidebar';
 import BuildUpdatePrompt from '@/Components/BuildUpdatePrompt';
 import FlashMessage from '@/Components/FlashMessage';
+import ImpersonationBanner from '@/Components/ImpersonationBanner';
 import { colors, layout } from '@/theme/bakeryTheme';
 import { resolveNavIcon } from '@/theme/nav';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -40,7 +41,9 @@ export default function PlatformLayout({ title, children }) {
     );
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+            <ImpersonationBanner />
+            <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
             <FlashMessage />
             <BuildUpdatePrompt />
 
@@ -58,7 +61,7 @@ export default function PlatformLayout({ title, children }) {
                     minWidth: 0,
                     display: 'flex',
                     flexDirection: 'column',
-                    minHeight: '100vh',
+                    minHeight: 0,
                 }}
             >
                 <AppBar position="sticky">
@@ -88,6 +91,7 @@ export default function PlatformLayout({ title, children }) {
                 <Box component="main" sx={{ flex: 1, p: layout.pageGutter }}>
                     {children}
                 </Box>
+            </Box>
             </Box>
         </Box>
     );

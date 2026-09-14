@@ -5,7 +5,9 @@ namespace Database\Seeders;
 use App\Models\Branch;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\ShopSetting;
 use App\Services\TenantAccessCatalog;
+use App\Support\ProductCategoryCatalog;
 use Illuminate\Database\Seeder;
 
 class TenantDatabaseSeeder extends Seeder
@@ -27,6 +29,7 @@ class TenantDatabaseSeeder extends Seeder
             ['key' => 'roles.manage', 'label' => 'Manage roles and menus', 'group' => 'staff'],
             ['key' => 'branches.manage', 'label' => 'Manage branches', 'group' => 'branches'],
             ['key' => 'catalog.manage', 'label' => 'Manage catalog', 'group' => 'catalog'],
+            ['key' => 'shop.manage', 'label' => 'Manage shop settings', 'group' => 'settings'],
         ];
 
         foreach ($permissions as $permission) {
@@ -43,7 +46,7 @@ class TenantDatabaseSeeder extends Seeder
             'branch_manager' => Permission::whereIn('key', [
                 'pos.sell', 'pos.refund', 'inventory.view', 'inventory.transfer',
                 'production.manage', 'reports.view_own_branch', 'wholesale.manage_clients',
-                'customers.manage', 'debts.manage', 'staff.manage', 'catalog.manage',
+                'customers.manage', 'debts.manage', 'staff.manage', 'catalog.manage', 'shop.manage',
             ])->pluck('id')->all(),
             'cashier' => Permission::whereIn('key', ['pos.sell'])->pluck('id')->all(),
             'production_staff' => Permission::whereIn('key', [
@@ -61,6 +64,9 @@ class TenantDatabaseSeeder extends Seeder
         }
 
         app(TenantAccessCatalog::class)->seedDefaultMenuVisibility();
+
+        ProductCategoryCatalog::seed();
+        ShopSetting::current();
 
         Branch::query()->firstOrCreate(
             ['name' => 'Main Branch'],

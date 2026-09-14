@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 class ProductionBatch extends Model
 {
@@ -27,6 +28,43 @@ class ProductionBatch extends Model
             'produced_at' => 'datetime',
             'expiry_date' => 'date',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $batch): void {
+            if (filled($batch->batch_number)) {
+                return;
+            }
+
+            $batch->batch_number = static::generateBatchNumber();
+        });
+    }
+
+    public static function generateBatchNumber(): string
+    {
+        $prefix = 'PB-'.now()->format('Ymd').'-';
+
+        return DB::transaction(function () use ($prefix) {
+            $latest = static::query()
+                ->where('batch_number', 'like', $prefix.'%')
+                ->lockForUpdate()
+                ->orderByDesc('batch_number')
+                ->value('batch_number');
+
+            return static::nextNumberAfter($prefix, is_string($latest) ? $latest : null);
+        });
+    }
+
+    public static function nextNumberAfter(string $prefix, ?string $latest): string
+    {
+        $sequence = 1;
+
+        if ($latest !== null && preg_match('/-(\d+)$/', $latest, $matches) === 1) {
+            $sequence = ((int) $matches[1]) + 1;
+        }
+
+        return $prefix.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
     }
 
     public function branch(): BelongsTo

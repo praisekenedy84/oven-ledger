@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\CustomerLedgerEntry;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\BusinessReport;
 use App\Services\CurrentBranch;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -19,11 +20,13 @@ class ReportController extends Controller
 {
     public function __construct(
         protected CurrentBranch $currentBranch,
+        protected BusinessReport $reports,
     ) {}
 
     public function index(Request $request): Response
     {
         $branchId = $request->input('branch_id', $this->currentBranch->id());
+        $branchId = $branchId === '' || $branchId === null ? null : (int) $branchId;
         $dateFrom = $this->parseDate($request->input('date_from'), now()->subDays(6)->toDateString());
         $dateTo = $this->parseDate($request->input('date_to'), now()->toDateString());
         $staffUserId = $request->input('staff_user_id');
@@ -36,6 +39,7 @@ class ReportController extends Controller
             ->select('channel', DB::raw('SUM(total_amount) as total'))
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('status', 'completed')
+            ->whereBetween('created_at', [$from, $to])
             ->groupBy('channel')
             ->get();
 
@@ -45,6 +49,7 @@ class ReportController extends Controller
             ->select('products.type', DB::raw('SUM(order_items.line_total) as total'))
             ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
             ->where('orders.status', 'completed')
+            ->whereBetween('orders.created_at', [$from, $to])
             ->groupBy('products.type')
             ->get();
 
@@ -113,6 +118,9 @@ class ReportController extends Controller
             ];
         });
 
+        $profitLoss = $this->reports->statement($from, $to, $branchId);
+        $dailySales = $this->reports->dailySales($from, $to, $branchId);
+
         return Inertia::render('Reports/Index', [
             'salesByChannel' => $salesByChannel,
             'salesByProductType' => $salesByProductType,
@@ -123,6 +131,9 @@ class ReportController extends Controller
             'receivablesTotal' => (float) CustomerLedgerEntry::query()
                 ->selectRaw("COALESCE(SUM(CASE WHEN type = 'charge' THEN amount ELSE -amount END), 0) as total")
                 ->value('total'),
+            'profitLoss' => $profitLoss,
+            'economics' => $profitLoss,
+            'dailySales' => $dailySales,
             'preOrdersPending' => Order::query()
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->where('is_pre_order', true)

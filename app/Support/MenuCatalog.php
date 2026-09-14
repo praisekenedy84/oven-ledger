@@ -35,12 +35,14 @@ class MenuCatalog
             ['scope' => 'tenant', 'key' => 'tenant.sales', 'label' => 'Sales', 'icon' => 'chart', 'route_name' => null, 'parent_key' => null, 'sort_order' => 6, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.customers', 'label' => 'Customers', 'icon' => 'users', 'route_name' => 'tenant.customers.index', 'parent_key' => 'tenant.sales', 'sort_order' => 1, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.debts', 'label' => 'Debts', 'icon' => 'clipboard', 'route_name' => 'tenant.debts.index', 'parent_key' => 'tenant.sales', 'sort_order' => 2, 'feature_key' => null],
-            ['scope' => 'tenant', 'key' => 'tenant.reports', 'label' => 'Reports', 'icon' => 'chart', 'route_name' => 'tenant.reports.index', 'parent_key' => 'tenant.sales', 'sort_order' => 3, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.capital', 'label' => 'Capital', 'icon' => 'cash', 'route_name' => 'tenant.capital.index', 'parent_key' => 'tenant.sales', 'sort_order' => 3, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.reports', 'label' => 'Reports', 'icon' => 'chart', 'route_name' => 'tenant.reports.index', 'parent_key' => 'tenant.sales', 'sort_order' => 4, 'feature_key' => null],
 
             ['scope' => 'tenant', 'key' => 'tenant.settings', 'label' => 'Settings', 'icon' => 'cog', 'route_name' => null, 'parent_key' => null, 'sort_order' => 7, 'feature_key' => null],
-            ['scope' => 'tenant', 'key' => 'tenant.branches', 'label' => 'Branches', 'icon' => 'map', 'route_name' => 'tenant.branches.index', 'parent_key' => 'tenant.settings', 'sort_order' => 1, 'feature_key' => 'multi_branch'],
-            ['scope' => 'tenant', 'key' => 'tenant.staff', 'label' => 'Staff', 'icon' => 'user-group', 'route_name' => 'tenant.staff.index', 'parent_key' => 'tenant.settings', 'sort_order' => 2, 'feature_key' => null],
-            ['scope' => 'tenant', 'key' => 'tenant.roles', 'label' => 'Roles & access', 'icon' => 'shield', 'route_name' => 'tenant.roles.index', 'parent_key' => 'tenant.settings', 'sort_order' => 3, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.shop', 'label' => 'Shop', 'icon' => 'store', 'route_name' => 'tenant.shop.edit', 'parent_key' => 'tenant.settings', 'sort_order' => 1, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.branches', 'label' => 'Branches', 'icon' => 'map', 'route_name' => 'tenant.branches.index', 'parent_key' => 'tenant.settings', 'sort_order' => 2, 'feature_key' => 'multi_branch'],
+            ['scope' => 'tenant', 'key' => 'tenant.staff', 'label' => 'Staff', 'icon' => 'user-group', 'route_name' => 'tenant.staff.index', 'parent_key' => 'tenant.settings', 'sort_order' => 3, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.roles', 'label' => 'Roles & access', 'icon' => 'shield', 'route_name' => 'tenant.roles.index', 'parent_key' => 'tenant.settings', 'sort_order' => 4, 'feature_key' => null],
         ];
     }
 

@@ -16,6 +16,7 @@ class PlatformSeeder extends Seeder
         $permissions = [
             ['key' => 'tenants.view', 'label' => 'View tenants', 'group' => 'tenants'],
             ['key' => 'tenants.manage', 'label' => 'Manage tenants', 'group' => 'tenants'],
+            ['key' => 'tenants.impersonate', 'label' => 'Impersonate tenant users', 'group' => 'tenants'],
             ['key' => 'feature_flags.manage', 'label' => 'Manage feature flags', 'group' => 'features'],
             ['key' => 'branches.suspend', 'label' => 'Suspend branches', 'group' => 'branches'],
             ['key' => 'roles.manage', 'label' => 'Manage platform roles', 'group' => 'roles'],

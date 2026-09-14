@@ -207,6 +207,8 @@ function DrawerContents({
     onNavigate,
     reduceMotion,
 }) {
+    const shop = usePage().props.shop;
+
     return (
         <Box
             sx={{
@@ -229,7 +231,11 @@ function DrawerContents({
                 }}
             >
                 <Box sx={{ color: colors.cream, minWidth: 0, overflow: 'hidden' }}>
-                    <ApplicationLogo showText={expanded} />
+                    <ApplicationLogo
+                        showText={expanded}
+                        src={shop?.logo_url}
+                        name={shop?.shop_name || 'Oven Ledger'}
+                    />
                 </Box>
             </Box>
 

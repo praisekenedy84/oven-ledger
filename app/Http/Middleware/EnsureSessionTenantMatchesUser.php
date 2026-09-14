@@ -22,7 +22,7 @@ class EnsureSessionTenantMatchesUser
 
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->user();
+        $user = $request->user('web');
 
         if (! $user) {
             return $next($request);

@@ -10,9 +10,9 @@ use App\Http\Controllers\CustomerAddressController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerLedgerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OwnerTransactionController;
-use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductionBatchController;
@@ -20,6 +20,7 @@ use App\Http\Controllers\RawMaterialController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ShopSettingController;
 use App\Http\Controllers\StaffController;
 use App\Http\Middleware\EnsureBranchNotSuspended;
 use App\Http\Middleware\EnsureSessionTenantMatchesUser;
@@ -42,20 +43,22 @@ Route::middleware('web')->group(function () {
 
     Route::middleware([
         InitializeTenancyBySession::class,
-        'auth',
+        'auth:web',
         EnsureSessionTenantMatchesUser::class,
         EnsureTenantActive::class,
         SetCurrentBranch::class,
         EnsureBranchNotSuspended::class,
     ])->group(function () {
         Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-        Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+        Route::put('password', [PasswordController::class, 'update'])
+            ->middleware('impersonation.protect')
+            ->name('password.update');
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('tenant.dashboard');
 
         Route::resource('products', ProductController::class)->names('tenant.products');
-        Route::resource('raw-materials', RawMaterialController::class)->only(['index', 'store', 'update'])->names('tenant.raw-materials');
-        Route::resource('recipes', RecipeController::class)->only(['index', 'store', 'show'])->names('tenant.recipes');
+        Route::resource('raw-materials', RawMaterialController::class)->only(['index', 'store', 'update', 'destroy'])->names('tenant.raw-materials');
+        Route::resource('recipes', RecipeController::class)->only(['index', 'store', 'show', 'update', 'destroy'])->names('tenant.recipes');
 
         Route::get('production-batches', [ProductionBatchController::class, 'index'])->name('tenant.production-batches.index');
         Route::post('production-batches', [ProductionBatchController::class, 'store'])->name('tenant.production-batches.store');
@@ -89,10 +92,17 @@ Route::middleware('web')->group(function () {
         Route::post('debts', [BusinessLiabilityController::class, 'store'])->name('tenant.debts.store');
         Route::post('debts/{liability}/payments', [BusinessLiabilityController::class, 'storePayment'])
             ->name('tenant.debts.payments.store');
-        Route::post('owner-transactions', [OwnerTransactionController::class, 'store'])
-            ->name('tenant.owner-transactions.store');
+
+        Route::get('capital', [OwnerTransactionController::class, 'index'])->name('tenant.capital.index');
+        Route::post('capital', [OwnerTransactionController::class, 'store'])->name('tenant.capital.store');
 
         Route::get('reports', [ReportController::class, 'index'])->name('tenant.reports.index');
+
+        Route::get('shop', [ShopSettingController::class, 'edit'])->name('tenant.shop.edit');
+        Route::post('shop', [ShopSettingController::class, 'update'])->name('tenant.shop.update');
+        Route::post('shop/categories', [ShopSettingController::class, 'storeCategory'])->name('tenant.shop.categories.store');
+        Route::patch('shop/categories/{category}', [ShopSettingController::class, 'updateCategory'])->name('tenant.shop.categories.update');
+        Route::delete('shop/categories/{category}', [ShopSettingController::class, 'destroyCategory'])->name('tenant.shop.categories.destroy');
 
         Route::get('branches', [BranchController::class, 'index'])->name('tenant.branches.index');
         Route::post('branches', [BranchController::class, 'store'])->name('tenant.branches.store');

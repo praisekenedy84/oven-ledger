@@ -231,7 +231,7 @@ return new class extends Migration
             ->get()
             ->each(fn (Role $role) => $role->permissions()->syncWithoutDetaching($permissionIds));
 
-        $menuKeys = ['tenant.customers', 'tenant.debts', 'tenant.sales'];
+        $menuKeys = ['tenant.customers', 'tenant.debts', 'tenant.capital', 'tenant.sales'];
         $menuIds = MenuItem::query()->whereIn('key', $menuKeys)->pluck('id', 'key');
 
         Role::query()

@@ -26,6 +26,7 @@ use App\Models\StockTransfer;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Models\ProductCategory;
 use App\Models\WasteLog;
 use App\Services\CustomerLedger;
 use App\Services\TenantUserDirectory;
@@ -174,16 +175,16 @@ class DemoDataSeeder extends Seeder
     protected function seedCatalog(): void
     {
         $materials = [
-            'Wheat flour' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 25],
-            'Sugar' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 10],
-            'Yeast' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 2],
-            'Butter' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 5],
-            'Eggs' => ['unit_of_measure' => 'pcs', 'reorder_threshold' => 30],
-            'Milk' => ['unit_of_measure' => 'L', 'reorder_threshold' => 8],
-            'Cooking oil' => ['unit_of_measure' => 'L', 'reorder_threshold' => 8],
-            'Salt' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 2],
-            'Baking powder' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 1],
-            'Minced beef' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 4],
+            'Wheat flour' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 25, 'unit_cost' => 1800],
+            'Sugar' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 10, 'unit_cost' => 2800],
+            'Yeast' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 2, 'unit_cost' => 12000],
+            'Butter' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 5, 'unit_cost' => 14000],
+            'Eggs' => ['unit_of_measure' => 'pcs', 'reorder_threshold' => 30, 'unit_cost' => 400],
+            'Milk' => ['unit_of_measure' => 'L', 'reorder_threshold' => 8, 'unit_cost' => 2500],
+            'Cooking oil' => ['unit_of_measure' => 'L', 'reorder_threshold' => 8, 'unit_cost' => 4500],
+            'Salt' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 2, 'unit_cost' => 800],
+            'Baking powder' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 1, 'unit_cost' => 8000],
+            'Minced beef' => ['unit_of_measure' => 'kg', 'reorder_threshold' => 4, 'unit_cost' => 14000],
         ];
 
         foreach ($materials as $name => $attrs) {
@@ -191,6 +192,7 @@ class DemoDataSeeder extends Seeder
                 ['name' => $name],
                 $attrs
             );
+            $this->materials[$name]->fill($attrs)->save();
         }
 
         $products = [
@@ -204,17 +206,30 @@ class DemoDataSeeder extends Seeder
             'Sausage roll' => ['type' => 'produced', 'unit_of_measure' => 'pcs', 'category' => 'Savoury'],
             'Cookie pack' => ['type' => 'produced', 'unit_of_measure' => 'pack', 'category' => 'Snack'],
             'Birthday cake' => ['type' => 'produced', 'unit_of_measure' => 'pcs', 'category' => 'Custom'],
-            'Cake box' => ['type' => 'trading', 'unit_of_measure' => 'pcs', 'category' => 'Packaging'],
-            'Rolling pin' => ['type' => 'trading', 'unit_of_measure' => 'pcs', 'category' => 'Tools'],
-            'Baking tray' => ['type' => 'trading', 'unit_of_measure' => 'pcs', 'category' => 'Tools'],
-            'Piping bag' => ['type' => 'trading', 'unit_of_measure' => 'pcs', 'category' => 'Tools'],
+            'Cake box' => ['type' => 'trading', 'unit_of_measure' => 'pcs', 'category' => 'Packaging', 'cost_price' => 600],
+            'Rolling pin' => ['type' => 'trading', 'unit_of_measure' => 'pcs', 'category' => 'Tools', 'cost_price' => 5000],
+            'Baking tray' => ['type' => 'trading', 'unit_of_measure' => 'pcs', 'category' => 'Tools', 'cost_price' => 9000],
+            'Piping bag' => ['type' => 'trading', 'unit_of_measure' => 'pcs', 'category' => 'Tools', 'cost_price' => 1800],
         ];
 
+        $categories = ProductCategory::query()->get()->keyBy(fn (ProductCategory $category) => mb_strtolower($category->name));
+
         foreach ($products as $name => $attrs) {
+            $category = $categories->get(mb_strtolower((string) ($attrs['category'] ?? '')));
+
+            $payload = [
+                ...$attrs,
+                'is_active' => true,
+                'product_category_id' => $category?->id,
+                'category' => $category?->name ?? ($attrs['category'] ?? null),
+                'type' => $category?->productType() ?? $attrs['type'],
+            ];
+
             $this->products[$name] = Product::query()->firstOrCreate(
                 ['name' => $name],
-                [...$attrs, 'is_active' => true]
+                $payload
             );
+            $this->products[$name]->fill($payload)->save();
         }
 
         $prices = [

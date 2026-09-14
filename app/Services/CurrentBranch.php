@@ -69,7 +69,7 @@ class CurrentBranch
             return $this->availableBranchesCache;
         }
 
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
 
         if (! $user instanceof User) {
             return $this->availableBranchesCache = [];
@@ -92,7 +92,7 @@ class CurrentBranch
 
     public function userCanAccessBranch(int $branchId): bool
     {
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
 
         if (! $user instanceof User) {
             return false;

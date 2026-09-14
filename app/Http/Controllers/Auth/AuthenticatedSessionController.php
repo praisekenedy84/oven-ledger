@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\InitializeTenancyBySession;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\Impersonation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,6 +47,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        if (app(Impersonation::class)->isActive($request)) {
+            return app(Impersonation::class)->stopRedirect($request);
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

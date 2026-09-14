@@ -1,4 +1,5 @@
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
+import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
 import BakeryDiningOutlinedIcon from '@mui/icons-material/BakeryDiningOutlined';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
@@ -13,6 +14,7 @@ import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import PolicyOutlinedIcon from '@mui/icons-material/PolicyOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 
 const NAV_ICONS = {
@@ -26,9 +28,11 @@ const NAV_ICONS = {
     'tenant.inventory.index': Inventory2OutlinedIcon,
     'tenant.customers.index': PeopleOutlinedIcon,
     'tenant.debts.index': AccountBalanceOutlinedIcon,
+    'tenant.capital.index': SavingsOutlinedIcon,
     'tenant.reports.index': AssessmentOutlinedIcon,
     'tenant.branches.index': BusinessOutlinedIcon,
     'tenant.staff.index': BadgeOutlinedIcon,
+    'tenant.shop.edit': StorefrontOutlinedIcon,
     'tenant.roles.index': ShieldOutlinedIcon,
     'tenant.catalog': LocalMallOutlinedIcon,
     'tenant.operations': BakeryDiningOutlinedIcon,
@@ -64,8 +68,11 @@ export function resolveNavIcon(routeName, key) {
     if (routeName?.startsWith('tenant.customers') || routeName?.startsWith('tenant.staff')) {
         return PeopleOutlinedIcon;
     }
-    if (routeName?.startsWith('tenant.debts') || routeName?.startsWith('tenant.owner-transactions')) {
+    if (routeName?.startsWith('tenant.debts')) {
         return AccountBalanceOutlinedIcon;
+    }
+    if (routeName?.startsWith('tenant.capital')) {
+        return SavingsOutlinedIcon;
     }
     if (routeName?.startsWith('tenant.reports') || routeName?.startsWith('platform.audit')) {
         return AssessmentOutlinedIcon;

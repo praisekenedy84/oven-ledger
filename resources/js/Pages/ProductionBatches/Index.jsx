@@ -27,17 +27,15 @@ const COLUMNS = [
     { key: 'ready', label: 'Ready', accent: colors.sage },
 ];
 
-export default function Index({ batches, products, recipes }) {
+export default function Index({ batches, products }) {
     const createForm = useForm({
         product_id: products[0]?.id ?? '',
-        recipe_id: recipes[0]?.id ?? '',
-        batch_number: '',
         planned_quantity: '',
         expiry_date: '',
     });
 
-    const filteredRecipes = recipes.filter(
-        (r) => String(r.product_id) === String(createForm.data.product_id),
+    const selectedProduct = products.find(
+        (product) => String(product.id) === String(createForm.data.product_id),
     );
 
     const [qtyDialog, setQtyDialog] = useState({ open: false, batch: null, status: null, quantity: '' });
@@ -95,8 +93,7 @@ export default function Index({ batches, products, recipes }) {
                 onSubmit={(e) => {
                     e.preventDefault();
                     createForm.post(route('tenant.production-batches.store'), {
-                        onSuccess: () =>
-                            createForm.reset('batch_number', 'planned_quantity', 'expiry_date'),
+                        onSuccess: () => createForm.reset('planned_quantity', 'expiry_date'),
                     });
                 }}
                 sx={{
@@ -106,23 +103,18 @@ export default function Index({ batches, products, recipes }) {
                     gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
                 }}
             >
-                <Typography variant="h6" sx={{ gridColumn: '1 / -1' }}>
-                    Schedule a batch
-                </Typography>
+                <Box sx={{ gridColumn: '1 / -1' }}>
+                    <Typography variant="h6">Schedule a batch</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Pick what is on the floor. The recipe and batch number are assigned automatically.
+                    </Typography>
+                </Box>
                 <Box>
                     <InputLabel value="Product" />
                     <FormControl fullWidth size="small">
                         <Select
                             value={createForm.data.product_id}
-                            onChange={(e) => {
-                                createForm.setData('product_id', e.target.value);
-                                const firstRecipe = recipes.find(
-                                    (r) => String(r.product_id) === e.target.value,
-                                );
-                                if (firstRecipe) {
-                                    createForm.setData('recipe_id', firstRecipe.id);
-                                }
-                            }}
+                            onChange={(e) => createForm.setData('product_id', e.target.value)}
                         >
                             {products.map((p) => (
                                 <MenuItem key={p.id} value={p.id}>
@@ -131,30 +123,12 @@ export default function Index({ batches, products, recipes }) {
                             ))}
                         </Select>
                     </FormControl>
-                </Box>
-                <Box>
-                    <InputLabel value="Recipe" />
-                    <FormControl fullWidth size="small">
-                        <Select
-                            value={createForm.data.recipe_id}
-                            onChange={(e) => createForm.setData('recipe_id', e.target.value)}
-                        >
-                            {filteredRecipes.map((r) => (
-                                <MenuItem key={r.id} value={r.id}>
-                                    {r.product?.name} (#{r.id})
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                    <InputError message={createForm.errors.recipe_id} />
-                </Box>
-                <Box>
-                    <InputLabel value="Batch number" />
-                    <TextInput
-                        value={createForm.data.batch_number}
-                        onChange={(e) => createForm.setData('batch_number', e.target.value)}
-                    />
-                    <InputError message={createForm.errors.batch_number} />
+                    <InputError message={createForm.errors.product_id} />
+                    {selectedProduct?.recipe?.expected_yield && (
+                        <Typography variant="caption" color="text.secondary">
+                            Recipe yield {selectedProduct.recipe.expected_yield}
+                        </Typography>
+                    )}
                 </Box>
                 <Box>
                     <InputLabel value="Planned quantity" />

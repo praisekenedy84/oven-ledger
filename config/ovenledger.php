@@ -44,6 +44,7 @@ return [
         'staff' => 'Staff & access',
         'branches' => 'Branches',
         'catalog' => 'Catalog',
+        'settings' => 'Shop settings',
         'tenants' => 'Tenants',
         'features' => 'Features',
         'roles' => 'Roles',

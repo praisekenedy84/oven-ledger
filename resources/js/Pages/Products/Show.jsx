@@ -2,11 +2,14 @@ import Checkbox from '@/Components/Checkbox';
 import ConfirmButton from '@/Components/ConfirmButton';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import Money from '@/Components/Money';
 import PageHeader from '@/Components/PageHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
+import ProductPriceFields from '@/Components/ProductPriceFields';
 import StatusBadge from '@/Components/StatusBadge';
 import TextInput from '@/Components/TextInput';
 import TenantLayout from '@/Layouts/TenantLayout';
+import RecipeFields from '@/Pages/Recipes/RecipeFields';
 import { colors } from '@/theme/bakeryTheme';
 import {
     Box,
@@ -22,14 +25,41 @@ import {
 } from '@mui/material';
 import { Head, router, useForm } from '@inertiajs/react';
 
-export default function Show({ product }) {
+export default function Show({
+    product,
+    prices = {},
+    unitCost = 0,
+    recipeCost = null,
+    margins = {},
+    categories = [],
+    rawMaterials = [],
+}) {
     const { data, setData, put, processing, errors } = useForm({
         name: product.name,
-        type: product.type,
+        product_category_id: product.product_category_id ?? product.product_category?.id ?? '',
         unit_of_measure: product.unit_of_measure,
-        category: product.category ?? '',
+        cost_price: product.cost_price ?? '',
         is_active: product.is_active,
+        prices: {
+            retail: prices.retail ?? '',
+            wholesale: prices.wholesale ?? '',
+            restaurant: prices.restaurant ?? '',
+        },
+        expected_yield: product.recipe?.expected_yield ?? '',
+        ingredients: (product.recipe?.ingredients?.length
+            ? product.recipe.ingredients
+            : [{ raw_material_id: rawMaterials[0]?.id ?? '', quantity: '', unit: rawMaterials[0]?.unit_of_measure ?? 'kg' }]
+        ).map((ingredient) => ({
+            raw_material_id: ingredient.raw_material_id,
+            quantity: ingredient.quantity ?? '',
+            unit: ingredient.unit ?? 'kg',
+        })),
     });
+
+    const selectedCategory = categories.find(
+        (category) => String(category.id) === String(data.product_category_id),
+    );
+    const isHardware = selectedCategory?.kind === 'hardware';
 
     const submit = (e) => {
         e.preventDefault();
@@ -78,19 +108,6 @@ export default function Show({ product }) {
                             <InputError message={errors.name} />
                         </Box>
 
-                        <Box>
-                            <InputLabel value="Type" />
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    value={data.type}
-                                    onChange={(e) => setData('type', e.target.value)}
-                                >
-                                    <MenuItem value="produced">Produced</MenuItem>
-                                    <MenuItem value="trading">Trading</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Box>
-
                         <Box
                             sx={{
                                 display: 'grid',
@@ -99,20 +116,48 @@ export default function Show({ product }) {
                             }}
                         >
                             <Box>
+                                <InputLabel value="Category" />
+                                <FormControl fullWidth size="small">
+                                    <Select
+                                        value={data.product_category_id}
+                                        onChange={(e) => setData('product_category_id', e.target.value)}
+                                    >
+                                        {categories.map((category) => (
+                                            <MenuItem key={category.id} value={category.id}>
+                                                {category.name}
+                                                {category.kind === 'hardware' ? ' · hardware' : ''}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <InputError message={errors.product_category_id} />
+                            </Box>
+                            <Box>
                                 <InputLabel value="Unit" />
                                 <TextInput
                                     value={data.unit_of_measure}
                                     onChange={(e) => setData('unit_of_measure', e.target.value)}
                                 />
                             </Box>
-                            <Box>
-                                <InputLabel value="Category" />
-                                <TextInput
-                                    value={data.category}
-                                    onChange={(e) => setData('category', e.target.value)}
-                                />
-                            </Box>
                         </Box>
+
+                        <ProductPriceFields
+                            data={data}
+                            setData={setData}
+                            errors={errors}
+                            showCostPrice={isHardware}
+                        />
+
+                        {!isHardware && (
+                            <RecipeFields
+                                data={data}
+                                setData={setData}
+                                errors={errors}
+                                rawMaterials={rawMaterials}
+                                lockProduct
+                                productName={data.name || product.name}
+                            />
+                        )}
 
                         <Checkbox
                             checked={data.is_active}
@@ -126,41 +171,98 @@ export default function Show({ product }) {
                     </Stack>
                 </Paper>
 
-                {product.recipe && (
+                <Stack spacing={3}>
                     <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
                         <Typography variant="subtitle1" fontWeight={700}>
-                            Linked recipe
+                            Cost vs selling price
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            Expected yield: {product.recipe.expected_yield}
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+                            {isHardware
+                                ? 'What you pay to stock this item, against what you charge.'
+                                : 'Ingredient cost per piece from the recipe, against what you charge.'}
                         </Typography>
-                        <List dense sx={{ mt: 1 }}>
-                            {product.recipe.ingredients?.map((ing) => (
-                                <ListItem
-                                    key={ing.id}
-                                    sx={{
-                                        bgcolor: colors.surface,
-                                        borderRadius: 2,
-                                        mb: 1,
-                                        px: 2,
-                                    }}
-                                    secondaryAction={
-                                        <Typography variant="body2" color="text.secondary">
-                                            {ing.quantity} {ing.unit}
-                                        </Typography>
-                                    }
-                                >
-                                    <ListItemText primary={ing.raw_material?.name} />
-                                </ListItem>
+                        <Stack spacing={1}>
+                            <CostRow label="Cost per unit" value={unitCost} />
+                            {['retail', 'wholesale', 'restaurant'].map((channel) => (
+                                <CostRow
+                                    key={channel}
+                                    label={`${channel} price`}
+                                    value={prices[channel]}
+                                    margin={margins[channel]}
+                                />
                             ))}
-                        </List>
+                        </Stack>
                     </Paper>
-                )}
+
+                    {!isHardware && product.recipe && (
+                        <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
+                            <Typography variant="subtitle1" fontWeight={700}>
+                                Locked recipe cost
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                Expected yield: {product.recipe.expected_yield}
+                                {recipeCost
+                                    ? ` · batch ${formatPlain(recipeCost.batch_cost)} · ${formatPlain(recipeCost.unit_cost)} each`
+                                    : ''}
+                            </Typography>
+                            <List dense sx={{ mt: 1 }}>
+                                {(recipeCost?.lines ?? product.recipe.ingredients)?.map((ing) => (
+                                    <ListItem
+                                        key={ing.id}
+                                        sx={{
+                                            bgcolor: colors.surface,
+                                            borderRadius: 2,
+                                            mb: 1,
+                                            px: 2,
+                                        }}
+                                        secondaryAction={
+                                            <Typography variant="body2" color="text.secondary">
+                                                {ing.quantity} {ing.unit}
+                                                {ing.line_cost != null ? ` · ${formatPlain(ing.line_cost)}` : ''}
+                                            </Typography>
+                                        }
+                                    >
+                                        <ListItemText primary={ing.name ?? ing.raw_material?.name} />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Paper>
+                    )}
+                </Stack>
             </Box>
 
             <Box sx={{ mt: 2 }}>
-                <StatusBadge status={product.type} />
+                <StatusBadge
+                    status={isHardware ? 'hardware' : 'produced'}
+                    label={isHardware ? 'Hardware' : 'Baked'}
+                />
             </Box>
         </TenantLayout>
+    );
+}
+
+function formatPlain(amount) {
+    if (amount == null || amount === '') {
+        return '—';
+    }
+
+    return `TZS ${Number(amount).toLocaleString('en-TZ')}`;
+}
+
+function CostRow({ label, value, margin }) {
+    return (
+        <Stack direction="row" justifyContent="space-between" spacing={2}>
+            <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                {label}
+            </Typography>
+            <Typography variant="body2" fontWeight={600}>
+                {value == null || value === '' ? '—' : <Money amount={value} />}
+                {margin != null && (
+                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        {margin >= 0 ? 'margin' : 'loss'} <Money amount={Math.abs(margin)} />
+                    </Typography>
+                )}
+            </Typography>
+        </Stack>
     );
 }

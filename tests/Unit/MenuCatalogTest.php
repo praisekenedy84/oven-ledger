@@ -53,6 +53,8 @@ class MenuCatalogTest extends TestCase
         $this->assertNotContains('tenant.roles', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.customers', $catalog->defaultVisibleKeys('branch_manager'));
         $this->assertContains('tenant.debts', $catalog->defaultVisibleKeys('branch_manager'));
+        $this->assertContains('tenant.capital', $catalog->defaultVisibleKeys('branch_manager'));
+        $this->assertContains('tenant.shop', $catalog->defaultVisibleKeys('branch_manager'));
     }
 
     public function test_customers_menu_is_not_gated_by_wholesale(): void

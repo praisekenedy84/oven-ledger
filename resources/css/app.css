@@ -41,4 +41,29 @@
         font-family: 'Poppins', Helvetica, Arial, sans-serif;
         overflow-x: hidden;
     }
+
+    .MuiInputBase-input,
+    .MuiOutlinedInput-input {
+        appearance: none;
+        background-color: transparent;
+        border: none;
+        outline: none;
+        box-shadow: none;
+    }
+
+    .MuiInputBase-input:focus,
+    .MuiOutlinedInput-input:focus {
+        border: none;
+        outline: none;
+        box-shadow: none;
+    }
+
+    .MuiInputBase-input:-webkit-autofill,
+    .MuiInputBase-input:-webkit-autofill:hover,
+    .MuiInputBase-input:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--color-ink);
+        caret-color: var(--color-ink);
+        box-shadow: 0 0 0 1000px var(--color-cream) inset;
+        transition: background-color 9999s ease-out 0s;
+    }
 }

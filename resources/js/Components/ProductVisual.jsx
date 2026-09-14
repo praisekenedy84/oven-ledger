@@ -11,10 +11,10 @@ const PHOTOS = {
 function resolveKind(product = {}) {
     const type = String(product.type ?? '').toLowerCase();
     const name = String(product.name ?? '').toLowerCase();
-    const category = String(product.category ?? '').toLowerCase();
+    const category = String(product.product_category?.name ?? product.category ?? '').toLowerCase();
     const haystack = `${name} ${category}`;
 
-    if (type === 'trading' || /tool|supply|supplies|utensil|packag/.test(haystack)) {
+    if (type === 'trading' || /tool|supply|supplies|utensil|packag|hardware/.test(haystack)) {
         return 'tools';
     }
     if (/cake|gateau|gateau|tart|tier/.test(haystack)) {

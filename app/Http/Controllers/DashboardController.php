@@ -7,6 +7,7 @@ use App\Models\BranchRawMaterialStock;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductionBatch;
+use App\Services\BusinessReport;
 use App\Services\CurrentBranch;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ class DashboardController extends Controller
 {
     public function __construct(
         protected CurrentBranch $currentBranch,
+        protected BusinessReport $reports,
     ) {}
 
     public function index(): Response
@@ -212,6 +214,7 @@ class DashboardController extends Controller
                 'total_revenue' => (float) $productSales->sum('revenue'),
                 'product_count' => $productSales->count(),
             ],
+            'economics' => $this->reports->statement($weekStart, now(), $branchId),
         ]);
     }
 }

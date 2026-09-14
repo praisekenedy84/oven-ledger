@@ -2,6 +2,7 @@
 
 use App\Exceptions\TenancySessionRecovery;
 use App\Http\Middleware\BootstrapTenancyFromSession;
+use App\Http\Middleware\DenyAccountChangesWhileImpersonating;
 use App\Http\Middleware\EnsureBranchNotSuspended;
 use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsurePermission;
@@ -44,10 +45,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'feature.enabled' => EnsureFeatureEnabled::class,
             'branch.set' => SetCurrentBranch::class,
             'permission' => EnsurePermission::class,
+            'impersonation.protect' => DenyAccountChangesWhileImpersonating::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\Throwable $e, Request $request) {
+        $exceptions->render(function (Throwable $e, Request $request) {
             if (! $request->expectsJson() && TenancySessionRecovery::matches($e)) {
                 return TenancySessionRecovery::respond($request, $e);
             }
@@ -55,7 +57,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return null;
         });
 
-        $exceptions->respond(function (Response $response, \Throwable $exception, Request $request) {
+        $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
             if ($response->getStatusCode() === 419) {
                 $loginRoute = $request->is('platform/*') ? 'platform.login' : 'login';
 

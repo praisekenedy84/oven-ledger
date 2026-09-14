@@ -23,6 +23,7 @@ class RawMaterialController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'unit_of_measure' => ['required', 'string', 'max:50'],
             'reorder_threshold' => ['nullable', 'numeric', 'min:0'],
+            'unit_cost' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         RawMaterial::create($validated);
@@ -36,10 +37,31 @@ class RawMaterialController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'unit_of_measure' => ['required', 'string', 'max:50'],
             'reorder_threshold' => ['nullable', 'numeric', 'min:0'],
+            'unit_cost' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $rawMaterial->update($validated);
 
         return back()->with('success', 'Raw material updated.');
+    }
+
+    public function destroy(RawMaterial $rawMaterial): RedirectResponse
+    {
+        if ($rawMaterial->recipeIngredients()->exists()) {
+            return back()->with('error', 'This raw material is used in a recipe and cannot be deleted.');
+        }
+
+        if ($rawMaterial->purchaseOrderItems()->exists()) {
+            return back()->with('error', 'This raw material is used on a purchase order and cannot be deleted.');
+        }
+
+        if ($rawMaterial->branchStock()->where('quantity_on_hand', '>', 0)->exists()) {
+            return back()->with('error', 'This raw material still has stock and cannot be deleted.');
+        }
+
+        $rawMaterial->branchStock()->delete();
+        $rawMaterial->delete();
+
+        return back()->with('success', 'Raw material deleted.');
     }
 }

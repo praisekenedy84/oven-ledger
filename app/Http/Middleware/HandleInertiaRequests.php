@@ -4,13 +4,16 @@ namespace App\Http\Middleware;
 
 use App\Models\MenuItem;
 use App\Models\RoleMenuVisibility;
+use App\Models\ShopSetting;
 use App\Models\TenantBranchSuspension;
 use App\Models\TenantMenuAvailability;
 use App\Models\User;
 use App\Services\CurrentBranch;
 use App\Services\FeatureGate;
+use App\Services\Impersonation;
 use App\Support\MenuCatalog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -38,6 +41,9 @@ class HandleInertiaRequests extends Middleware
                 'status' => fn () => $request->session()->get('status'),
             ],
             'appVersion' => config('ovenledger.version'),
+            'impersonation' => $request->hasSession()
+                ? $request->session()->get(Impersonation::SESSION_KEY)
+                : null,
         ];
 
         if ($request->is('platform/*')) {
@@ -59,7 +65,7 @@ class HandleInertiaRequests extends Middleware
 
         if (tenant()) {
             try {
-                $user = $request->user();
+                $user = $request->user('web');
                 $branch = $this->currentBranch->branch();
                 $features = $this->featureGate->all();
 
@@ -72,6 +78,9 @@ class HandleInertiaRequests extends Middleware
                 $shared['branches'] = $this->currentBranch->availableBranches();
                 $shared['features'] = $features;
                 $shared['menuItems'] = $this->resolveTenantMenuItems($user, $features);
+                $shared['shop'] = DB::connection()->getSchemaBuilder()->hasTable('shop_settings')
+                    ? ShopSetting::current()->toBrandArray()
+                    : null;
                 $shared['branchSuspended'] = $request->attributes->get('branch_suspended');
 
                 if ($shared['branchSuspended'] === null && $branch) {

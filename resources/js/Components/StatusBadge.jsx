@@ -17,6 +17,7 @@ const STATUS_COLORS = {
     restaurant: { bg: `${colors.sage}1f`, color: colors.sage },
     produced: { bg: `${colors.jam}1a`, color: colors.jam },
     trading: { bg: colors.wheatLight, color: colors.muted, border: colors.border },
+    hardware: { bg: colors.wheatLight, color: colors.muted, border: colors.border },
     retail: { bg: `${colors.sage}1f`, color: colors.sage },
     custom: { bg: `${colors.butter}24`, color: '#8A6410' },
     charge: { bg: `${colors.butter}24`, color: '#8A6410' },

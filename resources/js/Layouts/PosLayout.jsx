@@ -1,5 +1,6 @@
 import BuildUpdatePrompt from '@/Components/BuildUpdatePrompt';
 import FlashMessage from '@/Components/FlashMessage';
+import ImpersonationBanner from '@/Components/ImpersonationBanner';
 import { colors } from '@/theme/bakeryTheme';
 import {
     flattenMenuLeaves,
@@ -131,6 +132,7 @@ export default function PosLayout({ children }) {
 
     return (
         <>
+            <ImpersonationBanner />
             <FlashMessage />
             <BuildUpdatePrompt />
 

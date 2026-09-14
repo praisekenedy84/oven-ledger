@@ -9,6 +9,7 @@ use App\Models\PlatformAuditLog;
 use App\Models\Tenant;
 use App\Models\TenantFeatureFlag;
 use App\Models\TenantMenuAvailability;
+use App\Models\User;
 use App\Services\FeatureGate;
 use App\Services\TenantProvisioner;
 use App\Services\TenantUserDirectory;
@@ -102,6 +103,27 @@ class TenantController extends Controller
             ? $menuItems->pluck('id')->map(fn ($id) => (int) $id)->all()
             : $availability->filter()->keys()->map(fn ($id) => (int) $id)->all();
 
+        $users = $tenant->run(function () {
+            return User::query()
+                ->with(['userRoles.role'])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $user) => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'roles' => $user->userRoles
+                        ->map(fn ($userRole) => $userRole->role?->name)
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all(),
+                ])
+                ->values()
+                ->all();
+        });
+
         return Inertia::render('Platform/Tenants/Show', [
             'tenant' => $tenant,
             'branchCount' => $branchCount,
@@ -110,6 +132,7 @@ class TenantController extends Controller
             'menuRows' => $this->menuCatalog->flattenTree($this->menuCatalog->toTree($menuItems)),
             'availableMenuIds' => $selectedMenuIds,
             'enabledFeatures' => $features,
+            'users' => $users,
         ]);
     }
 

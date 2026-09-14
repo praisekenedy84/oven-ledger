@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -16,6 +17,8 @@ class Product extends Model
         'type',
         'unit_of_measure',
         'category',
+        'product_category_id',
+        'cost_price',
         'is_active',
     ];
 
@@ -23,7 +26,13 @@ class Product extends Model
     {
         return [
             'is_active' => 'boolean',
+            'cost_price' => 'decimal:2',
         ];
+    }
+
+    public function productCategory(): BelongsTo
+    {
+        return $this->belongsTo(ProductCategory::class);
     }
 
     public function recipe(): HasOne
@@ -49,5 +58,15 @@ class Product extends Model
     public function isTrading(): bool
     {
         return $this->type === 'trading';
+    }
+
+    public function isHardware(): bool
+    {
+        return $this->productCategory?->isHardware() ?? $this->isTrading();
+    }
+
+    public function requiresRecipe(): bool
+    {
+        return ! $this->isHardware();
     }
 }

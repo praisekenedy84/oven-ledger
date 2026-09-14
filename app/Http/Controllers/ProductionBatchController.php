@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Jobs\DeductRawMaterialsOnBatchComplete;
 use App\Models\Product;
 use App\Models\ProductionBatch;
-use App\Models\Recipe;
 use App\Services\CurrentBranch;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,12 +29,10 @@ class ProductionBatchController extends Controller
                 ->paginate(20),
             'products' => Product::query()
                 ->where('type', 'produced')
+                ->whereHas('recipe')
+                ->with('recipe:id,product_id,expected_yield')
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'recipes' => Recipe::query()
-                ->with('product:id,name')
-                ->orderBy('id')
-                ->get(['id', 'product_id', 'expected_yield']),
         ]);
     }
 
@@ -45,19 +42,28 @@ class ProductionBatchController extends Controller
 
         $validated = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
-            'recipe_id' => ['required', 'exists:recipes,id'],
-            'batch_number' => ['required', 'string', 'max:100'],
             'planned_quantity' => ['required', 'numeric', 'min:0.001'],
             'expiry_date' => ['nullable', 'date'],
         ]);
 
-        ProductionBatch::create([
-            ...$validated,
+        $product = Product::query()->with('recipe')->findOrFail($validated['product_id']);
+
+        if ($product->isHardware() || ! $product->recipe) {
+            return back()->withErrors([
+                'product_id' => 'Pick a baked product that already has a recipe.',
+            ]);
+        }
+
+        $batch = ProductionBatch::create([
+            'product_id' => $product->id,
+            'recipe_id' => $product->recipe->id,
+            'planned_quantity' => $validated['planned_quantity'],
+            'expiry_date' => $validated['expiry_date'] ?? null,
             'branch_id' => $branchId,
             'status' => 'planned',
         ]);
 
-        return back()->with('success', 'Production batch scheduled.');
+        return back()->with('success', "Production batch {$batch->batch_number} scheduled.");
     }
 
     public function transition(Request $request, ProductionBatch $productionBatch): RedirectResponse

@@ -1,5 +1,6 @@
 import AccessMatrix from '@/Components/AccessMatrix';
 import ConfirmButton from '@/Components/ConfirmButton';
+import DataTable, { DataTableCell, DataTableRow } from '@/Components/DataTable';
 import FeatureBadge from '@/Components/FeatureBadge';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
@@ -11,7 +12,7 @@ import TextInput from '@/Components/TextInput';
 import UsageBar from '@/Components/UsageBar';
 import PlatformLayout from '@/Layouts/PlatformLayout';
 import { featureLabel } from '@/lib/features';
-import { sameIdList } from '@/lib/roles';
+import { roleLabel, sameIdList } from '@/lib/roles';
 import { colors } from '@/theme/bakeryTheme';
 import {
     Box,
@@ -22,7 +23,7 @@ import {
     Stack,
     Typography,
 } from '@mui/material';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function Show({
@@ -33,6 +34,7 @@ export default function Show({
     menuRows = [],
     availableMenuIds = [],
     enabledFeatures = {},
+    users = [],
 }) {
     const flagsByKey = Object.fromEntries(
         (tenant.feature_flags ?? tenant.featureFlags ?? []).map((f) => [
@@ -49,8 +51,14 @@ export default function Show({
     );
     const menusDirty = !sameIdList(menuIds, availableMenuIds);
 
+    const { auth } = usePage().props;
+    const canImpersonate =
+        (auth.permissions ?? []).includes('tenants.impersonate') && tenant.status === 'active';
+
     const suspend = () => router.post(route('platform.tenants.suspend', tenant.id));
     const reactivate = () => router.post(route('platform.tenants.reactivate', tenant.id));
+    const impersonate = (user) =>
+        router.post(route('platform.tenants.impersonate', tenant.id), { user_id: user.id });
 
     return (
         <PlatformLayout title={tenant.name}>
@@ -240,6 +248,55 @@ export default function Show({
                             </PrimaryButton>
                         </Stack>
                     )}
+                </Paper>
+
+                <Paper
+                    variant="outlined"
+                    sx={{ p: 3, borderRadius: 1, gridColumn: { lg: '1 / -1' } }}
+                >
+                    <Typography variant="subtitle1" fontWeight={700}>
+                        Users
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
+                        Open the bakery as a staff member to see exactly what they see. Actions you
+                        take are recorded as that user.
+                    </Typography>
+                    <DataTable
+                        columns={[
+                            { label: 'Name' },
+                            { label: 'Username' },
+                            { label: 'Email' },
+                            { label: 'Roles' },
+                            { label: '' },
+                        ]}
+                        emptyMessage="No users on this tenant yet."
+                    >
+                        {users.map((user) => (
+                            <DataTableRow key={user.id}>
+                                <DataTableCell sx={{ fontWeight: 600 }}>{user.name}</DataTableCell>
+                                <DataTableCell>{user.username || '—'}</DataTableCell>
+                                <DataTableCell>{user.email}</DataTableCell>
+                                <DataTableCell>
+                                    {user.roles?.length
+                                        ? user.roles.map((role) => roleLabel(role)).join(', ')
+                                        : '—'}
+                                </DataTableCell>
+                                <DataTableCell>
+                                    {canImpersonate ? (
+                                        <ConfirmButton
+                                            variant="secondary"
+                                            size="small"
+                                            confirmTitle="Impersonate user"
+                                            confirmMessage={`View ${tenant.name} as ${user.name}? Sales and other writes will be attributed to this account.`}
+                                            onConfirm={() => impersonate(user)}
+                                        >
+                                            Impersonate
+                                        </ConfirmButton>
+                                    ) : null}
+                                </DataTableCell>
+                            </DataTableRow>
+                        ))}
+                    </DataTable>
                 </Paper>
 
                 {branchSuspensions?.length > 0 && (

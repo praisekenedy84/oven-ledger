@@ -6,6 +6,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Platform\AuditLogController;
 use App\Http\Controllers\Platform\Auth\LoginController as PlatformLoginController;
 use App\Http\Controllers\Platform\DashboardController as PlatformDashboardController;
+use App\Http\Controllers\Platform\ImpersonationController;
 use App\Http\Controllers\Platform\RoleController as PlatformRoleController;
 use App\Http\Controllers\Platform\TenantController;
 use App\Http\Controllers\ProfileController;
@@ -46,6 +47,9 @@ Route::prefix('platform')->name('platform.')->group(function () {
         Route::patch('tenants/{tenant}/features', [TenantController::class, 'toggleFeature'])->name('tenants.features');
         Route::post('tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
         Route::post('tenants/{tenant}/reactivate', [TenantController::class, 'reactivate'])->name('tenants.reactivate');
+        Route::post('tenants/{tenant}/impersonate', [ImpersonationController::class, 'store'])
+            ->middleware('permission:tenants.impersonate')
+            ->name('tenants.impersonate');
 
         Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit.index');
 
@@ -63,12 +67,19 @@ Route::prefix('platform')->name('platform.')->group(function () {
     });
 });
 
+Route::post('/impersonation/stop', [ImpersonationController::class, 'destroy'])
+    ->name('impersonation.stop');
+
 Route::middleware([
     InitializeTenancyBySession::class,
-    'auth',
+    'auth:web',
     EnsureSessionTenantMatchesUser::class,
 ])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->middleware('impersonation.protect')
+        ->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->middleware('impersonation.protect')
+        ->name('profile.destroy');
 });
