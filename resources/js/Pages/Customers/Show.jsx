@@ -9,7 +9,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import StatusBadge from '@/Components/StatusBadge';
 import TextInput from '@/Components/TextInput';
 import SurfaceCard from '@/Components/SurfaceCard';
-import VoidSaleDialog, { canRefundSales } from '@/Components/VoidSaleDialog';
+import VoidSaleDialog, { canVoidOrder } from '@/Components/VoidSaleDialog';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
@@ -76,7 +76,7 @@ function AgingCard({ aging }) {
 }
 
 export default function Show({ customer, ledger, orders, outstanding, aging, priceList = [] }) {
-    const canRefund = canRefundSales(usePage().props.auth);
+    const auth = usePage().props.auth;
     const [editingAddress, setEditingAddress] = useState(null);
     const [voidTarget, setVoidTarget] = useState(null);
 
@@ -525,21 +525,35 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                             <Money amount={order.total_amount} />
                         </DataTableCell>
                         <DataTableCell>
-                            <StatusBadge status={order.status} />
+                            <StatusBadge
+                                status={order.status}
+                                label={
+                                    order.is_pre_order && order.status === 'pending'
+                                        ? 'Pre-order'
+                                        : order.status === 'completed'
+                                          ? 'Sold'
+                                          : undefined
+                                }
+                            />
                         </DataTableCell>
                         <DataTableCell>
-                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Stack direction="row" spacing={1} justifyContent="flex-end" useFlexGap flexWrap="wrap">
                                 {order.status === 'pending' && (
                                     <Button
                                         size="small"
+                                        variant="contained"
                                         onClick={() =>
-                                            router.patch(route('tenant.orders.fulfill', order.id))
+                                            router.patch(
+                                                route('tenant.orders.fulfill', order.id),
+                                                {},
+                                                { preserveScroll: true },
+                                            )
                                         }
                                     >
-                                        Mark fulfilled
+                                        Mark sold
                                     </Button>
                                 )}
-                                {canRefund && order.status !== 'voided' && (
+                                {canVoidOrder(auth, order) && (
                                     <Button
                                         size="small"
                                         color="error"

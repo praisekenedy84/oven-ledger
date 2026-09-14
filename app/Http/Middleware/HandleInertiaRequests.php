@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\CurrentBranch;
 use App\Services\FeatureGate;
 use App\Services\Impersonation;
+use App\Services\StaffNotificationFeed;
 use App\Support\MenuCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class HandleInertiaRequests extends Middleware
         protected CurrentBranch $currentBranch,
         protected FeatureGate $featureGate,
         protected MenuCatalog $menuCatalog,
+        protected StaffNotificationFeed $notifications,
     ) {}
 
     public function version(Request $request): ?string
@@ -92,6 +94,10 @@ class HandleInertiaRequests extends Middleware
                             ->exists();
                     });
                 }
+
+                $shared['staffNotifications'] = $user
+                    ? $this->notifications->forCurrentBranch(12)
+                    : ['items' => [], 'unread_count' => 0];
 
                 return $shared;
             } catch (\Throwable $e) {

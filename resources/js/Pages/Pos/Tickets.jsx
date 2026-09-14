@@ -4,7 +4,7 @@ import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
-import VoidSaleDialog, { canRefundSales } from '@/Components/VoidSaleDialog';
+import VoidSaleDialog, { canVoidOrder } from '@/Components/VoidSaleDialog';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDateTime } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
@@ -16,9 +16,12 @@ function ticketItems(ticket) {
     return (ticket.items ?? []).map((item) => `${item.quantity} ${item.name}`).join(', ');
 }
 
+function markSold(orderId) {
+    router.patch(route('tenant.orders.fulfill', orderId), {}, { preserveScroll: true });
+}
+
 export default function Tickets({ tickets, summary, filters }) {
     const { auth } = usePage().props;
-    const canRefund = canRefundSales(auth);
     const [voidTarget, setVoidTarget] = useState(null);
     const showingAll = Boolean(filters.all);
     const title = showingAll ? 'All tickets' : 'Today’s tickets';
@@ -42,11 +45,7 @@ export default function Tickets({ tickets, summary, filters }) {
             <PageHeader
                 eyebrow="Till tape"
                 title={title}
-                description={
-                    canRefund
-                        ? 'Every sale at this branch. Void a wrongly placed ticket, then ring it again.'
-                        : 'Every sale recorded at this branch.'
-                }
+                description="Every sale and open pre-order at this branch. Mark pre-orders as sold when collected, or void if they should not stand."
                 backHref={route('tenant.pos.index')}
                 actions={
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
@@ -82,13 +81,14 @@ export default function Tickets({ tickets, summary, filters }) {
                 sx={{
                     display: 'grid',
                     gap: 2,
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
                     mb: 3,
                 }}
             >
                 {[
                     { label: 'Completed tickets', value: summary.count, money: false },
                     { label: 'Sold', value: summary.total, money: true },
+                    { label: 'Open pre-orders', value: summary.pending ?? 0, money: false },
                     { label: 'Voided', value: summary.voided, money: false },
                 ].map((card) => (
                     <SurfaceCard key={card.label}>
@@ -119,7 +119,13 @@ export default function Tickets({ tickets, summary, filters }) {
             >
                 {(tickets?.data ?? []).map((ticket) => (
                     <DataTableRow key={ticket.id}>
-                        <DataTableCell>{formatDateTime(ticket.created_at)}</DataTableCell>
+                        <DataTableCell>
+                            {formatDateTime(
+                                ticket.is_pre_order
+                                    ? ticket.requested_fulfillment_at || ticket.created_at
+                                    : ticket.created_at,
+                            )}
+                        </DataTableCell>
                         <DataTableCell>{ticket.cashier?.name ?? 'Unassigned'}</DataTableCell>
                         <DataTableCell>
                             <Typography variant="body2" fontWeight={600}>
@@ -129,6 +135,15 @@ export default function Tickets({ tickets, summary, filters }) {
                             <Typography variant="caption" color="text.secondary">
                                 {ticketItems(ticket) || ticket.channel}
                             </Typography>
+                            {ticket.is_pre_order && (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                    Pre-order
+                                    {ticket.fulfillment_type ? ` · ${ticket.fulfillment_type}` : ''}
+                                    {ticket.requested_fulfillment_at
+                                        ? ` · due ${formatDateTime(ticket.requested_fulfillment_at)}`
+                                        : ''}
+                                </Typography>
+                            )}
                             {ticket.void_reason && (
                                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                                     {ticket.void_reason}
@@ -139,19 +154,39 @@ export default function Tickets({ tickets, summary, filters }) {
                             <Money amount={ticket.total_amount} />
                         </DataTableCell>
                         <DataTableCell>
-                            <StatusBadge status={ticket.status} />
+                            <StatusBadge
+                                status={ticket.status}
+                                label={
+                                    ticket.is_pre_order && ticket.status === 'pending'
+                                        ? 'Pre-order'
+                                        : ticket.status === 'completed'
+                                          ? 'Sold'
+                                          : undefined
+                                }
+                            />
                         </DataTableCell>
                         <DataTableCell>
-                            {canRefund && ticket.status !== 'voided' && (
-                                <Button
-                                    size="small"
-                                    color="error"
-                                    variant="outlined"
-                                    onClick={() => setVoidTarget(ticket)}
-                                >
-                                    Void
-                                </Button>
-                            )}
+                            <Stack direction="row" spacing={1} justifyContent="flex-end" useFlexGap flexWrap="wrap">
+                                {ticket.status === 'pending' && (
+                                    <Button
+                                        size="small"
+                                        variant="contained"
+                                        onClick={() => markSold(ticket.id)}
+                                    >
+                                        Mark sold
+                                    </Button>
+                                )}
+                                {canVoidOrder(auth, ticket) && (
+                                    <Button
+                                        size="small"
+                                        color="error"
+                                        variant="outlined"
+                                        onClick={() => setVoidTarget(ticket)}
+                                    >
+                                        Void
+                                    </Button>
+                                )}
+                            </Stack>
                         </DataTableCell>
                     </DataTableRow>
                 ))}

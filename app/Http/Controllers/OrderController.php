@@ -35,17 +35,36 @@ class OrderController extends Controller
             $inventory->deductForOrder($locked);
         });
 
-        return back()->with('success', 'Order marked as fulfilled.');
+        return back()->with('success', 'Order marked as sold.');
     }
 
     public function void(Request $request, Order $order, SaleCorrection $correction): RedirectResponse
     {
+        $user = $request->user();
+        $permissions = $user?->permissionKeys() ?? [];
+        $canRefund = in_array('pos.refund', $permissions, true);
+        $canSell = in_array('pos.sell', $permissions, true);
+
+        if ($order->status === 'completed' && ! $canRefund) {
+            throw ValidationException::withMessages([
+                'order' => 'You need refund permission to void a completed sale.',
+            ]);
+        }
+
+        if ($order->status === 'pending' && ! ($canSell || $canRefund)) {
+            throw ValidationException::withMessages([
+                'order' => 'You need sell or refund permission to void this pre-order.',
+            ]);
+        }
+
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:3', 'max:255'],
         ]);
 
-        $correction->void($order, $request->user(), $validated['reason']);
+        $correction->void($order, $user, $validated['reason']);
 
-        return back()->with('success', 'Sale voided. Ring it again if it still needs to be sold.');
+        return back()->with('success', $order->is_pre_order
+            ? 'Pre-order voided.'
+            : 'Sale voided. Ring it again if it still needs to be sold.');
     }
 }

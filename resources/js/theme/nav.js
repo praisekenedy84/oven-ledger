@@ -9,6 +9,7 @@ import LocalMallOutlinedIcon from '@mui/icons-material/LocalMallOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
+import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
@@ -20,6 +21,8 @@ import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 
 const NAV_ICONS = {
     'tenant.dashboard': DashboardOutlinedIcon,
+    'tenant.notifications.index': NotificationsNoneOutlinedIcon,
+    'tenant.notifications': NotificationsNoneOutlinedIcon,
     'tenant.pos.index': PointOfSaleOutlinedIcon,
     'tenant.pos.tickets': ReceiptLongOutlinedIcon,
     'tenant.products.index': LocalMallOutlinedIcon,

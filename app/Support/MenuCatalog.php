@@ -20,26 +20,27 @@ class MenuCatalog
     {
         return [
             ['scope' => 'tenant', 'key' => 'tenant.dashboard', 'label' => 'Dashboard', 'icon' => 'home', 'route_name' => 'tenant.dashboard', 'parent_key' => null, 'sort_order' => 1, 'feature_key' => null],
-            ['scope' => 'tenant', 'key' => 'tenant.pos', 'label' => 'POS', 'icon' => 'cash', 'route_name' => 'tenant.pos.index', 'parent_key' => null, 'sort_order' => 2, 'feature_key' => null],
-            ['scope' => 'tenant', 'key' => 'tenant.pos.tickets', 'label' => "Today's tickets", 'icon' => 'clipboard', 'route_name' => 'tenant.pos.tickets', 'parent_key' => null, 'sort_order' => 3, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.notifications', 'label' => 'Notifications', 'icon' => 'bell', 'route_name' => 'tenant.notifications.index', 'parent_key' => null, 'sort_order' => 2, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.pos', 'label' => 'POS', 'icon' => 'cash', 'route_name' => 'tenant.pos.index', 'parent_key' => null, 'sort_order' => 3, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.pos.tickets', 'label' => "Today's tickets", 'icon' => 'clipboard', 'route_name' => 'tenant.pos.tickets', 'parent_key' => null, 'sort_order' => 4, 'feature_key' => null],
 
-            ['scope' => 'tenant', 'key' => 'tenant.catalog', 'label' => 'Catalog', 'icon' => 'box', 'route_name' => null, 'parent_key' => null, 'sort_order' => 4, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.catalog', 'label' => 'Catalog', 'icon' => 'box', 'route_name' => null, 'parent_key' => null, 'sort_order' => 5, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.products', 'label' => 'Products', 'icon' => 'box', 'route_name' => 'tenant.products.index', 'parent_key' => 'tenant.catalog', 'sort_order' => 1, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.raw_materials', 'label' => 'Raw Materials', 'icon' => 'flask', 'route_name' => 'tenant.raw-materials.index', 'parent_key' => 'tenant.catalog', 'sort_order' => 2, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.recipes', 'label' => 'Recipes', 'icon' => 'book', 'route_name' => 'tenant.recipes.index', 'parent_key' => 'tenant.catalog', 'sort_order' => 3, 'feature_key' => null],
 
-            ['scope' => 'tenant', 'key' => 'tenant.operations', 'label' => 'Operations', 'icon' => 'fire', 'route_name' => null, 'parent_key' => null, 'sort_order' => 5, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.operations', 'label' => 'Operations', 'icon' => 'fire', 'route_name' => null, 'parent_key' => null, 'sort_order' => 6, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.production', 'label' => 'Production', 'icon' => 'fire', 'route_name' => 'tenant.production-batches.index', 'parent_key' => 'tenant.operations', 'sort_order' => 1, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.inventory', 'label' => 'Inventory', 'icon' => 'archive', 'route_name' => 'tenant.inventory.index', 'parent_key' => 'tenant.operations', 'sort_order' => 2, 'feature_key' => null],
 
-            ['scope' => 'tenant', 'key' => 'tenant.sales', 'label' => 'Sales', 'icon' => 'chart', 'route_name' => null, 'parent_key' => null, 'sort_order' => 6, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.sales', 'label' => 'Sales', 'icon' => 'chart', 'route_name' => null, 'parent_key' => null, 'sort_order' => 7, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.customers', 'label' => 'Customers', 'icon' => 'users', 'route_name' => 'tenant.customers.index', 'parent_key' => 'tenant.sales', 'sort_order' => 1, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.debts', 'label' => 'Debts', 'icon' => 'clipboard', 'route_name' => 'tenant.debts.index', 'parent_key' => 'tenant.sales', 'sort_order' => 2, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.capital', 'label' => 'Capital', 'icon' => 'cash', 'route_name' => 'tenant.capital.index', 'parent_key' => 'tenant.sales', 'sort_order' => 3, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.expenses', 'label' => 'Expenses', 'icon' => 'clipboard', 'route_name' => 'tenant.expenses.index', 'parent_key' => 'tenant.sales', 'sort_order' => 4, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.reports', 'label' => 'Reports', 'icon' => 'chart', 'route_name' => 'tenant.reports.index', 'parent_key' => 'tenant.sales', 'sort_order' => 5, 'feature_key' => null],
 
-            ['scope' => 'tenant', 'key' => 'tenant.settings', 'label' => 'Settings', 'icon' => 'cog', 'route_name' => null, 'parent_key' => null, 'sort_order' => 7, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.settings', 'label' => 'Settings', 'icon' => 'cog', 'route_name' => null, 'parent_key' => null, 'sort_order' => 8, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.shop', 'label' => 'Shop', 'icon' => 'store', 'route_name' => 'tenant.shop.edit', 'parent_key' => 'tenant.settings', 'sort_order' => 1, 'feature_key' => null],
             ['scope' => 'tenant', 'key' => 'tenant.branches', 'label' => 'Branches', 'icon' => 'map', 'route_name' => 'tenant.branches.index', 'parent_key' => 'tenant.settings', 'sort_order' => 2, 'feature_key' => 'multi_branch'],
             ['scope' => 'tenant', 'key' => 'tenant.staff', 'label' => 'Staff', 'icon' => 'user-group', 'route_name' => 'tenant.staff.index', 'parent_key' => 'tenant.settings', 'sort_order' => 3, 'feature_key' => null],
@@ -149,11 +150,13 @@ class MenuCatalog
             )),
             'cashier' => [
                 'tenant.dashboard',
+                'tenant.notifications',
                 'tenant.pos',
                 'tenant.pos.tickets',
             ],
             'production_staff' => [
                 'tenant.dashboard',
+                'tenant.notifications',
                 'tenant.catalog',
                 'tenant.raw_materials',
                 'tenant.recipes',

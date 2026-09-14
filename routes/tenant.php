@@ -12,6 +12,7 @@ use App\Http\Controllers\CustomerLedgerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OwnerTransactionController;
 use App\Http\Controllers\PosController;
@@ -56,6 +57,7 @@ Route::middleware('web')->group(function () {
             ->name('password.update');
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('tenant.dashboard');
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('tenant.notifications.index');
 
         Route::resource('products', ProductController::class)->names('tenant.products');
         Route::resource('raw-materials', RawMaterialController::class)->only(['index', 'show', 'store', 'update', 'destroy'])->names('tenant.raw-materials');
@@ -88,7 +90,6 @@ Route::middleware('web')->group(function () {
         Route::patch('orders/{order}/fulfill', [OrderController::class, 'fulfill'])
             ->name('tenant.orders.fulfill');
         Route::post('orders/{order}/void', [OrderController::class, 'void'])
-            ->middleware('permission:pos.refund')
             ->name('tenant.orders.void');
 
         Route::get('debts', [BusinessLiabilityController::class, 'index'])->name('tenant.debts.index');
