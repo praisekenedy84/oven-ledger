@@ -41,12 +41,13 @@ export default function ConfirmButton({
                     <DialogContentText>{confirmMessage}</DialogContentText>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={() => setOpen(false)} color="inherit">
+                    <Button onClick={() => setOpen(false)} color="inherit" size="small">
                         Cancel
                     </Button>
                     <Button
                         color={color === 'inherit' ? 'primary' : color}
                         variant="contained"
+                        size="small"
                         disabled={disabled}
                         onClick={() => {
                             onConfirm();

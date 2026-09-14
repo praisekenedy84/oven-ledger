@@ -89,10 +89,16 @@ export default function VoidSaleDialog({ order, open, onClose }) {
                 />
             </DialogContent>
             <DialogActions>
-                <Button onClick={close} color="inherit" disabled={processing}>
+                <Button onClick={close} color="inherit" size="small" disabled={processing}>
                     Keep sale
                 </Button>
-                <Button onClick={submit} color="error" variant="contained" disabled={processing}>
+                <Button
+                    onClick={submit}
+                    color="error"
+                    variant="contained"
+                    size="small"
+                    disabled={processing}
+                >
                     {processing ? 'Voiding…' : 'Void sale'}
                 </Button>
             </DialogActions>

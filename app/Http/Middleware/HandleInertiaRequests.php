@@ -41,6 +41,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
                 'status' => fn () => $request->session()->get('status'),
+                'last_sale' => fn () => $request->session()->get('last_sale'),
             ],
             'appVersion' => config('ovenledger.version'),
             'impersonation' => $request->hasSession()

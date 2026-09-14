@@ -2,13 +2,17 @@ import DataTable, { DataTableCell, DataTableRow } from '@/Components/DataTable';
 import Money from '@/Components/Money';
 import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
+import SaleReceiptDialog from '@/Components/SaleReceiptDialog';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
 import VoidSaleDialog, { canVoidOrder } from '@/Components/VoidSaleDialog';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDateTime } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
-import { Box, Button, Stack, TextField, Typography } from '@mui/material';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
+import { Box, Button, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -20,9 +24,34 @@ function markSold(orderId) {
     router.patch(route('tenant.orders.fulfill', orderId), {}, { preserveScroll: true });
 }
 
+const actionIconSx = {
+    color: colors.muted,
+    border: `1px solid ${colors.border}`,
+    borderRadius: '7px',
+    bgcolor: colors.cream,
+    '&:hover': {
+        color: colors.ink,
+        borderColor: colors.ink,
+        bgcolor: colors.wheatLight,
+    },
+};
+
+const dangerIconSx = {
+    color: colors.jam,
+    border: `1px solid ${colors.border}`,
+    borderRadius: '7px',
+    bgcolor: colors.cream,
+    '&:hover': {
+        color: colors.cream,
+        borderColor: colors.jam,
+        bgcolor: colors.jam,
+    },
+};
+
 export default function Tickets({ tickets, summary, filters }) {
     const { auth } = usePage().props;
     const [voidTarget, setVoidTarget] = useState(null);
+    const [receiptSale, setReceiptSale] = useState(null);
     const showingAll = Boolean(filters.all);
     const title = showingAll ? 'All tickets' : 'Today’s tickets';
 
@@ -48,16 +77,18 @@ export default function Tickets({ tickets, summary, filters }) {
                 description="Every sale and open pre-order at this branch. Mark pre-orders as sold when collected, or void if they should not stand."
                 backHref={route('tenant.pos.index')}
                 actions={
-                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
                         <Button
                             component={Link}
                             href={route('tenant.pos.index')}
                             variant="contained"
+                            size="small"
                         >
                             New sale
                         </Button>
                         <Button
-                            variant={showingAll ? 'contained' : 'outlined'}
+                            size="small"
+                            variant="outlined"
                             onClick={() => applyFilters({ all: !showingAll, date: filters.date })}
                         >
                             {showingAll ? 'Show today' : 'Show all days'}
@@ -70,7 +101,7 @@ export default function Tickets({ tickets, summary, filters }) {
                                 value={filters.date ?? ''}
                                 onChange={(e) => applyFilters({ all: false, date: e.target.value })}
                                 InputLabelProps={{ shrink: true }}
-                                sx={{ width: 160 }}
+                                sx={{ width: 156 }}
                             />
                         )}
                     </Stack>
@@ -165,26 +196,48 @@ export default function Tickets({ tickets, summary, filters }) {
                                 }
                             />
                         </DataTableCell>
-                        <DataTableCell>
-                            <Stack direction="row" spacing={1} justifyContent="flex-end" useFlexGap flexWrap="wrap">
+                        <DataTableCell sx={{ width: 1, whiteSpace: 'nowrap' }}>
+                            <Stack
+                                direction="row"
+                                spacing={0.75}
+                                justifyContent="flex-end"
+                                alignItems="center"
+                                useFlexGap
+                            >
+                                {ticket.status !== 'voided' && (
+                                    <Tooltip title="View receipt" arrow>
+                                        <IconButton
+                                            size="small"
+                                            aria-label="View receipt"
+                                            onClick={() => setReceiptSale(ticket)}
+                                            sx={actionIconSx}
+                                        >
+                                            <ReceiptLongOutlinedIcon sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
                                 {ticket.status === 'pending' && (
                                     <Button
                                         size="small"
                                         variant="contained"
+                                        startIcon={<CheckCircleOutlineIcon sx={{ fontSize: 16 }} />}
                                         onClick={() => markSold(ticket.id)}
+                                        sx={{ px: 1.25 }}
                                     >
                                         Mark sold
                                     </Button>
                                 )}
                                 {canVoidOrder(auth, ticket) && (
-                                    <Button
-                                        size="small"
-                                        color="error"
-                                        variant="outlined"
-                                        onClick={() => setVoidTarget(ticket)}
-                                    >
-                                        Void
-                                    </Button>
+                                    <Tooltip title="Void ticket" arrow>
+                                        <IconButton
+                                            size="small"
+                                            aria-label="Void ticket"
+                                            onClick={() => setVoidTarget(ticket)}
+                                            sx={dangerIconSx}
+                                        >
+                                            <UndoOutlinedIcon sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                    </Tooltip>
                                 )}
                             </Stack>
                         </DataTableCell>
@@ -197,6 +250,12 @@ export default function Tickets({ tickets, summary, filters }) {
                 order={voidTarget}
                 open={Boolean(voidTarget)}
                 onClose={() => setVoidTarget(null)}
+            />
+
+            <SaleReceiptDialog
+                sale={receiptSale}
+                open={Boolean(receiptSale)}
+                onClose={() => setReceiptSale(null)}
             />
         </TenantLayout>
     );

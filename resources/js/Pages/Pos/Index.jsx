@@ -1,5 +1,6 @@
 import PosLayout from '@/Layouts/PosLayout';
 import ProductVisual from '@/Components/ProductVisual';
+import SaleReceiptDialog from '@/Components/SaleReceiptDialog';
 import TicketPanel from '@/Components/TicketPanel';
 import { formatMoney, formatQuantity } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
@@ -7,6 +8,8 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RemoveIcon from '@mui/icons-material/Remove';
 import SearchIcon from '@mui/icons-material/Search';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
@@ -16,6 +19,7 @@ import {
     Card,
     CardContent,
     Chip,
+    Collapse,
     Drawer,
     FormControl,
     IconButton,
@@ -151,10 +155,11 @@ const ProductCard = memo(function ProductCard({ product, price, qtyInCart, allow
 
 export default function Pos({ products, customers = [], clients = [], priceLists, todayTicketCount = 0 }) {
     const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('lg'), { defaultMatches: true });
-    const { errors } = usePage().props;
+    const isDesktop = useMediaQuery(theme.breakpoints.up('lg'), { defaultMatches: false, noSsr: true });
+    const { errors, flash } = usePage().props;
     const [ticket, setTicket] = useState([]);
     const [ticketOpen, setTicketOpen] = useState(false);
+    const [optionsOpen, setOptionsOpen] = useState(true);
     const [channel, setChannel] = useState('retail');
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [customerId, setCustomerId] = useState('');
@@ -167,7 +172,15 @@ export default function Pos({ products, customers = [], clients = [], priceLists
     const [category, setCategory] = useState('all');
     const [search, setSearch] = useState('');
     const [processing, setProcessing] = useState(false);
+    const [receiptSale, setReceiptSale] = useState(null);
     const directory = customers.length ? customers : clients;
+
+    useEffect(() => {
+        if (flash?.last_sale) {
+            setReceiptSale(flash.last_sale);
+            setTicketOpen(false);
+        }
+    }, [flash?.last_sale]);
 
     const priceMap = useMemo(() => {
         const map = {};
@@ -370,6 +383,13 @@ export default function Pos({ products, customers = [], clients = [], priceLists
         );
     };
 
+    const canConfirm =
+        !processing &&
+        ticket.length > 0 &&
+        stockBlockedLines.length === 0 &&
+        !(remainderOnAccount > 0 && !customerId) &&
+        !(fulfillmentType === 'delivery' && (!customerId || !deliveryAddressId));
+
     const ticketPanel = (
         <TicketPanel
             component="form"
@@ -379,177 +399,211 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                 flexDirection: 'column',
                 borderLeft: { lg: `1px solid ${colors.border}` },
                 bgcolor: colors.cream,
-                height: { xs: '100%', lg: '100%' },
+                height: '100%',
+                minHeight: 0,
                 overflow: 'hidden',
                 borderRadius: { xs: '16px 16px 0 0', lg: 0 },
             }}
         >
-            <Box sx={{ p: { xs: 2, sm: 2.5 }, pb: 2, borderBottom: `1px solid ${colors.border}` }}>
-                <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
-                    <Box>
-                        <Typography variant="overline" sx={{ color: colors.jam }}>
+            <Box
+                sx={{
+                    flexShrink: 0,
+                    p: { xs: 1.5, sm: 2.5 },
+                    pb: { xs: 1.25, sm: 2 },
+                    borderBottom: `1px solid ${colors.border}`,
+                }}
+            >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                    <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="overline" sx={{ color: colors.jam, lineHeight: 1.2 }}>
                             Ticket
                         </Typography>
-                        <Typography variant="h6" sx={{ mb: 2 }}>
+                        <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
                             Order ticket
                         </Typography>
                     </Box>
-                    {!isDesktop && (
-                        <IconButton onClick={() => setTicketOpen(false)} aria-label="Close ticket">
-                            <CloseIcon />
-                        </IconButton>
-                    )}
-                </Stack>
-
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                    {CHANNELS.map((ch) => {
-                        const active = channel === ch.value;
-                        return (
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                        {!isDesktop && (
                             <Button
-                                key={ch.value}
                                 type="button"
                                 size="small"
-                                variant="outlined"
-                                onClick={() => setChannel(ch.value)}
-                                sx={{
-                                    borderRadius: 999,
-                                    px: 1.75,
-                                    minHeight: 40,
-                                    borderColor: active ? colors.jam : colors.border,
-                                    color: active ? colors.jam : colors.muted,
-                                    bgcolor: active ? `${colors.jam}14` : 'transparent',
-                                    fontWeight: 600,
-                                }}
+                                onClick={() => setOptionsOpen((open) => !open)}
+                                endIcon={optionsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                                sx={{ textTransform: 'none', color: colors.muted }}
                             >
-                                {ch.label}
+                                Options
                             </Button>
-                        );
-                    })}
+                        )}
+                        {!isDesktop && (
+                            <IconButton onClick={() => setTicketOpen(false)} aria-label="Close ticket">
+                                <CloseIcon />
+                            </IconButton>
+                        )}
+                    </Stack>
                 </Stack>
 
-                <Stack spacing={1.5} sx={{ mt: 2.5 }}>
-                    <FormControl fullWidth size="small">
-                        <Select
-                            displayEmpty
-                            value={customerId}
-                            onChange={(e) => {
-                                setCustomerId(e.target.value);
-                                setDeliveryAddressId('');
-                            }}
-                        >
-                            <MenuItem value="">
-                                <em>Walk-in / no account</em>
-                            </MenuItem>
-                            {visibleCustomers.map((c) => (
-                                <MenuItem key={c.id} value={String(c.id)}>
-                                    {c.name}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-
-                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                        <Button
-                            type="button"
-                            size="small"
-                            variant="outlined"
-                            onClick={() => {
-                                const next = !isPreOrder;
-                                setIsPreOrder(next);
-                                if (!next) {
-                                    setDepositAmount('');
-                                }
-                            }}
-                            sx={{
-                                flex: 1,
-                                minWidth: 110,
-                                minHeight: 40,
-                                borderRadius: 999,
-                                borderColor: isPreOrder ? colors.jam : colors.border,
-                                bgcolor: isPreOrder ? `${colors.jam}14` : 'transparent',
-                                color: isPreOrder ? colors.jam : colors.muted,
-                                fontWeight: 600,
-                            }}
-                        >
-                            Pre-order
-                        </Button>
-                        {['pickup', 'delivery'].map((type) => (
-                            <Button
-                                key={type}
-                                type="button"
-                                size="small"
-                                variant="outlined"
-                                onClick={() => setFulfillmentType(type)}
-                                sx={{
-                                    flex: 1,
-                                    minWidth: 90,
-                                    minHeight: 40,
-                                    borderRadius: 999,
-                                    borderColor:
-                                        fulfillmentType === type ? colors.jam : colors.border,
-                                    bgcolor:
-                                        fulfillmentType === type
-                                            ? `${colors.jam}14`
-                                            : 'transparent',
-                                    color:
-                                        fulfillmentType === type ? colors.jam : colors.muted,
-                                    fontWeight: 600,
-                                    textTransform: 'capitalize',
-                                }}
-                            >
-                                {type}
-                            </Button>
-                        ))}
+                <Collapse in={isDesktop || optionsOpen} timeout="auto">
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1.5 }}>
+                        {CHANNELS.map((ch) => {
+                            const active = channel === ch.value;
+                            return (
+                                <Button
+                                    key={ch.value}
+                                    type="button"
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => setChannel(ch.value)}
+                                    sx={{
+                                        borderRadius: 999,
+                                        px: 1.75,
+                                        minHeight: 40,
+                                        borderColor: active ? colors.jam : colors.border,
+                                        color: active ? colors.jam : colors.muted,
+                                        bgcolor: active ? `${colors.jam}14` : 'transparent',
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    {ch.label}
+                                </Button>
+                            );
+                        })}
                     </Stack>
 
-                    {(isPreOrder || fulfillmentType === 'delivery') && (
-                        <TextField
-                            size="small"
-                            type="datetime-local"
-                            label="Requested for"
-                            value={requestedFulfillmentAt}
-                            onChange={(e) => setRequestedFulfillmentAt(e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                        />
-                    )}
-
-                    {fulfillmentType === 'delivery' && (
+                    <Stack spacing={1.5} sx={{ mt: 2 }}>
                         <FormControl fullWidth size="small">
                             <Select
                                 displayEmpty
-                                value={deliveryAddressId}
-                                onChange={(e) => setDeliveryAddressId(e.target.value)}
+                                value={customerId}
+                                onChange={(e) => {
+                                    setCustomerId(e.target.value);
+                                    setDeliveryAddressId('');
+                                }}
                             >
                                 <MenuItem value="">
-                                    <em>Choose delivery address</em>
+                                    <em>Walk-in / no account</em>
                                 </MenuItem>
-                                {customerAddresses.map((address) => (
-                                    <MenuItem key={address.id} value={String(address.id)}>
-                                        {address.label} — {address.address_text}
+                                {visibleCustomers.map((c) => (
+                                    <MenuItem key={c.id} value={String(c.id)}>
+                                        {c.name}
                                     </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
-                    )}
 
-                    {isPreOrder && (
-                        <TextField
-                            size="small"
-                            type="number"
-                            label="Deposit (TZS)"
-                            value={depositAmount}
-                            onChange={(e) => setDepositAmount(e.target.value)}
-                        />
-                    )}
-                </Stack>
+                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                            <Button
+                                type="button"
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                    const next = !isPreOrder;
+                                    setIsPreOrder(next);
+                                    if (!next) {
+                                        setDepositAmount('');
+                                    }
+                                }}
+                                sx={{
+                                    flex: 1,
+                                    minWidth: 110,
+                                    minHeight: 40,
+                                    borderRadius: 999,
+                                    borderColor: isPreOrder ? colors.jam : colors.border,
+                                    bgcolor: isPreOrder ? `${colors.jam}14` : 'transparent',
+                                    color: isPreOrder ? colors.jam : colors.muted,
+                                    fontWeight: 600,
+                                }}
+                            >
+                                Pre-order
+                            </Button>
+                            {['pickup', 'delivery'].map((type) => (
+                                <Button
+                                    key={type}
+                                    type="button"
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => setFulfillmentType(type)}
+                                    sx={{
+                                        flex: 1,
+                                        minWidth: 90,
+                                        minHeight: 40,
+                                        borderRadius: 999,
+                                        borderColor:
+                                            fulfillmentType === type ? colors.jam : colors.border,
+                                        bgcolor:
+                                            fulfillmentType === type
+                                                ? `${colors.jam}14`
+                                                : 'transparent',
+                                        color:
+                                            fulfillmentType === type ? colors.jam : colors.muted,
+                                        fontWeight: 600,
+                                        textTransform: 'capitalize',
+                                    }}
+                                >
+                                    {type}
+                                </Button>
+                            ))}
+                        </Stack>
+
+                        {(isPreOrder || fulfillmentType === 'delivery') && (
+                            <TextField
+                                size="small"
+                                type="datetime-local"
+                                label="Requested for"
+                                value={requestedFulfillmentAt}
+                                onChange={(e) => setRequestedFulfillmentAt(e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        )}
+
+                        {fulfillmentType === 'delivery' && (
+                            <FormControl fullWidth size="small">
+                                <Select
+                                    displayEmpty
+                                    value={deliveryAddressId}
+                                    onChange={(e) => setDeliveryAddressId(e.target.value)}
+                                >
+                                    <MenuItem value="">
+                                        <em>Choose delivery address</em>
+                                    </MenuItem>
+                                    {customerAddresses.map((address) => (
+                                        <MenuItem key={address.id} value={String(address.id)}>
+                                            {address.label} — {address.address_text}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
+
+                        {isPreOrder && (
+                            <TextField
+                                size="small"
+                                type="number"
+                                label="Deposit (TZS)"
+                                value={depositAmount}
+                                onChange={(e) => setDepositAmount(e.target.value)}
+                            />
+                        )}
+                    </Stack>
+                </Collapse>
+
+                {!isDesktop && !optionsOpen && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                        {CHANNELS.find((ch) => ch.value === channel)?.label}
+                        {selectedCustomer ? ` · ${selectedCustomer.name}` : ' · Walk-in'}
+                        {isPreOrder ? ' · Pre-order' : ''}
+                        {` · ${fulfillmentType}`}
+                    </Typography>
+                )}
             </Box>
 
             <Box
                 sx={{
                     flex: 1,
+                    minHeight: 0,
                     overflowY: 'auto',
-                    px: { xs: 2, sm: 2.5 },
-                    py: 2,
+                    px: { xs: 1.5, sm: 2.5 },
+                    py: 1.5,
+                    WebkitOverflowScrolling: 'touch',
                 }}
             >
                 <Stack
@@ -689,12 +743,18 @@ export default function Pos({ products, customers = [], clients = [], priceLists
 
             <Box
                 sx={{
+                    flexShrink: 0,
                     borderTop: `1px solid ${colors.border}`,
-                    p: { xs: 2, sm: 2.5 },
+                    p: { xs: 1.5, sm: 2.5 },
+                    pb: {
+                        xs: 'calc(12px + env(safe-area-inset-bottom))',
+                        sm: 2.5,
+                    },
                     bgcolor: 'background.paper',
+                    boxShadow: { xs: '0 -8px 24px rgba(51, 38, 28, 0.08)', lg: 'none' },
                 }}
             >
-                <Stack spacing={1} sx={{ mb: 2 }}>
+                <Stack spacing={0.75} sx={{ mb: 1.5 }}>
                     <Stack direction="row" justifyContent="space-between">
                         <Typography variant="body2" color="text.secondary">
                             Subtotal
@@ -707,7 +767,6 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                         direction="row"
                         justifyContent="space-between"
                         alignItems="baseline"
-                        sx={{ pt: 0.5 }}
                     >
                         <Typography variant="subtitle1" fontWeight={700}>
                             Grand Total
@@ -715,14 +774,14 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                         <Typography
                             variant="h5"
                             fontWeight={700}
-                            sx={{ color: colors.jam }}
+                            sx={{ color: colors.jam, fontSize: { xs: '1.35rem', sm: '1.5rem' } }}
                         >
                             {formatMoney(total)}
                         </Typography>
                     </Stack>
                 </Stack>
 
-                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
                     <Select
                         value={paymentMethod}
                         onChange={(e) => setPaymentMethod(e.target.value)}
@@ -775,19 +834,9 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                     variant="contained"
                     color="primary"
                     size="large"
-                    disabled={
-                        processing ||
-                        ticket.length === 0 ||
-                        stockBlockedLines.length > 0 ||
-                        (remainderOnAccount > 0 && !customerId) ||
-                        (fulfillmentType === 'delivery' && (!customerId || !deliveryAddressId))
-                    }
+                    disabled={!canConfirm}
                     startIcon={<CreditCardOutlinedIcon />}
-                    sx={{
-                        py: 1.5,
-                        borderRadius: 1,
-                        fontSize: '1rem',
-                    }}
+                    sx={{ fontWeight: 700 }}
                 >
                     {processing ? 'Recording...' : 'Confirm Payment'}
                 </Button>
@@ -796,7 +845,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
     );
 
     return (
-        <PosLayout>
+        <PosLayout hideBottomNav={!isDesktop && ticketOpen}>
             <Head title="Point of Sale" />
 
             <Box
@@ -817,7 +866,7 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                         overflow: { xs: 'visible', lg: 'hidden' },
                         p: { xs: 2, md: 3 },
                         gap: 2,
-                        pb: { xs: ticket.length > 0 ? 10 : 2, lg: 3 },
+                        pb: { xs: ticket.length > 0 ? 12 : 2, lg: 3 },
                     }}
                 >
                     <Stack
@@ -972,12 +1021,15 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                         anchor="bottom"
                         open={ticketOpen}
                         onClose={() => setTicketOpen(false)}
+                        ModalProps={{ keepMounted: true }}
+                        sx={{ zIndex: (muiTheme) => muiTheme.zIndex.modal + 2 }}
                         PaperProps={{
                             sx: {
-                                height: 'min(92dvh, 100%)',
-                                maxHeight: '92dvh',
+                                height: '100dvh',
+                                maxHeight: '100dvh',
                                 bgcolor: 'transparent',
                                 boxShadow: 'none',
+                                overflow: 'hidden',
                             },
                         }}
                     >
@@ -985,18 +1037,18 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                     </Drawer>
                 )}
 
-                {!isDesktop && ticket.length > 0 && (
+                {!isDesktop && ticket.length > 0 && !ticketOpen && (
                     <Box
                         sx={{
                             position: 'fixed',
                             left: 0,
                             right: 0,
-                            bottom: { xs: 'calc(64px + env(safe-area-inset-bottom))', md: 0 },
+                            bottom: 'calc(64px + env(safe-area-inset-bottom))',
                             zIndex: 1200,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            gap: 1.5,
+                            gap: 1.25,
                             px: 2,
                             py: 1.25,
                             bgcolor: colors.ink,
@@ -1011,16 +1063,46 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                 {formatMoney(total)}
                             </Typography>
                         </Box>
-                        <Button
-                            variant="contained"
-                            onClick={() => setTicketOpen(true)}
-                            sx={{ flexShrink: 0 }}
-                        >
-                            Review ticket
-                        </Button>
+                        <Stack direction="row" spacing={1} flexShrink={0}>
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                    setOptionsOpen(true);
+                                    setTicketOpen(true);
+                                }}
+                                sx={{
+                                    color: colors.cream,
+                                    borderColor: 'rgba(251,246,234,0.35)',
+                                    '&:hover': {
+                                        borderColor: colors.cream,
+                                        bgcolor: 'rgba(251,246,234,0.08)',
+                                    },
+                                }}
+                            >
+                                Ticket
+                            </Button>
+                            <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() => {
+                                    setOptionsOpen(false);
+                                    setTicketOpen(true);
+                                }}
+                                sx={{ minWidth: 88 }}
+                            >
+                                Pay
+                            </Button>
+                        </Stack>
                     </Box>
                 )}
             </Box>
+
+            <SaleReceiptDialog
+                sale={receiptSale}
+                open={Boolean(receiptSale)}
+                onClose={() => setReceiptSale(null)}
+            />
         </PosLayout>
     );
 }

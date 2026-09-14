@@ -24,6 +24,12 @@ const shadow = '0 2px 8px rgba(51, 38, 28, 0.08)';
 const radius = 10;
 // 48px keeps text legible, meets touch-target guidance, and avoids iOS zoom (<16px inputs).
 const controlHeight = 48;
+// Buttons are shorter than inputs so actions feel refined; sizes actually differ.
+const buttonHeight = {
+    small: 34,
+    medium: 40,
+    large: 46,
+};
 const inputFontSize = '1rem';
 const inputLineHeight = 1.5;
 const inputPaddingY = 12;
@@ -167,7 +173,13 @@ const bakeryTheme = createTheme({
             textTransform: 'uppercase',
         },
         caption: { fontSize: '0.75rem', letterSpacing: '0.01em' },
-        button: { textTransform: 'none', fontWeight: 600, letterSpacing: 0 },
+        button: {
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            lineHeight: 1.25,
+            letterSpacing: '-0.01em',
+        },
     },
     shape: {
         borderRadius: radius,
@@ -227,15 +239,31 @@ const bakeryTheme = createTheme({
             defaultProps: { disableElevation: true },
             styleOverrides: {
                 root: {
-                    borderRadius: radius,
+                    borderRadius: 8,
                     boxShadow: 'none',
-                    minHeight: controlHeight,
-                    paddingLeft: 16,
-                    paddingRight: 16,
-                    paddingTop: 8,
-                    paddingBottom: 8,
+                    minHeight: buttonHeight.medium,
+                    paddingLeft: 14,
+                    paddingRight: 14,
+                    paddingTop: 6,
+                    paddingBottom: 6,
+                    fontSize: '0.875rem',
                     lineHeight: 1.25,
+                    letterSpacing: '-0.01em',
+                    whiteSpace: 'nowrap',
+                    transition:
+                        'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                     '&:hover': { boxShadow: 'none' },
+                    '&.Mui-disabled': { opacity: 0.5 },
+                },
+                startIcon: {
+                    marginLeft: -2,
+                    marginRight: 6,
+                    '& > *:nth-of-type(1)': { fontSize: '1.05rem' },
+                },
+                endIcon: {
+                    marginRight: -2,
+                    marginLeft: 6,
+                    '& > *:nth-of-type(1)': { fontSize: '1.05rem' },
                 },
                 containedPrimary: {
                     backgroundColor: colors.jam,
@@ -246,23 +274,65 @@ const bakeryTheme = createTheme({
                     color: colors.ink,
                     '&:hover': { backgroundColor: '#C8901F' },
                 },
+                containedInherit: {
+                    backgroundColor: colors.wheatLight,
+                    color: colors.ink,
+                    '&:hover': { backgroundColor: colors.border },
+                },
                 outlined: {
                     borderColor: colors.border,
+                    borderWidth: 1,
                     color: colors.ink,
+                    backgroundColor: colors.cream,
                     '&:hover': {
-                        borderColor: colors.ink,
+                        borderColor: colors.muted,
+                        backgroundColor: colors.wheatLight,
+                    },
+                },
+                outlinedError: {
+                    backgroundColor: 'transparent',
+                    '&:hover': {
+                        backgroundColor: 'rgba(156, 43, 58, 0.06)',
+                        borderColor: colors.jam,
+                    },
+                },
+                text: {
+                    paddingLeft: 10,
+                    paddingRight: 10,
+                    minHeight: buttonHeight.medium - 4,
+                    color: colors.muted,
+                    '&:hover': {
+                        color: colors.ink,
                         backgroundColor: 'rgba(51, 38, 28, 0.04)',
                     },
                 },
                 sizeSmall: {
-                    minHeight: controlHeight,
-                    paddingLeft: 14,
-                    paddingRight: 14,
+                    minHeight: buttonHeight.small,
+                    paddingLeft: 10,
+                    paddingRight: 10,
+                    paddingTop: 4,
+                    paddingBottom: 4,
+                    fontSize: '0.8125rem',
+                    borderRadius: 7,
+                    '& .MuiButton-startIcon': {
+                        marginLeft: -2,
+                        marginRight: 4,
+                        '& > *:nth-of-type(1)': { fontSize: '0.95rem' },
+                    },
+                    '& .MuiButton-endIcon': {
+                        marginRight: -2,
+                        marginLeft: 4,
+                        '& > *:nth-of-type(1)': { fontSize: '0.95rem' },
+                    },
                 },
                 sizeLarge: {
-                    minHeight: 48,
-                    paddingLeft: 20,
-                    paddingRight: 20,
+                    minHeight: buttonHeight.large,
+                    paddingLeft: 18,
+                    paddingRight: 18,
+                    paddingTop: 8,
+                    paddingBottom: 8,
+                    fontSize: '0.9375rem',
+                    borderRadius: 9,
                 },
             },
         },
@@ -381,7 +451,13 @@ const bakeryTheme = createTheme({
         },
         MuiDialogActions: {
             styleOverrides: {
-                root: { padding: '16px 24px 24px', gap: 8 },
+                root: {
+                    padding: '12px 24px 20px',
+                    gap: 8,
+                    '& .MuiButton-root': {
+                        minWidth: 72,
+                    },
+                },
             },
         },
         MuiAlert: {
@@ -486,8 +562,27 @@ const bakeryTheme = createTheme({
         },
         MuiIconButton: {
             styleOverrides: {
-                root: { width: controlHeight, height: controlHeight, minWidth: controlHeight, minHeight: controlHeight },
-                sizeSmall: { width: 32, height: 32, minWidth: 32, minHeight: 32 },
+                root: {
+                    width: buttonHeight.medium,
+                    height: buttonHeight.medium,
+                    minWidth: buttonHeight.medium,
+                    minHeight: buttonHeight.medium,
+                    borderRadius: 8,
+                    transition: 'background-color 0.15s ease, color 0.15s ease',
+                },
+                sizeSmall: {
+                    width: 30,
+                    height: 30,
+                    minWidth: 30,
+                    minHeight: 30,
+                    borderRadius: 7,
+                },
+                sizeLarge: {
+                    width: buttonHeight.large,
+                    height: buttonHeight.large,
+                    minWidth: buttonHeight.large,
+                    minHeight: buttonHeight.large,
+                },
             },
         },
         MuiListItemButton: {
@@ -606,5 +701,5 @@ export function createBakeryTheme(brand = {}) {
     });
 }
 
-export { colors, shadow, radius, chartPalette, layout, controlHeight, headerHeight };
+export { colors, shadow, radius, chartPalette, layout, controlHeight, buttonHeight, headerHeight };
 export default bakeryTheme;

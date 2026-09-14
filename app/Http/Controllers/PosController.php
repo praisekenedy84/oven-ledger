@@ -14,11 +14,14 @@ use App\Services\CurrentBranch;
 use App\Services\CustomerLedger;
 use App\Services\FinishedGoodsInventory;
 use App\Services\ProductionInventory;
+use App\Services\SaleReceiptExporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,6 +32,7 @@ class PosController extends Controller
         protected CustomerLedger $ledger,
         protected FinishedGoodsInventory $inventory,
         protected ProductionInventory $productionInventory,
+        protected SaleReceiptExporter $receipts,
     ) {}
 
     public function index(): Response
@@ -304,8 +308,32 @@ class PosController extends Controller
 
         DecrementFinishedGoodsOnSale::dispatch($order->id);
 
-        return back()->with('success', $order->is_pre_order
-            ? 'Pre-order recorded.'
-            : 'Sale recorded successfully.');
+        $order->load(['items.product:id,name', 'payments', 'customer:id,name']);
+
+        return back()
+            ->with('success', $order->is_pre_order
+                ? 'Pre-order recorded.'
+                : 'Sale recorded successfully.')
+            ->with('last_sale', $this->receipts->flashSummary($order));
+    }
+
+    public function receiptPreview(Request $request, Order $order): View
+    {
+        return $this->receipts->previewView($order, (string) $request->query('layout', 'full'));
+    }
+
+    public function receiptPdf(Request $request, Order $order): HttpResponse
+    {
+        return $this->receipts->pdf($order, $request->boolean('download'));
+    }
+
+    public function receiptThermalPdf(Request $request, Order $order): HttpResponse
+    {
+        return $this->receipts->thermalPdf($order, $request->boolean('download'));
+    }
+
+    public function receiptThermal(Order $order): View
+    {
+        return $this->receipts->thermalPrintView($order);
     }
 }

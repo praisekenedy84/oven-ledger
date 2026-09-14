@@ -45,7 +45,7 @@ function NavIconButton({ item, placement = 'right' }) {
     );
 }
 
-export default function PosLayout({ children }) {
+export default function PosLayout({ children, hideBottomNav = false }) {
     const { auth, menuItems } = usePage().props;
     const [moreOpen, setMoreOpen] = useState(false);
 
@@ -168,7 +168,10 @@ export default function PosLayout({ children }) {
                         minWidth: 0,
                         minHeight: { xs: 0, md: '100dvh' },
                         overflow: { xs: 'visible', md: 'hidden' },
-                        pb: { xs: 'calc(64px + env(safe-area-inset-bottom))', md: 0 },
+                        pb: {
+                            xs: hideBottomNav ? 0 : 'calc(64px + env(safe-area-inset-bottom))',
+                            md: 0,
+                        },
                     }}
                 >
                     {children}
@@ -177,7 +180,10 @@ export default function PosLayout({ children }) {
                 <Box
                     component="nav"
                     sx={{
-                        display: { xs: 'flex', md: 'none' },
+                        display: {
+                            xs: hideBottomNav ? 'none' : 'flex',
+                            md: 'none',
+                        },
                         position: 'fixed',
                         left: 0,
                         right: 0,

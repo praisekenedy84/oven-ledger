@@ -10,14 +10,12 @@ import TenantLayout from '@/Layouts/TenantLayout';
 import useDebouncedValue from '@/hooks/useDebouncedValue';
 import { formatDateTime } from '@/lib/format';
 import { colors } from '@/theme/bakeryTheme';
-import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
-import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import {
     Box,
     Button,
     Divider,
     FormControl,
+    IconButton,
     ListItemIcon,
     ListItemText,
     Menu,
@@ -25,8 +23,14 @@ import {
     Select,
     Stack,
     TextField,
+    Tooltip,
     Typography,
 } from '@mui/material';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
+import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import { Head, router, usePage } from '@inertiajs/react';
 import { Fragment, useEffect, useState } from 'react';
 
@@ -478,12 +482,18 @@ export default function Index({
                                 }
                             />
                         </DataTableCell>
-                        <DataTableCell>
-                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <DataTableCell sx={{ width: 1, whiteSpace: 'nowrap' }}>
+                            <Stack
+                                direction="row"
+                                spacing={0.75}
+                                justifyContent="flex-end"
+                                alignItems="center"
+                            >
                                 {sale.status === 'pending' && (
                                     <Button
                                         size="small"
                                         variant="contained"
+                                        startIcon={<CheckCircleOutlineIcon sx={{ fontSize: 16 }} />}
                                         onClick={() =>
                                             router.patch(
                                                 route('tenant.orders.fulfill', sale.id),
@@ -491,19 +501,32 @@ export default function Index({
                                                 { preserveScroll: true },
                                             )
                                         }
+                                        sx={{ px: 1.25 }}
                                     >
                                         Mark sold
                                     </Button>
                                 )}
                                 {canVoidOrder(auth, sale) && (
-                                    <Button
-                                        size="small"
-                                        color="error"
-                                        variant="outlined"
-                                        onClick={() => setVoidTarget(sale)}
-                                    >
-                                        Void
-                                    </Button>
+                                    <Tooltip title="Void ticket" arrow>
+                                        <IconButton
+                                            size="small"
+                                            aria-label="Void ticket"
+                                            onClick={() => setVoidTarget(sale)}
+                                            sx={{
+                                                color: colors.jam,
+                                                border: `1px solid ${colors.border}`,
+                                                borderRadius: '7px',
+                                                bgcolor: colors.cream,
+                                                '&:hover': {
+                                                    color: colors.cream,
+                                                    borderColor: colors.jam,
+                                                    bgcolor: colors.jam,
+                                                },
+                                            }}
+                                        >
+                                            <UndoOutlinedIcon sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                    </Tooltip>
                                 )}
                             </Stack>
                         </DataTableCell>

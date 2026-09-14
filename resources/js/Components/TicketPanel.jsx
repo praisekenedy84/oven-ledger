@@ -22,13 +22,17 @@ export default function TicketPanel({ children, sx, ...props }) {
                     backgroundImage: scallop,
                     backgroundSize: '16px 10px',
                     backgroundRepeat: 'repeat-x',
-                    zIndex: 1,
+                    zIndex: 0,
                     pointerEvents: 'none',
                 },
                 '&::before': { top: 0, transform: 'translateY(-5px)' },
                 '&::after': {
                     bottom: 0,
                     transform: 'translateY(5px) rotate(180deg)',
+                },
+                '& > *': {
+                    position: 'relative',
+                    zIndex: 1,
                 },
                 ...sx,
             }}

@@ -79,6 +79,14 @@ Route::middleware('web')->group(function () {
         Route::get('pos', [PosController::class, 'index'])->name('tenant.pos.index');
         Route::post('pos', [PosController::class, 'store'])->name('tenant.pos.store');
         Route::get('pos/tickets', [PosController::class, 'tickets'])->name('tenant.pos.tickets');
+        Route::get('pos/orders/{order}/receipt', [PosController::class, 'receiptPreview'])
+            ->name('tenant.pos.receipt.preview');
+        Route::get('pos/orders/{order}/receipt.pdf', [PosController::class, 'receiptPdf'])
+            ->name('tenant.pos.receipt.pdf');
+        Route::get('pos/orders/{order}/receipt-thermal.pdf', [PosController::class, 'receiptThermalPdf'])
+            ->name('tenant.pos.receipt.thermal-pdf');
+        Route::get('pos/orders/{order}/receipt/print', [PosController::class, 'receiptThermal'])
+            ->name('tenant.pos.receipt.thermal');
 
         Route::resource('customers', CustomerController::class)->only(['index', 'store', 'show', 'update'])
             ->names('tenant.customers');
