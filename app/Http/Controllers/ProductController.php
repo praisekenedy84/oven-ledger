@@ -20,12 +20,27 @@ class ProductController extends Controller
         protected CatalogEconomics $economics,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = trim((string) $request->input('search', ''));
+
         $products = Product::query()
             ->with(['priceLists', 'recipe.ingredients.rawMaterial', 'productCategory'])
+            ->when($search !== '', function ($query) use ($search) {
+                $term = '%'.mb_strtolower($search).'%';
+                $query->where(function ($inner) use ($term) {
+                    $inner->whereRaw('LOWER(name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(COALESCE(category, \'\')) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(COALESCE(unit_of_measure, \'\')) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(type) LIKE ?', [$term])
+                        ->orWhereHas('productCategory', function ($categoryQuery) use ($term) {
+                            $categoryQuery->whereRaw('LOWER(name) LIKE ?', [$term]);
+                        });
+                });
+            })
             ->latest()
             ->paginate(20)
+            ->withQueryString()
             ->through(function (Product $product) {
                 $prices = $this->economics->priceMap($product);
 
@@ -41,6 +56,9 @@ class ProductController extends Controller
 
         return Inertia::render('Products/Index', [
             'products' => $products,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 
