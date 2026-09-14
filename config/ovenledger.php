@@ -6,7 +6,41 @@ return [
 
     'contact_email' => env('CONTACT_EMAIL', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
 
+    'business_sizes' => [
+        'small',
+        'medium',
+        'large',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Business size → feature presets
+    |--------------------------------------------------------------------------
+    |
+    | Choosing a bakery size on the platform applies these flags. Other module
+    | flags (wholesale, restaurant, etc.) are left unchanged unless listed.
+    |
+    */
+    'business_size_presets' => [
+        'small' => [
+            'production_module' => false,
+            'multi_branch' => false,
+            'inter_branch_transfers' => false,
+        ],
+        'medium' => [
+            'production_module' => true,
+            'multi_branch' => false,
+            'inter_branch_transfers' => false,
+        ],
+        'large' => [
+            'production_module' => true,
+            'multi_branch' => true,
+            'inter_branch_transfers' => true,
+        ],
+    ],
+
     'feature_keys' => [
+        'production_module',
         'wholesale_module',
         'restaurant_module',
         'trading_goods_module',
@@ -17,6 +51,7 @@ return [
     ],
 
     'default_feature_flags' => [
+        'production_module' => true,
         'wholesale_module' => true,
         'restaurant_module' => true,
         'trading_goods_module' => true,
@@ -31,6 +66,7 @@ return [
         'branches.manage' => 'multi_branch',
         'reports.view_all_branches' => 'multi_branch',
         'inventory.transfer' => 'inter_branch_transfers',
+        'production.manage' => 'production_module',
     ],
 
     'permission_groups' => [

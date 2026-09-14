@@ -13,6 +13,12 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 {
     use HasDatabase, HasDomains;
 
+    public const SIZE_SMALL = 'small';
+
+    public const SIZE_MEDIUM = 'medium';
+
+    public const SIZE_LARGE = 'large';
+
     protected $fillable = [
         'id',
         'name',
@@ -21,6 +27,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         'owner_phone',
         'status',
         'max_branches',
+        'business_size',
         'created_by_platform_admin_id',
     ];
 
@@ -42,10 +49,16 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'owner_phone',
             'status',
             'max_branches',
+            'business_size',
             'created_by_platform_admin_id',
             'created_at',
             'updated_at',
         ];
+    }
+
+    public function isSmallBakery(): bool
+    {
+        return $this->business_size === self::SIZE_SMALL;
     }
 
     public function isActive(): bool

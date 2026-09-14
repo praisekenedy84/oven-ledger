@@ -64,12 +64,15 @@ Route::middleware('web')->group(function () {
         Route::resource('raw-materials', RawMaterialController::class)->only(['index', 'show', 'store', 'update', 'destroy'])->names('tenant.raw-materials');
         Route::resource('recipes', RecipeController::class)->only(['index', 'store', 'show', 'update', 'destroy'])->names('tenant.recipes');
 
-        Route::get('production-batches', [ProductionBatchController::class, 'index'])->name('tenant.production-batches.index');
-        Route::post('production-batches', [ProductionBatchController::class, 'store'])->name('tenant.production-batches.store');
-        Route::patch('production-batches/{productionBatch}/transition', [ProductionBatchController::class, 'transition'])->name('tenant.production-batches.transition');
+        Route::middleware('feature.enabled:production_module')->group(function () {
+            Route::get('production-batches', [ProductionBatchController::class, 'index'])->name('tenant.production-batches.index');
+            Route::post('production-batches', [ProductionBatchController::class, 'store'])->name('tenant.production-batches.store');
+            Route::patch('production-batches/{productionBatch}/transition', [ProductionBatchController::class, 'transition'])->name('tenant.production-batches.transition');
+        });
 
         Route::get('inventory', [InventoryController::class, 'index'])->name('tenant.inventory.index');
         Route::post('inventory/restock', [InventoryController::class, 'restock'])->name('tenant.inventory.restock');
+        Route::post('inventory/receive', [InventoryController::class, 'receiveFinished'])->name('tenant.inventory.receive');
         Route::post('inventory/raw-waste', [InventoryController::class, 'logRawWaste'])->name('tenant.inventory.raw-waste');
         Route::post('inventory/waste', [InventoryController::class, 'logWaste'])->name('tenant.inventory.waste');
 

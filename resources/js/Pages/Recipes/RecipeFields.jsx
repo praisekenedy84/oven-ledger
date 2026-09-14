@@ -5,6 +5,27 @@ import TextInput from '@/Components/TextInput';
 import { colors } from '@/theme/bakeryTheme';
 import { Box, Button, FormControl, MenuItem, Select, Stack, Typography } from '@mui/material';
 
+function toAmount(value) {
+    const amount = Number(value);
+    return Number.isFinite(amount) ? amount : 0;
+}
+
+function materialUnitCost(rawMaterials, id) {
+    const material = rawMaterials.find((item) => String(item.id) === String(id));
+    return toAmount(material?.unit_cost);
+}
+
+function lineIngredientCost(ingredient, rawMaterials) {
+    return toAmount(ingredient.quantity) * materialUnitCost(rawMaterials, ingredient.raw_material_id);
+}
+
+function computeBatchCost(ingredients, rawMaterials) {
+    return (ingredients ?? []).reduce(
+        (sum, ingredient) => sum + lineIngredientCost(ingredient, rawMaterials),
+        0,
+    );
+}
+
 export default function RecipeFields({
     data,
     setData,
@@ -15,41 +36,65 @@ export default function RecipeFields({
     productName,
     children,
 }) {
+    const ingredients = data.ingredients ?? [];
+
     const addIngredient = () => {
-        setData('ingredients', [
-            ...data.ingredients,
-            { raw_material_id: rawMaterials[0]?.id ?? '', quantity: '', unit: 'kg' },
-        ]);
+        setData((current) => ({
+            ...current,
+            ingredients: [
+                ...(current.ingredients ?? []),
+                {
+                    raw_material_id: rawMaterials[0]?.id ?? '',
+                    quantity: '',
+                    unit: rawMaterials[0]?.unit_of_measure ?? 'kg',
+                },
+            ],
+        }));
     };
 
     const updateIngredient = (index, field, value) => {
-        const ingredients = [...data.ingredients];
-        ingredients[index] = { ...ingredients[index], [field]: value };
-        setData('ingredients', ingredients);
-    };
+        setData((current) => {
+            const next = [...(current.ingredients ?? [])];
+            const row = { ...next[index], [field]: value };
 
-    const materialCost = (id) => {
-        const material = rawMaterials.find((item) => String(item.id) === String(id));
-        return Number(material?.unit_cost ?? 0);
-    };
+            if (field === 'raw_material_id') {
+                const material = rawMaterials.find((item) => String(item.id) === String(value));
+                if (material?.unit_of_measure) {
+                    row.unit = material.unit_of_measure;
+                }
+            }
 
-    const batchCost = (data.ingredients ?? []).reduce(
-        (sum, ingredient) =>
-            sum + Number(ingredient.quantity || 0) * materialCost(ingredient.raw_material_id),
-        0,
-    );
-    const yieldQty = Number(data.expected_yield || 0);
-    const unitCost = yieldQty > 0 ? batchCost / yieldQty : 0;
+            next[index] = row;
+            return { ...current, ingredients: next };
+        });
+    };
 
     const removeIngredient = (index) => {
-        if (data.ingredients.length === 1) {
-            return;
-        }
+        setData((current) => {
+            const currentIngredients = current.ingredients ?? [];
+            if (currentIngredients.length <= 1) {
+                return current;
+            }
 
-        setData(
-            'ingredients',
-            data.ingredients.filter((_, ingredientIndex) => ingredientIndex !== index),
-        );
+            return {
+                ...current,
+                ingredients: currentIngredients.filter((_, ingredientIndex) => ingredientIndex !== index),
+            };
+        });
+    };
+
+    const setExpectedYield = (value) => {
+        setData((current) => ({ ...current, expected_yield: value }));
+    };
+
+    const batchCost = computeBatchCost(ingredients, rawMaterials);
+    const yieldQty = toAmount(data.expected_yield);
+    const unitCost = yieldQty > 0 ? batchCost / yieldQty : 0;
+
+    const quantityInputProps = {
+        inputMode: 'decimal',
+        step: 'any',
+        min: '0',
     };
 
     return (
@@ -88,10 +133,11 @@ export default function RecipeFields({
                 <Box>
                     <InputLabel value="Expected yield" />
                     <TextInput
-                        type="number"
-                        inputProps={{ step: '0.001' }}
+                        type="text"
+                        inputProps={quantityInputProps}
                         value={data.expected_yield}
-                        onChange={(e) => setData('expected_yield', e.target.value)}
+                        onChange={(e) => setExpectedYield(e.target.value)}
+                        onInput={(e) => setExpectedYield(e.target.value)}
                     />
                     <InputError message={errors.expected_yield} />
                 </Box>
@@ -110,65 +156,95 @@ export default function RecipeFields({
                     </Button>
                 </Stack>
                 <Stack spacing={1.5}>
-                    {data.ingredients.map((ingredient, index) => (
-                        <Box
-                            key={index}
-                            sx={{
-                                display: 'grid',
-                                gap: 1.5,
-                                gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr 1fr auto' },
-                                alignItems: 'center',
-                            }}
-                        >
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    value={ingredient.raw_material_id}
-                                    onChange={(e) =>
-                                        updateIngredient(index, 'raw_material_id', e.target.value)
-                                    }
-                                >
-                                    {rawMaterials.map((rawMaterial) => (
-                                        <MenuItem key={rawMaterial.id} value={rawMaterial.id}>
-                                            {rawMaterial.name}
-                                            {Number(rawMaterial.unit_cost)
-                                                ? ` · TZS ${Number(rawMaterial.unit_cost).toLocaleString('en-TZ')}`
-                                                : ''}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            <TextInput
-                                type="number"
-                                inputProps={{ step: '0.001' }}
-                                placeholder="Qty"
-                                value={ingredient.quantity}
-                                onChange={(e) =>
-                                    updateIngredient(index, 'quantity', e.target.value)
-                                }
-                            />
-                            <TextInput
-                                placeholder="Unit"
-                                value={ingredient.unit}
-                                onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
-                            />
-                            <Button
-                                size="small"
-                                color="inherit"
-                                disabled={data.ingredients.length === 1}
-                                onClick={() => removeIngredient(index)}
+                    {ingredients.map((ingredient, index) => {
+                        const lineCost = lineIngredientCost(ingredient, rawMaterials);
+
+                        return (
+                            <Box
+                                key={index}
+                                sx={{
+                                    display: 'grid',
+                                    gap: 1.5,
+                                    gridTemplateColumns: {
+                                        xs: '1fr',
+                                        sm: '2fr 1fr 1fr auto',
+                                    },
+                                    alignItems: 'center',
+                                }}
                             >
-                                Remove
-                            </Button>
-                        </Box>
-                    ))}
+                                <FormControl fullWidth size="small">
+                                    <Select
+                                        value={ingredient.raw_material_id}
+                                        onChange={(e) =>
+                                            updateIngredient(index, 'raw_material_id', e.target.value)
+                                        }
+                                    >
+                                        {rawMaterials.map((rawMaterial) => (
+                                            <MenuItem key={rawMaterial.id} value={rawMaterial.id}>
+                                                {rawMaterial.name}
+                                                {Number(rawMaterial.unit_cost)
+                                                    ? ` · TZS ${Number(rawMaterial.unit_cost).toLocaleString('en-TZ')}`
+                                                    : ''}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <TextInput
+                                    type="text"
+                                    inputProps={quantityInputProps}
+                                    placeholder="Qty"
+                                    value={ingredient.quantity}
+                                    onChange={(e) =>
+                                        updateIngredient(index, 'quantity', e.target.value)
+                                    }
+                                    onInput={(e) =>
+                                        updateIngredient(index, 'quantity', e.target.value)
+                                    }
+                                />
+                                <TextInput
+                                    placeholder="Unit"
+                                    value={ingredient.unit}
+                                    onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
+                                />
+                                <Stack
+                                    direction={{ xs: 'row', sm: 'column' }}
+                                    alignItems={{ xs: 'center', sm: 'flex-end' }}
+                                    justifyContent="space-between"
+                                    spacing={0.5}
+                                >
+                                    <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                        sx={{ whiteSpace: 'nowrap' }}
+                                    >
+                                        Line <Money amount={lineCost} />
+                                    </Typography>
+                                    <Button
+                                        size="small"
+                                        color="inherit"
+                                        disabled={ingredients.length === 1}
+                                        onClick={() => removeIngredient(index)}
+                                    >
+                                        Remove
+                                    </Button>
+                                </Stack>
+                            </Box>
+                        );
+                    })}
                 </Stack>
                 <InputError message={errors.ingredients} />
+
                 <Box
                     sx={{
+                        position: { xs: 'sticky', sm: 'static' },
+                        bottom: { xs: 12, sm: 'auto' },
+                        zIndex: 2,
                         mt: 2,
                         p: 2,
                         borderRadius: 1,
                         bgcolor: colors.wheatLight,
+                        border: `1px solid ${colors.border}`,
+                        boxShadow: { xs: '0 -4px 16px rgba(51, 38, 28, 0.12)', sm: 'none' },
                         display: 'grid',
                         gap: 1,
                         gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
@@ -182,9 +258,7 @@ export default function RecipeFields({
                     </Typography>
                     <Typography variant="body2">
                         Cost per piece:{' '}
-                        <strong>
-                            {yieldQty > 0 ? <Money amount={unitCost} /> : '—'}
-                        </strong>
+                        <strong>{yieldQty > 0 ? <Money amount={unitCost} /> : '—'}</strong>
                     </Typography>
                 </Box>
             </Box>

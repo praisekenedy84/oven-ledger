@@ -105,6 +105,36 @@ class RawMaterialInventory
         );
     }
 
+    public function consumeForShelfIntake(
+        int $branchId,
+        int $rawMaterialId,
+        float $quantity,
+        string $shelfReference,
+        ?string $productName = null,
+    ): ?RawMaterialStockMovement {
+        $quantity = round($quantity, 3);
+
+        if ($quantity <= 0) {
+            return null;
+        }
+
+        $notes = $productName
+            ? "Used for shelf intake {$shelfReference} ({$productName})"
+            : "Used for shelf intake {$shelfReference}";
+
+        return $this->apply(
+            branchId: $branchId,
+            rawMaterialId: $rawMaterialId,
+            type: RawMaterialStockMovement::TYPE_PRODUCTION,
+            signedQuantity: -$quantity,
+            notes: $notes,
+            occurredAt: now(),
+            referenceType: 'shelf_intake',
+            referenceId: null,
+            allowNegative: true,
+        );
+    }
+
     public function writeOff(
         int $branchId,
         int $rawMaterialId,

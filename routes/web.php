@@ -44,6 +44,7 @@ Route::prefix('platform')->name('platform.')->group(function () {
         Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
         Route::get('tenants/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
         Route::patch('tenants/{tenant}/max-branches', [TenantController::class, 'updateMaxBranches'])->name('tenants.max-branches');
+        Route::patch('tenants/{tenant}/business-size', [TenantController::class, 'updateBusinessSize'])->name('tenants.business-size');
         Route::patch('tenants/{tenant}/features', [TenantController::class, 'toggleFeature'])->name('tenants.features');
         Route::post('tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
         Route::post('tenants/{tenant}/reactivate', [TenantController::class, 'reactivate'])->name('tenants.reactivate');

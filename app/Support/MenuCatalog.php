@@ -30,7 +30,7 @@ class MenuCatalog
             ['scope' => 'tenant', 'key' => 'tenant.recipes', 'label' => 'Recipes', 'icon' => 'book', 'route_name' => 'tenant.recipes.index', 'parent_key' => 'tenant.catalog', 'sort_order' => 3, 'feature_key' => null],
 
             ['scope' => 'tenant', 'key' => 'tenant.operations', 'label' => 'Operations', 'icon' => 'fire', 'route_name' => null, 'parent_key' => null, 'sort_order' => 6, 'feature_key' => null],
-            ['scope' => 'tenant', 'key' => 'tenant.production', 'label' => 'Production', 'icon' => 'fire', 'route_name' => 'tenant.production-batches.index', 'parent_key' => 'tenant.operations', 'sort_order' => 1, 'feature_key' => null],
+            ['scope' => 'tenant', 'key' => 'tenant.production', 'label' => 'Production', 'icon' => 'fire', 'route_name' => 'tenant.production-batches.index', 'parent_key' => 'tenant.operations', 'sort_order' => 1, 'feature_key' => 'production_module'],
             ['scope' => 'tenant', 'key' => 'tenant.inventory', 'label' => 'Inventory', 'icon' => 'archive', 'route_name' => 'tenant.inventory.index', 'parent_key' => 'tenant.operations', 'sort_order' => 2, 'feature_key' => null],
 
             ['scope' => 'tenant', 'key' => 'tenant.sales', 'label' => 'Sales', 'icon' => 'chart', 'route_name' => null, 'parent_key' => null, 'sort_order' => 7, 'feature_key' => null],

@@ -7,13 +7,29 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import PlatformLayout from '@/Layouts/PlatformLayout';
-import { featureLabel } from '@/lib/features';
+import { businessSizeLabel, featureLabel } from '@/lib/features';
 import { colors } from '@/theme/bakeryTheme';
-import { Box, Paper, Stack, Typography } from '@mui/material';
+import { Box, FormControl, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function Create({ featureKeys }) {
-    const initialFlags = Object.fromEntries(featureKeys.map((key) => [key, true]));
+function flagsForSize(featureKeys, defaultFeatureFlags, businessSizePresets, size) {
+    const base = Object.fromEntries(
+        featureKeys.map((key) => [key, defaultFeatureFlags?.[key] ?? false]),
+    );
+
+    return {
+        ...base,
+        ...(businessSizePresets?.[size] ?? {}),
+    };
+}
+
+export default function Create({
+    featureKeys,
+    defaultFeatureFlags = {},
+    businessSizes = ['small', 'medium', 'large'],
+    businessSizePresets = {},
+}) {
+    const initialSize = 'medium';
 
     const { data, setData, post, processing, errors } = useForm({
         name: '',
@@ -23,8 +39,28 @@ export default function Create({ featureKeys }) {
         owner_phone: '',
         owner_password: '',
         max_branches: 1,
-        feature_flags: initialFlags,
+        business_size: initialSize,
+        feature_flags: flagsForSize(
+            featureKeys,
+            defaultFeatureFlags,
+            businessSizePresets,
+            initialSize,
+        ),
     });
+
+    const setBusinessSize = (size) => {
+        setData({
+            ...data,
+            business_size: size,
+            feature_flags: flagsForSize(
+                featureKeys,
+                defaultFeatureFlags,
+                businessSizePresets,
+                size,
+            ),
+            max_branches: size === 'large' ? Math.max(Number(data.max_branches) || 1, 2) : data.max_branches,
+        });
+    };
 
     const toggleFlag = (key) => {
         setData('feature_flags', {
@@ -39,7 +75,7 @@ export default function Create({ featureKeys }) {
 
             <PageHeader
                 title="Provision tenant"
-                description="Create a new bakery tenant with owner account and feature flags."
+                description="Create a new bakery tenant with owner account, bakery size, and feature flags."
                 backHref={route('platform.tenants.index')}
             />
 
@@ -64,6 +100,26 @@ export default function Create({ featureKeys }) {
                                     onChange={(e) => setData('name', e.target.value)}
                                 />
                                 <InputError message={errors.name} />
+                            </Box>
+                            <Box>
+                                <InputLabel value="Bakery size" />
+                                <FormControl fullWidth size="small">
+                                    <Select
+                                        value={data.business_size}
+                                        onChange={(e) => setBusinessSize(e.target.value)}
+                                    >
+                                        {businessSizes.map((size) => (
+                                            <MenuItem key={size} value={size}>
+                                                {businessSizeLabel(size)}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.75 }}>
+                                    Small bakeries skip production batches and add finished goods
+                                    straight to the shelf. Recipes still drive profit and loss.
+                                </Typography>
+                                <InputError message={errors.business_size} />
                             </Box>
                             <Box>
                                 <InputLabel value="Max branches" />
@@ -144,8 +200,11 @@ export default function Create({ featureKeys }) {
                     </Paper>
 
                     <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
-                        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
+                        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
                             Feature flags
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            Size presets are applied first. Tweak individual modules below if needed.
                         </Typography>
                         <Box
                             sx={{

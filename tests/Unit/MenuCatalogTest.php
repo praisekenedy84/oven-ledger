@@ -68,4 +68,13 @@ class MenuCatalogTest extends TestCase
         $this->assertSame('tenant.sales', $salesList['parent_key']);
         $this->assertSame('tenant.sales.index', $salesList['route_name']);
     }
+
+    public function test_production_menu_is_gated_by_production_module(): void
+    {
+        $production = collect((new MenuCatalog)->tenantDefinitions())
+            ->firstWhere('key', 'tenant.production');
+
+        $this->assertNotNull($production);
+        $this->assertSame('production_module', $production['feature_key']);
+    }
 }

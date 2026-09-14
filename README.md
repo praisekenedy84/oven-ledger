@@ -67,6 +67,19 @@ All bakeries share one URL (production: `https://oven.mernettechnologies.com`).
 
 `php scripts/provision-demo-tenant.php` creates the tenant if needed and seeds a week of bakery operations: catalog, recipes, stock, customers, credit ledgers, pre-orders, production batches, supplier bills, and owner capital. Catalog rows are upserted; sales, batches, and debts are skipped if they already exist.
 
+### Small bakery demo (no production batches)
+
+```bash
+php scripts/provision-small-bakery-tenant.php
+```
+
+| Username | Email | Role |
+|---|---|---|
+| `small_owner` | `owner@small.bakery.test` | Owner |
+| `small_cashier` | `cashier@small.bakery.test` | Cashier |
+
+Password: `password`. Bakery size is **small** (`production_module` off). Flow: products + recipes → Inventory **Add to shelf** → POS. Recipes still drive P&L.
+
 Or recreate / repair with:
 
 ```bash

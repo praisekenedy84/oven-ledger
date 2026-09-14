@@ -13,6 +13,7 @@ import RecipeFields from '@/Pages/Recipes/RecipeFields';
 import { colors } from '@/theme/bakeryTheme';
 import {
     Box,
+    Divider,
     FormControl,
     List,
     ListItem,
@@ -24,6 +25,23 @@ import {
     Typography,
 } from '@mui/material';
 import { Head, router, useForm } from '@inertiajs/react';
+
+function FormSection({ title, description, children, showDivider = true }) {
+    return (
+        <Box>
+            {showDivider && <Divider sx={{ mb: 2.5, borderColor: colors.border }} />}
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+                {title}
+            </Typography>
+            {description && (
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                    {description}
+                </Typography>
+            )}
+            <Stack spacing={2}>{children}</Stack>
+        </Box>
+    );
+}
 
 export default function Show({
     product,
@@ -98,66 +116,89 @@ export default function Show({
                     <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
                         Edit product
                     </Typography>
-                    <Stack spacing={2.5}>
-                        <Box>
-                            <InputLabel value="Name" />
-                            <TextInput
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                            />
-                            <InputError message={errors.name} />
-                        </Box>
-
-                        <Box
-                            sx={{
-                                display: 'grid',
-                                gap: 2,
-                                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                            }}
+                    <Stack spacing={3}>
+                        <FormSection
+                            title="1. Product details"
+                            description="Name, category, and the unit you sell in."
+                            showDivider={false}
                         >
                             <Box>
-                                <InputLabel value="Category" />
-                                <FormControl fullWidth size="small">
-                                    <Select
-                                        value={data.product_category_id}
-                                        onChange={(e) => setData('product_category_id', e.target.value)}
-                                    >
-                                        {categories.map((category) => (
-                                            <MenuItem key={category.id} value={category.id}>
-                                                {category.name}
-                                                {category.kind === 'hardware' ? ' · hardware' : ''}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                                <InputError message={errors.product_category_id} />
-                            </Box>
-                            <Box>
-                                <InputLabel value="Unit" />
+                                <InputLabel value="Name" />
                                 <TextInput
-                                    value={data.unit_of_measure}
-                                    onChange={(e) => setData('unit_of_measure', e.target.value)}
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
                                 />
+                                <InputError message={errors.name} />
                             </Box>
-                        </Box>
 
-                        <ProductPriceFields
-                            data={data}
-                            setData={setData}
-                            errors={errors}
-                            showCostPrice={isHardware}
-                        />
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gap: 2,
+                                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                                }}
+                            >
+                                <Box>
+                                    <InputLabel value="Category" />
+                                    <FormControl fullWidth size="small">
+                                        <Select
+                                            value={data.product_category_id}
+                                            onChange={(e) => setData('product_category_id', e.target.value)}
+                                        >
+                                            {categories.map((category) => (
+                                                <MenuItem key={category.id} value={category.id}>
+                                                    {category.name}
+                                                    {category.kind === 'hardware' ? ' · hardware' : ''}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                    <InputError message={errors.product_category_id} />
+                                </Box>
+                                <Box>
+                                    <InputLabel value="Unit" />
+                                    <TextInput
+                                        value={data.unit_of_measure}
+                                        onChange={(e) => setData('unit_of_measure', e.target.value)}
+                                    />
+                                </Box>
+                            </Box>
+                        </FormSection>
 
                         {!isHardware && (
-                            <RecipeFields
+                            <FormSection
+                                title="2. Recipe"
+                                description="Ingredients lock cost and tell production what to deduct."
+                            >
+                                <RecipeFields
+                                    data={data}
+                                    setData={setData}
+                                    errors={errors}
+                                    rawMaterials={rawMaterials}
+                                    lockProduct
+                                    productName={data.name || product.name}
+                                />
+                            </FormSection>
+                        )}
+
+                        <FormSection
+                            title={isHardware ? '2. Selling prices' : '3. Selling prices'}
+                            description={
+                                isHardware
+                                    ? 'What you pay, then what the counter charges on each channel.'
+                                    : 'Set after the recipe so cost is clear before you decide what to charge.'
+                            }
+                        >
+                            <ProductPriceFields
                                 data={data}
                                 setData={setData}
                                 errors={errors}
-                                rawMaterials={rawMaterials}
-                                lockProduct
-                                productName={data.name || product.name}
+                                showCostPrice={isHardware}
+                                showHeading={false}
                             />
-                        )}
+                        </FormSection>
+
+                        <Divider sx={{ borderColor: colors.border }} />
 
                         <Checkbox
                             checked={data.is_active}

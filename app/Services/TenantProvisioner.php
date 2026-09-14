@@ -20,6 +20,13 @@ class TenantProvisioner
 
     public function provision(array $data, ?int $platformAdminId = null): Tenant
     {
+        $businessSize = $data['business_size'] ?? Tenant::SIZE_MEDIUM;
+        $sizePresets = app(BusinessSizeProfile::class)->presetFlags($businessSize);
+        $featureFlags = array_merge(
+            $sizePresets,
+            $data['feature_flags'] ?? [],
+        );
+
         $tenant = Tenant::create([
             'id' => $data['id'] ?? (string) Str::uuid(),
             'name' => $data['name'],
@@ -28,10 +35,11 @@ class TenantProvisioner
             'owner_phone' => $data['owner_phone'] ?? null,
             'status' => 'active',
             'max_branches' => $data['max_branches'] ?? 1,
+            'business_size' => $businessSize,
             'created_by_platform_admin_id' => $platformAdminId,
         ]);
 
-        $this->seedFeatureFlags($tenant, $platformAdminId, $data['feature_flags'] ?? []);
+        $this->seedFeatureFlags($tenant, $platformAdminId, $featureFlags);
 
         $username = null;
 

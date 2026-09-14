@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\TenantFeatureFlag;
 use App\Models\TenantMenuAvailability;
 use App\Models\User;
+use App\Services\BusinessSizeProfile;
 use App\Services\FeatureGate;
 use App\Services\TenantProvisioner;
 use App\Services\TenantUserDirectory;
@@ -17,6 +18,7 @@ use App\Support\MenuCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,6 +28,7 @@ class TenantController extends Controller
         protected TenantProvisioner $provisioner,
         protected FeatureGate $featureGate,
         protected MenuCatalog $menuCatalog,
+        protected BusinessSizeProfile $businessSizeProfile,
     ) {}
 
     public function index(): Response
@@ -44,6 +47,7 @@ class TenantController extends Controller
         return Inertia::render('Platform/Tenants/Index', [
             'tenants' => $tenants,
             'featureKeys' => config('ovenledger.feature_keys'),
+            'businessSizes' => $this->businessSizeProfile->sizes(),
         ]);
     }
 
@@ -51,6 +55,9 @@ class TenantController extends Controller
     {
         return Inertia::render('Platform/Tenants/Create', [
             'featureKeys' => config('ovenledger.feature_keys'),
+            'defaultFeatureFlags' => config('ovenledger.default_feature_flags'),
+            'businessSizes' => $this->businessSizeProfile->sizes(),
+            'businessSizePresets' => config('ovenledger.business_size_presets', []),
         ]);
     }
 
@@ -75,6 +82,7 @@ class TenantController extends Controller
             'owner_phone' => ['nullable', 'string', 'max:50'],
             'owner_password' => ['required', 'string', 'min:8'],
             'max_branches' => ['required', 'integer', 'min:1'],
+            'business_size' => ['required', Rule::in($this->businessSizeProfile->sizes())],
             'feature_flags' => ['nullable', 'array'],
         ]);
 
@@ -128,6 +136,7 @@ class TenantController extends Controller
             'tenant' => $tenant,
             'branchCount' => $branchCount,
             'featureKeys' => config('ovenledger.feature_keys'),
+            'businessSizes' => $this->businessSizeProfile->sizes(),
             'branchSuspensions' => $tenant->branchSuspensions()->where('suspended', true)->get(),
             'menuRows' => $this->menuCatalog->flattenTree($this->menuCatalog->toTree($menuItems)),
             'availableMenuIds' => $selectedMenuIds,
@@ -202,6 +211,21 @@ class TenantController extends Controller
         ]);
 
         return back()->with('success', 'Branch limit updated.');
+    }
+
+    public function updateBusinessSize(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $validated = $request->validate([
+            'business_size' => ['required', Rule::in($this->businessSizeProfile->sizes())],
+        ]);
+
+        $this->businessSizeProfile->apply(
+            $tenant,
+            $validated['business_size'],
+            Auth::guard('platform')->id(),
+        );
+
+        return back()->with('success', 'Bakery size updated. Matching feature presets were applied.');
     }
 
     public function toggleFeature(Request $request, Tenant $tenant): RedirectResponse

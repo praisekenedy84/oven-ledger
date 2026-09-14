@@ -45,11 +45,18 @@ export default function Index({
     rawMaterials = [],
     movements,
     filters = {},
+    simpleStock = false,
 }) {
     const wasteForm = useForm({
         product_id: products[0]?.id ?? '',
         quantity: '',
         reason: 'expired',
+    });
+
+    const receiveForm = useForm({
+        product_id: products[0]?.id ?? '',
+        quantity: '',
+        notes: '',
     });
 
     const restockForm = useForm({
@@ -81,7 +88,11 @@ export default function Index({
             <PageHeader
                 eyebrow="Stock"
                 title="Inventory"
-                description="Receive raw materials, watch them move through production, and keep a running on-hand trail."
+                description={
+                    simpleStock
+                        ? 'Restock ingredients, add finished goods to the shelf for POS, and keep a running on-hand trail.'
+                        : 'Receive raw materials, watch them move through production, and keep a running on-hand trail.'
+                }
             />
 
             {(rawAlerts.length > 0 || finishedAlerts.length > 0) && (
@@ -201,6 +212,79 @@ export default function Index({
                     </DataTable>
                 </Box>
             </Box>
+
+            {simpleStock && (
+                <SurfaceCard
+                    component="form"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        receiveForm.post(route('tenant.inventory.receive'), {
+                            preserveScroll: true,
+                            onSuccess: () => receiveForm.reset('quantity', 'notes'),
+                        });
+                    }}
+                    sx={{
+                        mt: 4,
+                        display: 'grid',
+                        gap: 2,
+                        gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' },
+                    }}
+                >
+                    <Typography variant="h6" sx={{ gridColumn: '1 / -1' }}>
+                        Add product to shelf
+                    </Typography>
+                    <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ gridColumn: '1 / -1', mt: -1 }}
+                    >
+                        Record how many finished items you have ready to sell. Recipe ingredients are
+                        deducted automatically so profit and loss stay accurate.
+                    </Typography>
+                    <Box>
+                        <InputLabel value="Product" />
+                        <FormControl fullWidth size="small">
+                            <Select
+                                value={receiveForm.data.product_id}
+                                onChange={(e) => receiveForm.setData('product_id', e.target.value)}
+                            >
+                                {products.map((p) => (
+                                    <MenuItem key={p.id} value={p.id}>
+                                        {p.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        <InputError message={receiveForm.errors.product_id} />
+                    </Box>
+                    <Box>
+                        <InputLabel value="Quantity ready" />
+                        <TextInput
+                            type="number"
+                            inputProps={{ min: 0, step: '0.001' }}
+                            value={receiveForm.data.quantity}
+                            onChange={(e) => receiveForm.setData('quantity', e.target.value)}
+                        />
+                        <InputError message={receiveForm.errors.quantity} />
+                    </Box>
+                    <Box sx={{ gridColumn: '1 / -1' }}>
+                        <InputLabel value="Notes" />
+                        <TextInput
+                            value={receiveForm.data.notes}
+                            onChange={(e) => receiveForm.setData('notes', e.target.value)}
+                            placeholder="Morning bake, leftover from yesterday…"
+                        />
+                    </Box>
+                    <Box sx={{ gridColumn: '1 / -1' }}>
+                        <PrimaryButton
+                            type="submit"
+                            disabled={receiveForm.processing || products.length === 0}
+                        >
+                            Add to shelf
+                        </PrimaryButton>
+                    </Box>
+                </SurfaceCard>
+            )}
 
             <Box
                 sx={{

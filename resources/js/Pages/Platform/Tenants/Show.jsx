@@ -11,15 +11,18 @@ import StatusBadge from '@/Components/StatusBadge';
 import TextInput from '@/Components/TextInput';
 import UsageBar from '@/Components/UsageBar';
 import PlatformLayout from '@/Layouts/PlatformLayout';
-import { featureLabel } from '@/lib/features';
+import { businessSizeLabel, featureLabel } from '@/lib/features';
 import { roleLabel, sameIdList } from '@/lib/roles';
 import { colors } from '@/theme/bakeryTheme';
 import {
     Box,
+    FormControl,
     List,
     ListItem,
     ListItemText,
+    MenuItem,
     Paper,
+    Select,
     Stack,
     Typography,
 } from '@mui/material';
@@ -30,6 +33,7 @@ export default function Show({
     tenant,
     branchCount,
     featureKeys,
+    businessSizes = ['small', 'medium', 'large'],
     branchSuspensions,
     menuRows = [],
     availableMenuIds = [],
@@ -44,6 +48,7 @@ export default function Show({
     );
 
     const branchesForm = useForm({ max_branches: tenant.max_branches });
+    const sizeForm = useForm({ business_size: tenant.business_size || 'medium' });
     const [menuIds, setMenuIds] = useState(availableMenuIds);
     const [savingMenus, setSavingMenus] = useState(false);
     const visibleMenuRows = menuRows.filter(
@@ -101,6 +106,9 @@ export default function Show({
                         <Row label="Status">
                             <StatusBadge status={tenant.status} />
                         </Row>
+                        <Row label="Bakery size">
+                            {businessSizeLabel(tenant.business_size || 'medium')}
+                        </Row>
                         <Row label="Owner">
                             {tenant.owner_name} ({tenant.owner_email})
                         </Row>
@@ -108,6 +116,49 @@ export default function Show({
                         <Row label="Branches">
                             <UsageBar value={branchCount} max={tenant.max_branches} />
                         </Row>
+                    </Stack>
+                </Paper>
+
+                <Paper
+                    component="form"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        sizeForm.patch(route('platform.tenants.business-size', tenant.id), {
+                            preserveScroll: true,
+                        });
+                    }}
+                    variant="outlined"
+                    sx={{ p: 3, borderRadius: 1 }}
+                >
+                    <Typography variant="subtitle1" fontWeight={700}>
+                        Bakery size
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        Changing size applies matching presets (production batches, multi-branch,
+                        transfers). You can still tweak flags below.
+                    </Typography>
+                    <Stack direction="row" spacing={1.5} alignItems="flex-end" sx={{ mt: 2 }}>
+                        <Box sx={{ flex: 1 }}>
+                            <InputLabel value="Size" />
+                            <FormControl fullWidth size="small">
+                                <Select
+                                    value={sizeForm.data.business_size}
+                                    onChange={(e) =>
+                                        sizeForm.setData('business_size', e.target.value)
+                                    }
+                                >
+                                    {businessSizes.map((size) => (
+                                        <MenuItem key={size} value={size}>
+                                            {businessSizeLabel(size)}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <InputError message={sizeForm.errors.business_size} />
+                        </Box>
+                        <PrimaryButton type="submit" disabled={sizeForm.processing}>
+                            Update
+                        </PrimaryButton>
                     </Stack>
                 </Paper>
 

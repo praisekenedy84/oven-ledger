@@ -5,11 +5,16 @@ namespace App\Services;
 use App\Models\BranchFinishedGoodsStock;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class FinishedGoodsInventory
 {
     public const LOW_STOCK_THRESHOLD = 8;
+
+    public function __construct(
+        protected RawMaterialInventory $rawMaterials,
+    ) {}
 
     /**
      * @return array<int, float>
@@ -35,6 +40,80 @@ class FinishedGoodsInventory
             ->where('branch_id', $branchId)
             ->where('product_id', $productId)
             ->sum('quantity_on_hand');
+    }
+
+    /**
+     * Put finished goods on the shelf without a production batch (small bakeries).
+     * Uses the product recipe to deduct raw materials so P&amp;L stays honest.
+     */
+    public function receive(int $branchId, int $productId, float $quantity, ?string $notes = null): BranchFinishedGoodsStock
+    {
+        $quantity = round($quantity, 3);
+
+        if ($quantity <= 0) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Quantity must be greater than zero.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($branchId, $productId, $quantity, $notes) {
+            $product = Product::query()
+                ->with(['recipe.ingredients'])
+                ->lockForUpdate()
+                ->findOrFail($productId);
+
+            $reference = $this->nextShelfReference($branchId);
+
+            $this->deductRecipeIngredients($branchId, $product, $quantity, $reference);
+
+            return BranchFinishedGoodsStock::query()->create([
+                'branch_id' => $branchId,
+                'product_id' => $product->id,
+                'quantity_on_hand' => $quantity,
+                'batch_reference' => $reference,
+            ]);
+        });
+    }
+
+    protected function deductRecipeIngredients(int $branchId, Product $product, float $yieldQuantity, string $reference): void
+    {
+        $recipe = $product->recipe;
+        $recipeYield = (float) ($recipe?->expected_yield ?? 0);
+
+        if (! $recipe || $recipeYield <= 0) {
+            return;
+        }
+
+        $scaleFactor = $yieldQuantity / $recipeYield;
+
+        foreach ($recipe->ingredients as $ingredient) {
+            $this->rawMaterials->consumeForShelfIntake(
+                $branchId,
+                (int) $ingredient->raw_material_id,
+                (float) $ingredient->quantity * $scaleFactor,
+                $reference,
+                $product->name,
+            );
+        }
+    }
+
+    protected function nextShelfReference(int $branchId): string
+    {
+        $prefix = 'SHELF-'.now()->format('Ymd').'-';
+
+        $latest = BranchFinishedGoodsStock::query()
+            ->where('branch_id', $branchId)
+            ->where('batch_reference', 'like', $prefix.'%')
+            ->orderByDesc('batch_reference')
+            ->value('batch_reference');
+
+        $sequence = 1;
+
+        if (is_string($latest) && preg_match('/-(\d+)$/', $latest, $matches)) {
+            $sequence = ((int) $matches[1]) + 1;
+        }
+
+        return $prefix.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
     }
 
     public function deductForOrder(Order $order): void

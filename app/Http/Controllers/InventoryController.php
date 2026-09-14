@@ -9,6 +9,8 @@ use App\Models\RawMaterial;
 use App\Models\RawMaterialStockMovement;
 use App\Models\WasteLog;
 use App\Services\CurrentBranch;
+use App\Services\FeatureGate;
+use App\Services\FinishedGoodsInventory;
 use App\Services\RawMaterialInventory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,14 +22,18 @@ class InventoryController extends Controller
     public function __construct(
         protected CurrentBranch $currentBranch,
         protected RawMaterialInventory $rawMaterialInventory,
+        protected FinishedGoodsInventory $finishedGoodsInventory,
+        protected FeatureGate $featureGate,
     ) {}
 
     public function index(Request $request): Response
     {
         $branchId = $this->currentBranch->id();
         $materialId = $request->integer('raw_material_id') ?: null;
+        $simpleStock = ! $this->featureGate->enabled('production_module');
 
         return Inertia::render('Inventory/Index', [
+            'simpleStock' => $simpleStock,
             'rawMaterialStock' => BranchRawMaterialStock::query()
                 ->with('rawMaterial:id,name,unit_of_measure,reorder_threshold,unit_cost')
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
@@ -87,6 +93,36 @@ class InventoryController extends Controller
         );
 
         return back()->with('success', 'Raw material restocked.');
+    }
+
+    public function receiveFinished(Request $request): RedirectResponse
+    {
+        if ($this->featureGate->enabled('production_module')) {
+            abort(403, 'This bakery uses production batches to put goods on the shelf.');
+        }
+
+        $branchId = $this->currentBranch->id();
+
+        if (! $branchId) {
+            return back()->withErrors([
+                'product_id' => 'Select a branch before adding product stock.',
+            ]);
+        }
+
+        $validated = $request->validate([
+            'product_id' => ['required', 'exists:products,id'],
+            'quantity' => ['required', 'numeric', 'min:0.001'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $this->finishedGoodsInventory->receive(
+            $branchId,
+            (int) $validated['product_id'],
+            (float) $validated['quantity'],
+            $validated['notes'] ?? null,
+        );
+
+        return back()->with('success', 'Product stock added to the shelf.');
     }
 
     public function logRawWaste(Request $request): RedirectResponse
