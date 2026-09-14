@@ -13,6 +13,7 @@ use App\Services\TenantProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class CatalogAndShopSettingsTest extends TestCase
@@ -183,6 +184,55 @@ class CatalogAndShopSettingsTest extends TestCase
             $this->assertNotNull($settings->logo_path);
             Storage::disk('public')->assertExists($settings->logo_path);
         });
+    }
+
+    public function test_products_index_can_be_searched_by_name_and_category(): void
+    {
+        [$tenant, $user] = $this->provisionedOwner();
+
+        $tenant->run(function () {
+            $bread = ProductCategory::query()->where('slug', 'bread')->firstOrFail();
+            $hardware = ProductCategory::query()->where('slug', 'hardware')->firstOrFail();
+
+            Product::query()->create([
+                'name' => 'Mandazi',
+                'type' => 'produced',
+                'unit_of_measure' => 'pcs',
+                'category' => $bread->name,
+                'product_category_id' => $bread->id,
+                'is_active' => true,
+            ]);
+
+            Product::query()->create([
+                'name' => 'Rolling pin',
+                'type' => 'trading',
+                'unit_of_measure' => 'pcs',
+                'category' => $hardware->name,
+                'product_category_id' => $hardware->id,
+                'cost_price' => 5000,
+                'is_active' => true,
+            ]);
+        });
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->get(route('tenant.products.index', ['search' => 'manda']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Products/Index')
+                ->where('filters.search', 'manda')
+                ->has('products.data', 1)
+                ->where('products.data.0.name', 'Mandazi'));
+
+        $this->actingAs($user)
+            ->withSession([InitializeTenancyBySession::SESSION_KEY => $tenant->getTenantKey()])
+            ->get(route('tenant.products.index', ['search' => 'hardware']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Products/Index')
+                ->where('filters.search', 'hardware')
+                ->has('products.data', 1)
+                ->where('products.data.0.name', 'Rolling pin'));
     }
 
     /**

@@ -4,11 +4,40 @@ import Money from '@/Components/Money';
 import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
+import TextInput from '@/Components/TextInput';
 import TenantLayout from '@/Layouts/TenantLayout';
-import { Button, Stack } from '@mui/material';
+import useDebouncedValue from '@/hooks/useDebouncedValue';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import { Button, IconButton, InputAdornment, Stack, Typography } from '@mui/material';
 import { Head, Link, router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
-export default function Index({ products }) {
+export default function Index({ products, filters = {} }) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const debouncedSearch = useDebouncedValue(search, 300);
+    const activeSearch = (filters.search ?? '').trim();
+
+    const applyFilters = (next) => {
+        router.get(route('tenant.products.index'), next, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['products', 'filters'],
+        });
+    };
+
+    useEffect(() => {
+        setSearch(filters.search ?? '');
+    }, [filters.search]);
+
+    useEffect(() => {
+        if ((debouncedSearch ?? '') === (filters.search ?? '')) {
+            return;
+        }
+
+        applyFilters({ search: debouncedSearch });
+    }, [debouncedSearch]);
+
     return (
         <TenantLayout title="Products">
             <Head title="Products" />
@@ -27,6 +56,47 @@ export default function Index({ products }) {
                 }
             />
 
+            <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
+                alignItems={{ sm: 'center' }}
+                sx={{ mb: 3 }}
+            >
+                <TextInput
+                    placeholder="Search by name, category, type, or unit…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon fontSize="small" />
+                            </InputAdornment>
+                        ),
+                        endAdornment: search ? (
+                            <InputAdornment position="end">
+                                <IconButton
+                                    size="small"
+                                    aria-label="Clear product search"
+                                    onClick={() => {
+                                        setSearch('');
+                                        applyFilters({ search: '' });
+                                    }}
+                                >
+                                    <CloseIcon fontSize="small" />
+                                </IconButton>
+                            </InputAdornment>
+                        ) : null,
+                    }}
+                    sx={{ maxWidth: { sm: 420 } }}
+                />
+            </Stack>
+
+            {activeSearch !== '' && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    Showing products matching “{activeSearch}”.
+                </Typography>
+            )}
+
             <DataTable
                 columns={[
                     { label: 'Name' },
@@ -38,6 +108,11 @@ export default function Index({ products }) {
                     { label: 'Status' },
                     { label: '' },
                 ]}
+                emptyMessage={
+                    activeSearch !== ''
+                        ? `No products match “${activeSearch}”.`
+                        : 'No products yet. Add a baked good or a hardware item.'
+                }
             >
                 {products.data.map((product) => (
                     <DataTableRow key={product.id}>
