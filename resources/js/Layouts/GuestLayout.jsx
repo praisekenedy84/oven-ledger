@@ -64,7 +64,14 @@ export default function GuestLayout({ children, variant = 'tenant' }) {
                     </Link>
                 </Box>
 
-                <TicketPanel sx={{ width: '100%', maxWidth: 420, px: 3.5, py: 4 }}>
+                <TicketPanel
+                    sx={{
+                        width: '100%',
+                        maxWidth: 420,
+                        px: { xs: 2.5, sm: 3.5 },
+                        py: { xs: 3, sm: 4 },
+                    }}
+                >
                     {variant === 'platform' && (
                         <Typography
                             variant="overline"
