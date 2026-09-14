@@ -1,5 +1,6 @@
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import { colors } from '@/theme/bakeryTheme';
 import { IconButton, InputAdornment, TextField } from '@mui/material';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
@@ -43,6 +44,10 @@ export default forwardRef(function TextInput(
                 onClick={() => setVisible((current) => !current)}
                 onMouseDown={(event) => event.preventDefault()}
                 size="small"
+                sx={{
+                    color: colors.muted,
+                    '&:hover': { color: colors.ink, bgcolor: 'rgba(51, 38, 28, 0.06)' },
+                }}
             >
                 {visible ? (
                     <VisibilityOffOutlinedIcon fontSize="small" />
@@ -68,7 +73,18 @@ export default forwardRef(function TextInput(
                             outline: 'none',
                             boxShadow: 'none',
                             border: 'none',
+                            color: colors.ink,
+                            caretColor: colors.ink,
+                            WebkitTextFillColor: colors.ink,
                         },
+                    ...(isPassword
+                        ? {
+                              '& .MuiInputBase-input': {
+                                  letterSpacing: visible ? 'normal' : '0.12em',
+                                  fontWeight: 600,
+                              },
+                          }
+                        : {}),
                 },
                 sx,
             ]}

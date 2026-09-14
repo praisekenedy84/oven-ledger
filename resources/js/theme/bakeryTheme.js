@@ -29,10 +29,29 @@ const nativeFocusReset = {
     border: 'none',
     outline: 'none',
     boxShadow: 'none',
+    color: colors.ink,
+    caretColor: colors.ink,
+    WebkitTextFillColor: colors.ink,
+    '&::placeholder': {
+        color: colors.muted,
+        opacity: 1,
+        WebkitTextFillColor: colors.muted,
+    },
     '&:focus, &:focus-visible': {
         border: 'none',
         outline: 'none',
         boxShadow: 'none',
+        color: colors.ink,
+        caretColor: colors.ink,
+        WebkitTextFillColor: colors.ink,
+    },
+    '&[type="password"]': {
+        // Keep native password masking; appearance:none can wash out discs in WebKit.
+        appearance: 'auto',
+        color: colors.ink,
+        caretColor: colors.ink,
+        WebkitTextFillColor: colors.ink,
+        letterSpacing: '0.12em',
     },
 };
 const headerHeight = 64;
@@ -369,7 +388,7 @@ const bakeryTheme = createTheme({
                 input: {
                     ...nativeFocusReset,
                     '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus': {
-                        WebkitBoxShadow: `0 0 0 1000px ${colors.cream} inset`,
+                        WebkitBoxShadow: '0 0 0 1000px #FFFDF8 inset',
                         WebkitTextFillColor: colors.ink,
                         caretColor: colors.ink,
                         borderRadius: 'inherit',
@@ -382,7 +401,10 @@ const bakeryTheme = createTheme({
             styleOverrides: {
                 root: {
                     borderRadius: radius,
-                    backgroundColor: colors.cream,
+                    // Slightly lighter than kraft panels so fields read as inputs,
+                    // while staying warm with the bakery palette.
+                    backgroundColor: '#FFFDF8',
+                    color: colors.ink,
                     minHeight: controlHeight,
                     outline: 'none',
                     boxShadow: 'none',

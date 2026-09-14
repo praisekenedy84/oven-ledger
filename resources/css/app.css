@@ -42,12 +42,36 @@
         overflow-x: hidden;
     }
 
+    .MuiInputBase-input,
+    .MuiOutlinedInput-input,
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+    textarea {
+        color: var(--color-ink);
+        caret-color: var(--color-ink);
+    }
+
+    input[type='password'],
+    .MuiInputBase-input[type='password'],
+    .MuiOutlinedInput-input[type='password'] {
+        color: var(--color-ink);
+        -webkit-text-fill-color: var(--color-ink);
+        caret-color: var(--color-ink);
+        letter-spacing: 0.12em;
+    }
+
+    .MuiInputBase-input::placeholder,
+    .MuiOutlinedInput-input::placeholder {
+        color: var(--color-muted);
+        opacity: 1;
+        -webkit-text-fill-color: var(--color-muted);
+    }
+
     .MuiInputBase-input:-webkit-autofill,
     .MuiInputBase-input:-webkit-autofill:hover,
     .MuiInputBase-input:-webkit-autofill:focus {
         -webkit-text-fill-color: var(--color-ink);
         caret-color: var(--color-ink);
-        box-shadow: 0 0 0 1000px var(--color-cream) inset;
+        box-shadow: 0 0 0 1000px #fffdf8 inset;
         transition: background-color 9999s ease-out 0s;
     }
 }
