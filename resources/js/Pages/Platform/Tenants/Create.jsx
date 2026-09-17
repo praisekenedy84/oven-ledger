@@ -5,11 +5,17 @@ import InputLabel from '@/Components/InputLabel';
 import PageHeader from '@/Components/PageHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/Components/ui/select';
 import PlatformLayout from '@/Layouts/PlatformLayout';
 import { businessSizeLabel, featureLabel } from '@/lib/features';
-import { colors } from '@/theme/bakeryTheme';
-import { Box, FormControl, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 function flagsForSize(featureKeys, defaultFeatureFlags, businessSizePresets, size) {
@@ -79,84 +85,74 @@ export default function Create({
                 backHref={route('platform.tenants.index')}
             />
 
-            <Box
-                component="form"
+            <form
+                className="mx-auto max-w-[720px]"
                 onSubmit={(e) => {
                     e.preventDefault();
                     post(route('platform.tenants.store'));
                 }}
-                sx={{ mx: 'auto', maxWidth: 720 }}
             >
-                <Stack spacing={3}>
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
-                        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-                            Business
-                        </Typography>
-                        <Stack spacing={2}>
-                            <Box>
+                <div className="space-y-6">
+                    <SurfaceCard>
+                        <h2 className="mb-4 text-base font-bold">Business</h2>
+                        <div className="space-y-4">
+                            <div>
                                 <InputLabel value="Business name" />
                                 <TextInput
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
                                 />
                                 <InputError message={errors.name} />
-                            </Box>
-                            <Box>
+                            </div>
+                            <div>
                                 <InputLabel value="Bakery size" />
-                                <FormControl fullWidth size="small">
-                                    <Select
-                                        value={data.business_size}
-                                        onChange={(e) => setBusinessSize(e.target.value)}
-                                    >
+                                <Select
+                                    value={data.business_size}
+                                    onValueChange={(value) => setBusinessSize(value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select size" />
+                                    </SelectTrigger>
+                                    <SelectContent>
                                         {businessSizes.map((size) => (
-                                            <MenuItem key={size} value={size}>
+                                            <SelectItem key={size} value={size}>
                                                 {businessSizeLabel(size)}
-                                            </MenuItem>
+                                            </SelectItem>
                                         ))}
-                                    </Select>
-                                </FormControl>
-                                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.75 }}>
-                                    Small bakeries skip production batches and add finished goods
-                                    straight to the shelf. Recipes still drive profit and loss.
-                                </Typography>
+                                    </SelectContent>
+                                </Select>
+                                <p className="mt-2 block text-xs text-muted-foreground">
+                                    Small bakeries skip production batches and add finished goods straight to the
+                                    shelf. Recipes still drive profit and loss.
+                                </p>
                                 <InputError message={errors.business_size} />
-                            </Box>
-                            <Box>
+                            </div>
+                            <div>
                                 <InputLabel value="Max branches" />
                                 <TextInput
                                     type="number"
-                                    inputProps={{ min: 1 }}
+                                    min={1}
                                     value={data.max_branches}
-                                    onChange={(e) =>
-                                        setData('max_branches', Number(e.target.value))
-                                    }
+                                    onChange={(e) => setData('max_branches', Number(e.target.value))}
                                 />
                                 <InputError message={errors.max_branches} />
-                            </Box>
-                        </Stack>
-                    </Paper>
+                            </div>
+                        </div>
+                    </SurfaceCard>
 
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
-                        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-                            Owner account
-                        </Typography>
-                        <Stack spacing={2}>
-                            <Box
-                                sx={{
-                                    display: 'grid',
-                                    gap: 2,
-                                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                                }}
-                            >
-                                <Box>
+                    <SurfaceCard>
+                        <h2 className="mb-4 text-base font-bold">Owner account</h2>
+                        <div className="space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
                                     <InputLabel value="Owner name" />
                                     <TextInput
                                         value={data.owner_name}
                                         onChange={(e) => setData('owner_name', e.target.value)}
                                     />
                                     <InputError message={errors.owner_name} />
-                                </Box>
-                                <Box>
+                                </div>
+                                <div>
                                     <InputLabel value="Username" />
                                     <TextInput
                                         value={data.owner_username}
@@ -164,17 +160,17 @@ export default function Create({
                                         onChange={(e) => setData('owner_username', e.target.value)}
                                     />
                                     <InputError message={errors.owner_username} />
-                                </Box>
-                                <Box>
+                                </div>
+                                <div>
                                     <InputLabel value="Phone" />
                                     <TextInput
                                         value={data.owner_phone}
                                         onChange={(e) => setData('owner_phone', e.target.value)}
                                     />
                                     <InputError message={errors.owner_phone} />
-                                </Box>
-                            </Box>
-                            <Box>
+                                </div>
+                            </div>
+                            <div>
                                 <InputLabel value="Owner email" />
                                 <TextInput
                                     type="email"
@@ -182,12 +178,12 @@ export default function Create({
                                     onChange={(e) => setData('owner_email', e.target.value)}
                                 />
                                 <InputError message={errors.owner_email} />
-                                <Typography variant="caption" color="text.secondary">
-                                    Sign in with this email or the username above. Both must be
-                                    unique across all tenants.
-                                </Typography>
-                            </Box>
-                            <Box>
+                                <p className="text-xs text-muted-foreground">
+                                    Sign in with this email or the username above. Both must be unique across all
+                                    tenants.
+                                </p>
+                            </div>
+                            <div>
                                 <InputLabel value="Initial password" />
                                 <TextInput
                                     type="password"
@@ -195,61 +191,42 @@ export default function Create({
                                     onChange={(e) => setData('owner_password', e.target.value)}
                                 />
                                 <InputError message={errors.owner_password} />
-                            </Box>
-                        </Stack>
-                    </Paper>
+                            </div>
+                        </div>
+                    </SurfaceCard>
 
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
-                        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
-                            Feature flags
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <SurfaceCard>
+                        <h2 className="text-base font-bold">Feature flags</h2>
+                        <p className="mb-4 text-sm text-muted-foreground">
                             Size presets are applied first. Tweak individual modules below if needed.
-                        </Typography>
-                        <Box
-                            sx={{
-                                display: 'grid',
-                                gap: 1.5,
-                                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                            }}
-                        >
+                        </p>
+                        <div className="grid gap-3 sm:grid-cols-2">
                             {featureKeys.map((key) => (
-                                <Box
+                                <div
                                     key={key}
-                                    sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        gap: 2,
-                                        border: `1px solid ${colors.border}`,
-                                        borderRadius: 2,
-                                        p: 1.5,
-                                    }}
+                                    className="flex items-center justify-between gap-4 rounded-lg border border-border p-3"
                                 >
-                                    <FeatureBadge
-                                        featureKey={key}
-                                        enabled={data.feature_flags[key]}
-                                    />
+                                    <FeatureBadge featureKey={key} enabled={data.feature_flags[key]} />
                                     <Checkbox
                                         checked={!!data.feature_flags[key]}
                                         onChange={() => toggleFlag(key)}
                                         inputProps={{ 'aria-label': featureLabel(key) }}
                                     />
-                                </Box>
+                                </div>
                             ))}
-                        </Box>
-                    </Paper>
+                        </div>
+                    </SurfaceCard>
 
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <SecondaryButton component={Link} href={route('platform.tenants.index')}>
-                            Cancel
+                    <div className="flex flex-row justify-end gap-2">
+                        <SecondaryButton asChild>
+                            <Link href={route('platform.tenants.index')}>Cancel</Link>
                         </SecondaryButton>
                         <PrimaryButton type="submit" disabled={processing}>
                             Provision tenant
                         </PrimaryButton>
-                    </Stack>
-                </Stack>
-            </Box>
+                    </div>
+                </div>
+            </form>
         </PlatformLayout>
     );
 }

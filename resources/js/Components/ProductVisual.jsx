@@ -1,5 +1,4 @@
-import { colors } from '@/theme/bakeryTheme';
-import { Box } from '@mui/material';
+import { cn } from '@/lib/utils';
 
 const PHOTOS = {
     bread: '/images/bakery/bread.png',
@@ -17,7 +16,7 @@ function resolveKind(product = {}) {
     if (type === 'trading' || /tool|supply|supplies|utensil|packag|hardware/.test(haystack)) {
         return 'tools';
     }
-    if (/cake|gateau|gateau|tart|tier/.test(haystack)) {
+    if (/cake|gateau|gâteau|tart|tier/.test(haystack)) {
         return 'cake';
     }
     if (/pastr|croissant|danish|bun|roll|muffin|cookie|scone/.test(haystack)) {
@@ -26,25 +25,44 @@ function resolveKind(product = {}) {
     return 'bread';
 }
 
-export default function ProductVisual({ product, size = 88, radius = '10px', sx }) {
+/**
+ * Category photo tile for POS / catalog. Prefer product.image_url when present,
+ * otherwise the bakery stock photo for the resolved kind.
+ */
+export default function ProductVisual({
+    product,
+    size = 88,
+    radius = '10px',
+    className,
+    style,
+}) {
     const kind = resolveKind(product);
+    const src = product?.image_url || product?.photo_url || PHOTOS[kind];
+
+    const dimensionStyle =
+        size === '100%'
+            ? { width: '100%' }
+            : {
+                  width: typeof size === 'number' ? `${size}px` : size,
+                  height: typeof size === 'number' ? `${size}px` : size,
+              };
 
     return (
-        <Box
-            sx={{
-                width: size,
-                height: size,
+        <div
+            className={cn(
+                'shrink-0 overflow-hidden bg-wheat-light bg-cover bg-center shadow-[inset_0_0_0_1px_rgb(51_38_28/0.08)]',
+                size === '100%' && 'min-h-[88px]',
+                className,
+            )}
+            style={{
+                ...dimensionStyle,
                 borderRadius: radius,
-                overflow: 'hidden',
-                flexShrink: 0,
-                bgcolor: colors.wheatLight,
-                backgroundImage: `url(${PHOTOS[kind]})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                boxShadow: 'inset 0 0 0 1px rgb(51 38 28 / 0.08)',
-                ...sx,
+                backgroundImage: `url(${src})`,
+                ...style,
             }}
-            aria-hidden
+            role="img"
+            aria-label={product?.name ? `${product.name} image` : undefined}
+            aria-hidden={!product?.name}
         />
     );
 }

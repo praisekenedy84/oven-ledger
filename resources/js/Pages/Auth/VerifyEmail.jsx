@@ -1,6 +1,7 @@
 import PrimaryButton from '@/Components/PrimaryButton';
+import { Alert } from '@/Components/ui/alert';
+import { Button } from '@/Components/ui/button';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Alert, Button, Stack, Typography } from '@mui/material';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function VerifyEmail({ status }) {
@@ -10,25 +11,21 @@ export default function VerifyEmail({ status }) {
         <GuestLayout>
             <Head title="Email Verification" />
 
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <p className="mb-4 text-sm text-muted-foreground">
                 Thanks for signing up! Before getting started, could you verify your email address
                 by clicking on the link we just emailed to you? If you didn&apos;t receive the
                 email, we will gladly send you another.
-            </Typography>
+            </p>
 
             {status === 'verification-link-sent' && (
-                <Alert severity="success" sx={{ mb: 2 }}>
+                <Alert variant="success" className="mb-4">
                     A new verification link has been sent to the email address you provided during
                     registration.
                 </Alert>
             )}
 
-            <Stack
-                component="form"
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                spacing={2}
+            <form
+                className="flex items-center justify-between gap-4"
                 onSubmit={(e) => {
                     e.preventDefault();
                     post(route('verification.send'));
@@ -38,10 +35,12 @@ export default function VerifyEmail({ status }) {
                     Resend Verification Email
                 </PrimaryButton>
 
-                <Button component={Link} href={route('logout')} method="post" as="button">
-                    Log Out
+                <Button variant="ghost" asChild>
+                    <Link href={route('logout')} method="post" as="button">
+                        Log Out
+                    </Link>
                 </Button>
-            </Stack>
+            </form>
         </GuestLayout>
     );
 }

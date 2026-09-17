@@ -2,7 +2,6 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { Stack, Typography } from '@mui/material';
 import { useForm } from '@inertiajs/react';
 import { useRef } from 'react';
 
@@ -17,19 +16,16 @@ export default function UpdatePasswordForm() {
     });
 
     return (
-        <Stack spacing={2}>
+        <div className="space-y-4">
             <div>
-                <Typography variant="h6" fontWeight={700}>
-                    Update Password
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                <h2 className="text-lg font-semibold text-foreground">Update Password</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                     Ensure your account is using a long, random password to stay secure.
-                </Typography>
+                </p>
             </div>
 
-            <Stack
-                component="form"
-                spacing={2.5}
+            <form
+                className="space-y-5"
                 onSubmit={(e) => {
                     e.preventDefault();
                     put(route('password.update'), {
@@ -86,17 +82,15 @@ export default function UpdatePasswordForm() {
                     <InputError message={errors.password_confirmation} />
                 </div>
 
-                <Stack direction="row" alignItems="center" spacing={2}>
+                <div className="flex items-center gap-4">
                     <PrimaryButton type="submit" disabled={processing}>
                         Save
                     </PrimaryButton>
                     {recentlySuccessful && (
-                        <Typography variant="body2" color="text.secondary">
-                            Saved.
-                        </Typography>
+                        <p className="text-sm text-muted-foreground">Saved.</p>
                     )}
-                </Stack>
-            </Stack>
-        </Stack>
+                </div>
+            </form>
+        </div>
     );
 }

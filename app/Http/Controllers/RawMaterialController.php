@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\RawMaterial;
 use App\Models\RawMaterialStockMovement;
+use App\Services\CatalogEconomics;
 use App\Services\CurrentBranch;
 use App\Services\RawMaterialInventory;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ class RawMaterialController extends Controller
     public function __construct(
         protected CurrentBranch $currentBranch,
         protected RawMaterialInventory $rawMaterialInventory,
+        protected CatalogEconomics $economics,
     ) {}
 
     public function index(): Response
@@ -105,6 +107,8 @@ class RawMaterialController extends Controller
             }
         });
 
+        $this->economics->forgetUnitCostMap();
+
         return back()->with('success', 'Raw material created.');
     }
 
@@ -118,6 +122,8 @@ class RawMaterialController extends Controller
         ]);
 
         $rawMaterial->update($validated);
+
+        $this->economics->forgetUnitCostMap();
 
         return back()->with('success', 'Raw material updated.');
     }
@@ -142,6 +148,8 @@ class RawMaterialController extends Controller
 
         $rawMaterial->branchStock()->delete();
         $rawMaterial->delete();
+
+        $this->economics->forgetUnitCostMap();
 
         return back()->with('success', 'Raw material deleted.');
     }

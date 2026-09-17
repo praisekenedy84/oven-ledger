@@ -1,33 +1,23 @@
-import { Alert, Snackbar } from '@mui/material';
+import { toast } from 'sonner';
 import { usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function FlashMessage() {
     const { flash } = usePage().props;
-    const [open, setOpen] = useState(false);
+    const last = useRef(null);
     const message = flash?.success || flash?.error || flash?.status;
-    const severity = flash?.error ? 'error' : 'success';
 
     useEffect(() => {
-        setOpen(Boolean(message));
-    }, [message]);
+        if (!message || message === last.current) {
+            return;
+        }
+        last.current = message;
+        if (flash?.error) {
+            toast.error(message);
+        } else {
+            toast.success(message);
+        }
+    }, [message, flash?.error]);
 
-    return (
-        <Snackbar
-            open={open && Boolean(message)}
-            autoHideDuration={5000}
-            onClose={() => setOpen(false)}
-            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-            sx={{ top: { xs: 16, sm: 24 }, left: { xs: 16, sm: 'auto' }, right: { xs: 16, sm: 24 } }}
-        >
-            <Alert
-                onClose={() => setOpen(false)}
-                severity={severity}
-                variant="filled"
-                sx={{ width: '100%' }}
-            >
-                {message}
-            </Alert>
-        </Snackbar>
-    );
+    return null;
 }

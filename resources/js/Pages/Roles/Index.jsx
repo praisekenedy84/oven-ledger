@@ -5,25 +5,21 @@ import InputLabel from '@/Components/InputLabel';
 import PageHeader from '@/Components/PageHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Badge } from '@/Components/ui/badge';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/Components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { roleLabel, sameIdList } from '@/lib/roles';
-import { colors } from '@/theme/bakeryTheme';
-import AddIcon from '@mui/icons-material/Add';
-import {
-    Box,
-    Chip,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    Paper,
-    Stack,
-    Tab,
-    Tabs,
-    Typography,
-} from '@mui/material';
 import { Head, router, useForm } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 function permissionRows(groups) {
@@ -147,37 +143,30 @@ export default function Index({ roles, permissionGroups, menuRows }) {
                 title="Roles & permissions"
                 description="A checklist per role: what they can do, and which stations they see."
                 actions={
-                    <PrimaryButton startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
+                    <PrimaryButton onClick={() => setCreateOpen(true)}>
+                        <Plus className="h-4 w-4" />
                         New role
                     </PrimaryButton>
                 }
             />
 
-            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: 3 }}>
+            <div className="mb-6 flex flex-row flex-wrap gap-2">
                 {roles.map((role) => (
-                    <Paper
-                        key={role.id}
-                        variant="outlined"
-                        sx={{
-                            px: 1.75,
-                            py: 1.25,
-                            borderRadius: 1,
-                            minWidth: 160,
-                            bgcolor: colors.surfaceRaised,
-                        }}
-                    >
-                        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-                            <Typography fontWeight={700}>{roleLabel(role.name)}</Typography>
+                    <SurfaceCard key={role.id} className="min-w-[160px] bg-surface-raised p-4">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="font-bold">{roleLabel(role.name)}</p>
                             {role.is_default && (
-                                <Chip size="small" label="Default" sx={{ height: 22 }} />
+                                <Badge variant="secondary" className="h-[22px] px-2 text-xs">
+                                    Default
+                                </Badge>
                             )}
-                        </Stack>
-                        <Typography variant="caption" color="text.secondary">
+                        </div>
+                        <p className="text-xs text-muted-foreground">
                             {role.users_count} staff · {matrix[role.id]?.permission_ids.length ?? 0} permissions
-                        </Typography>
-                        <Stack direction="row" spacing={0.75} sx={{ mt: 1 }}>
+                        </p>
+                        <div className="mt-2 flex gap-1.5">
                             <SecondaryButton
-                                size="small"
+                                size="sm"
                                 onClick={() => {
                                     setRenameRole(role);
                                     renameForm.setData('name', role.name);
@@ -205,118 +194,108 @@ export default function Index({ roles, permissionGroups, menuRows }) {
                                     Delete
                                 </ConfirmButton>
                             )}
-                        </Stack>
-                    </Paper>
+                        </div>
+                    </SurfaceCard>
                 ))}
-            </Stack>
+            </div>
 
-            <Paper variant="outlined" sx={{ borderRadius: 1, overflow: 'hidden' }}>
-                <Box
-                    sx={{
-                        px: 2,
-                        borderBottom: `1px solid ${colors.border}`,
-                        bgcolor: colors.surface,
-                    }}
-                >
-                    <Tabs value={tab} onChange={(_, next) => setTab(next)}>
-                        <Tab value="permissions" label="Permissions" />
-                        <Tab value="menus" label="Menu stations" />
-                    </Tabs>
-                </Box>
-                <Box sx={{ p: { xs: 1.5, md: 2 } }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {tab === 'permissions'
-                            ? 'Grant or revoke actions. Disabled modules stay hidden from this board.'
-                            : 'Show or hide each menu item, including parent stations and their children.'}
-                    </Typography>
-                    <AccessMatrix columns={roles} rows={rows} value={value} onChange={updateIds} />
-                </Box>
-            </Paper>
+            <div className="overflow-hidden rounded-card border border-border bg-card shadow-card">
+                <Tabs value={tab} onValueChange={setTab}>
+                    <div className="border-b border-border bg-surface px-4">
+                        <TabsList className="h-auto bg-transparent p-0">
+                            <TabsTrigger value="permissions" className="rounded-none border-b-2 border-transparent data-[state=active]:border-jam data-[state=active]:bg-transparent">
+                                Permissions
+                            </TabsTrigger>
+                            <TabsTrigger value="menus" className="rounded-none border-b-2 border-transparent data-[state=active]:border-jam data-[state=active]:bg-transparent">
+                                Menu stations
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+                    <div className="p-4 md:p-6">
+                        <p className="mb-4 text-sm text-muted-foreground">
+                            {tab === 'permissions'
+                                ? 'Grant or revoke actions. Disabled modules stay hidden from this board.'
+                                : 'Show or hide each menu item, including parent stations and their children.'}
+                        </p>
+                        <AccessMatrix columns={roles} rows={rows} value={value} onChange={updateIds} />
+                    </div>
+                </Tabs>
+            </div>
 
             {dirty && (
-                <Box
-                    sx={{
-                        position: 'sticky',
-                        bottom: 16,
-                        mt: 2,
-                        px: 2,
-                        py: 1.5,
-                        borderRadius: 1,
-                        bgcolor: colors.ink,
-                        color: colors.cream,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 2,
-                        boxShadow: '0 12px 32px rgb(61 43 31 / 0.28)',
-                    }}
-                >
-                    <Typography variant="body2" fontWeight={600}>
-                        Unsaved access changes
-                    </Typography>
+                <div className="sticky bottom-4 mt-4 flex items-center justify-between gap-4 rounded-card bg-ink px-4 py-3 text-cream shadow-[0_12px_32px_rgb(61_43_31_/_0.28)]">
+                    <p className="text-sm font-semibold">Unsaved access changes</p>
                     <PrimaryButton
                         onClick={save}
                         disabled={saving}
-                        sx={{ bgcolor: colors.butter, color: colors.ink, '&:hover': { bgcolor: '#C8901F' } }}
+                        className="bg-butter text-ink hover:bg-[#C8901F]"
                     >
                         Save matrix
                     </PrimaryButton>
-                </Box>
+                </div>
             )}
 
-            <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle>New role</DialogTitle>
-                <DialogContent>
-                    <InputLabel value="Role name" />
-                    <TextInput
-                        value={createForm.data.name}
-                        onChange={(e) => createForm.setData('name', e.target.value)}
-                        placeholder="Night baker"
-                    />
-                    <InputError message={createForm.errors.name} />
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                <DialogContent className="max-w-xs">
+                    <DialogHeader>
+                        <DialogTitle>New role</DialogTitle>
+                    </DialogHeader>
+                    <div>
+                        <InputLabel value="Role name" />
+                        <TextInput
+                            value={createForm.data.name}
+                            onChange={(e) => createForm.setData('name', e.target.value)}
+                            placeholder="Night baker"
+                        />
+                        <InputError message={createForm.errors.name} />
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <SecondaryButton onClick={() => setCreateOpen(false)}>Cancel</SecondaryButton>
+                        <PrimaryButton
+                            onClick={() =>
+                                createForm.post(route('tenant.roles.store'), {
+                                    onSuccess: () => {
+                                        createForm.reset();
+                                        setCreateOpen(false);
+                                    },
+                                })
+                            }
+                            disabled={createForm.processing}
+                        >
+                            Create role
+                        </PrimaryButton>
+                    </DialogFooter>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <SecondaryButton onClick={() => setCreateOpen(false)}>Cancel</SecondaryButton>
-                    <PrimaryButton
-                        onClick={() =>
-                            createForm.post(route('tenant.roles.store'), {
-                                onSuccess: () => {
-                                    createForm.reset();
-                                    setCreateOpen(false);
-                                },
-                            })
-                        }
-                        disabled={createForm.processing}
-                    >
-                        Create role
-                    </PrimaryButton>
-                </DialogActions>
             </Dialog>
 
-            <Dialog open={Boolean(renameRole)} onClose={() => setRenameRole(null)} maxWidth="xs" fullWidth>
-                <DialogTitle>Rename role</DialogTitle>
-                <DialogContent>
-                    <InputLabel value="Role name" />
-                    <TextInput
-                        value={renameForm.data.name}
-                        onChange={(e) => renameForm.setData('name', e.target.value)}
-                    />
-                    <InputError message={renameForm.errors.name} />
+            <Dialog open={Boolean(renameRole)} onOpenChange={(open) => !open && setRenameRole(null)}>
+                <DialogContent className="max-w-xs">
+                    <DialogHeader>
+                        <DialogTitle>Rename role</DialogTitle>
+                    </DialogHeader>
+                    <div>
+                        <InputLabel value="Role name" />
+                        <TextInput
+                            value={renameForm.data.name}
+                            onChange={(e) => renameForm.setData('name', e.target.value)}
+                        />
+                        <InputError message={renameForm.errors.name} />
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <SecondaryButton onClick={() => setRenameRole(null)}>Cancel</SecondaryButton>
+                        <PrimaryButton
+                            onClick={() =>
+                                renameRole &&
+                                renameForm.patch(route('tenant.roles.update', renameRole.id), {
+                                    onSuccess: () => setRenameRole(null),
+                                })
+                            }
+                            disabled={renameForm.processing}
+                        >
+                            Save name
+                        </PrimaryButton>
+                    </DialogFooter>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <SecondaryButton onClick={() => setRenameRole(null)}>Cancel</SecondaryButton>
-                    <PrimaryButton
-                        onClick={() =>
-                            renameRole &&
-                            renameForm.patch(route('tenant.roles.update', renameRole.id), {
-                                onSuccess: () => setRenameRole(null),
-                            })
-                        }
-                        disabled={renameForm.processing}
-                    >
-                        Save name
-                    </PrimaryButton>
-                </DialogActions>
             </Dialog>
         </TenantLayout>
     );

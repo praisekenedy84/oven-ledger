@@ -1,22 +1,10 @@
-import { InputLabel as MuiInputLabel } from '@mui/material';
+import { Label } from '@/Components/ui/label';
+import { cn } from '@/lib/utils';
 
-export default function InputLabel({ value, className = '', children, ...props }) {
+export default function InputLabel({ value, className, children, ...props }) {
     return (
-        <MuiInputLabel
-            {...props}
-            shrink
-            className={className}
-            sx={{
-                position: 'relative',
-                transform: 'none',
-                mb: 1,
-                fontSize: 14,
-                fontWeight: 600,
-                color: 'text.primary',
-                ...props.sx,
-            }}
-        >
+        <Label className={cn('mb-1.5 block', className)} {...props}>
             {value ?? children}
-        </MuiInputLabel>
+        </Label>
     );
 }

@@ -1,7 +1,8 @@
+import BalanceCard from '@/Components/bencho/BalanceCard';
 import PageHeader from '@/Components/PageHeader';
+import { MotionItem, MotionStagger } from '@/Components/smoothui/MotionRise';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
 import PlatformLayout from '@/Layouts/PlatformLayout';
-import { colors } from '@/theme/bakeryTheme';
-import { Box, Card, CardActionArea, CardContent, Typography } from '@mui/material';
 import { Head, Link } from '@inertiajs/react';
 
 export default function Dashboard({ stats }) {
@@ -15,73 +16,48 @@ export default function Dashboard({ stats }) {
                 description="Tenant health across Oven Ledger."
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-                }}
-            >
-                <StatCard label="Total Tenants" value={stats.tenants_total} />
-                <StatCard label="Active" value={stats.tenants_active} accent="success" />
-                <StatCard label="Suspended" value={stats.tenants_suspended} accent="danger" />
-            </Box>
+            <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <MotionItem>
+                    <BalanceCard label="Total Tenants" value={stats.tenants_total} format="number" />
+                </MotionItem>
+                <MotionItem>
+                    <BalanceCard
+                        label="Active"
+                        value={stats.tenants_active}
+                        format="number"
+                        delta={0}
+                        deltaLabel="healthy"
+                    />
+                </MotionItem>
+                <MotionItem>
+                    <BalanceCard
+                        label="Suspended"
+                        value={stats.tenants_suspended}
+                        format="number"
+                        delta={stats.tenants_suspended > 0 ? -stats.tenants_suspended : 0}
+                        deltaLabel="need attention"
+                    />
+                </MotionItem>
+            </MotionStagger>
 
-            <Box
-                sx={{
-                    mt: 3,
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                }}
-            >
-                <Card sx={{ borderRadius: 1 }}>
-                    <CardActionArea component={Link} href={route('platform.tenants.index')}>
-                        <CardContent>
-                            <Typography variant="subtitle1" fontWeight={700}>
-                                Manage Tenants
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                                View, provision, and configure bakery tenants.
-                            </Typography>
-                        </CardContent>
-                    </CardActionArea>
-                </Card>
-                <Card sx={{ borderRadius: 1 }}>
-                    <CardActionArea component={Link} href={route('platform.audit.index')}>
-                        <CardContent>
-                            <Typography variant="subtitle1" fontWeight={700}>
-                                Audit Log
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                                Review platform admin actions across tenants.
-                            </Typography>
-                        </CardContent>
-                    </CardActionArea>
-                </Card>
-            </Box>
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Link href={route('platform.tenants.index')} className="no-underline">
+                    <Card className="transition-colors hover:bg-muted/40">
+                        <CardHeader>
+                            <CardTitle>Manage Tenants</CardTitle>
+                            <CardDescription>View, provision, and configure bakery tenants.</CardDescription>
+                        </CardHeader>
+                    </Card>
+                </Link>
+                <Link href={route('platform.audit.index')} className="no-underline">
+                    <Card className="transition-colors hover:bg-muted/40">
+                        <CardHeader>
+                            <CardTitle>Audit Log</CardTitle>
+                            <CardDescription>Review platform admin actions across tenants.</CardDescription>
+                        </CardHeader>
+                    </Card>
+                </Link>
+            </div>
         </PlatformLayout>
-    );
-}
-
-function StatCard({ label, value, accent }) {
-    const color =
-        accent === 'success'
-            ? colors.success
-            : accent === 'danger'
-              ? colors.danger
-              : colors.ink;
-
-    return (
-        <Card sx={{ borderRadius: 1 }}>
-            <CardContent>
-                <Typography variant="body2" color="text.secondary">
-                    {label}
-                </Typography>
-                <Typography variant="h4" fontWeight={700} sx={{ mt: 1, color }}>
-                    {value}
-                </Typography>
-            </CardContent>
-        </Card>
     );
 }

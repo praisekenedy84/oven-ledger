@@ -5,9 +5,9 @@ import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
 import UsageBar from '@/Components/UsageBar';
+import { Button } from '@/Components/ui/button';
+import { Switch } from '@/Components/ui/switch';
 import PlatformLayout from '@/Layouts/PlatformLayout';
-import { colors } from '@/theme/bakeryTheme';
-import { Box, Button, Stack, Switch, Typography } from '@mui/material';
 import { Head, Link, router } from '@inertiajs/react';
 
 export default function Index({ tenants, featureKeys = [] }) {
@@ -28,17 +28,13 @@ export default function Index({ tenants, featureKeys = [] }) {
                 title="Tenant ledger"
                 description="Usage, flags, and suspend controls for every bakery on the platform."
                 actions={
-                    <Button
-                        component={Link}
-                        href={route('platform.tenants.create')}
-                        variant="contained"
-                    >
-                        New tenant
+                    <Button asChild>
+                        <Link href={route('platform.tenants.create')}>New tenant</Link>
                     </Button>
                 }
             />
 
-            <Stack spacing={2}>
+            <div className="space-y-4">
                 {tenants.data.map((tenant) => {
                     const flags = Object.fromEntries(
                         (tenant.feature_flags ?? tenant.featureFlags ?? []).map((f) => [
@@ -48,27 +44,17 @@ export default function Index({ tenants, featureKeys = [] }) {
                     );
 
                     return (
-                        <SurfaceCard key={tenant.id} sx={{ p: 2.5 }}>
-                            <Box
-                                sx={{
-                                    display: 'grid',
-                                    gap: 2,
-                                    gridTemplateColumns: {
-                                        xs: '1fr',
-                                        lg: 'minmax(0, 1.3fr) 180px minmax(0, 1.4fr) auto',
-                                    },
-                                    alignItems: 'center',
-                                }}
-                            >
-                                <Box>
-                                    <Stack direction="row" spacing={1} alignItems="center">
-                                        <Typography variant="h6">{tenant.name}</Typography>
+                        <SurfaceCard key={tenant.id} className="p-5">
+                            <div className="grid items-center gap-4 lg:grid-cols-[minmax(0,1.3fr)_180px_minmax(0,1.4fr)_auto]">
+                                <div>
+                                    <div className="flex flex-row items-center gap-2">
+                                        <h2 className="text-lg font-semibold">{tenant.name}</h2>
                                         <StatusBadge status={tenant.status} />
-                                    </Stack>
-                                    <Typography variant="body2" color="text.secondary">
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
                                         {tenant.owner_name} · {tenant.owner_email}
-                                    </Typography>
-                                </Box>
+                                    </p>
+                                </div>
 
                                 <UsageBar
                                     value={tenant.branch_count ?? 0}
@@ -76,50 +62,29 @@ export default function Index({ tenants, featureKeys = [] }) {
                                     label="Branch usage"
                                 />
 
-                                <Box
-                                    sx={{
-                                        display: 'grid',
-                                        gap: 0.75,
-                                        gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' },
-                                    }}
-                                >
+                                <div className="grid gap-2 sm:grid-cols-3">
                                     {featureKeys.map((key) => {
                                         const enabled = Boolean(flags[key]);
                                         return (
-                                            <Stack
+                                            <div
                                                 key={key}
-                                                direction="row"
-                                                alignItems="center"
-                                                justifyContent="space-between"
-                                                spacing={0.5}
-                                                sx={{
-                                                    px: 1,
-                                                    py: 0.5,
-                                                    borderRadius: '10px',
-                                                    border: `1px solid ${colors.border}`,
-                                                    bgcolor: colors.wheatLight,
-                                                }}
+                                                className="flex flex-row items-center justify-between gap-1 rounded-[10px] border border-border bg-wheat-light px-2 py-1"
                                             >
                                                 <FeatureBadge featureKey={key} enabled={enabled} />
                                                 <Switch
-                                                    size="small"
                                                     checked={enabled}
-                                                    onChange={(_, next) =>
+                                                    onCheckedChange={(next) =>
                                                         toggleFeature(tenant, key, next)
                                                     }
                                                 />
-                                            </Stack>
+                                            </div>
                                         );
                                     })}
-                                </Box>
+                                </div>
 
-                                <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                    <Button
-                                        component={Link}
-                                        href={route('platform.tenants.show', tenant.id)}
-                                        size="small"
-                                    >
-                                        Open
+                                <div className="flex flex-row justify-end gap-2">
+                                    <Button size="sm" variant="ghost" asChild>
+                                        <Link href={route('platform.tenants.show', tenant.id)}>Open</Link>
                                     </Button>
                                     {tenant.status === 'active' ? (
                                         <ConfirmButton
@@ -145,12 +110,12 @@ export default function Index({ tenants, featureKeys = [] }) {
                                             Reactivate
                                         </ConfirmButton>
                                     )}
-                                </Stack>
-                            </Box>
+                                </div>
+                            </div>
                         </SurfaceCard>
                     );
                 })}
-            </Stack>
+            </div>
 
             <Pagination links={tenants.links} />
         </PlatformLayout>

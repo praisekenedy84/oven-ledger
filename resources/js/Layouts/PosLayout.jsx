@@ -1,7 +1,11 @@
 import BuildUpdatePrompt from '@/Components/BuildUpdatePrompt';
 import FlashMessage from '@/Components/FlashMessage';
 import ImpersonationBanner from '@/Components/ImpersonationBanner';
-import { colors } from '@/theme/bakeryTheme';
+import { Avatar, AvatarFallback } from '@/Components/ui/avatar';
+import { Button } from '@/Components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/Components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import {
     flattenMenuLeaves,
     isRouteActive,
@@ -9,12 +13,8 @@ import {
     safeRoute,
     userInitials,
 } from '@/theme/nav';
-import LogoutIcon from '@mui/icons-material/Logout';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
-import { Avatar, Box, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Stack, Tooltip, Typography } from '@mui/material';
 import { Link, router, usePage } from '@inertiajs/react';
+import { LogOut, MoreHorizontal, ScanBarcode, Settings } from 'lucide-react';
 import { useState } from 'react';
 
 function NavIconButton({ item, placement = 'right' }) {
@@ -22,25 +22,25 @@ function NavIconButton({ item, placement = 'right' }) {
     const Icon = item.Icon;
 
     return (
-        <Tooltip title={item.label} placement={placement}>
-            <IconButton
-                component={Link}
-                href={item.href}
-                prefetch
-                sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: '10px',
-                    color: active ? colors.cream : colors.wheatLight,
-                    bgcolor: active ? colors.jam : 'transparent',
-                    '&:hover': {
-                        bgcolor: active ? colors.jam : 'rgba(251,246,234,0.08)',
-                        color: colors.cream,
-                    },
-                }}
-            >
-                <Icon fontSize="small" />
-            </IconButton>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    asChild
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        'h-11 w-11 rounded-[10px]',
+                        active
+                            ? 'bg-primary text-primary-foreground hover:bg-primary'
+                            : 'text-wheat-light hover:bg-sidebar-accent hover:text-cream',
+                    )}
+                >
+                    <Link href={item.href} prefetch>
+                        <Icon className="h-4 w-4" />
+                    </Link>
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent side={placement}>{item.label}</TooltipContent>
         </Tooltip>
     );
 }
@@ -63,227 +63,158 @@ export default function PosLayout({ children, hideBottomNav = false }) {
 
     const rail = (
         <>
-            <Box
-                sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: '10px',
-                    display: 'grid',
-                    placeItems: 'center',
-                    bgcolor: colors.jam,
-                    color: colors.cream,
-                    mb: { md: 2.5 },
-                }}
-            >
-                <StorefrontOutlinedIcon />
-            </Box>
+            <div className="mb-5 grid h-11 w-11 place-items-center rounded-[10px] bg-primary text-primary-foreground">
+                <ScanBarcode className="h-5 w-5" />
+            </div>
 
-            <Stack
-                spacing={0.75}
-                sx={{
-                    flex: 1,
-                    width: '100%',
-                    alignItems: 'center',
-                    overflowY: 'auto',
-                }}
-            >
+            <div className="flex w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto">
                 {navItems.map((item) => (
                     <NavIconButton key={item.key} item={item} />
                 ))}
-            </Stack>
+            </div>
 
-            <Stack spacing={0.75} sx={{ width: '100%', alignItems: 'center' }}>
-                <Tooltip title="Settings" placement="right">
-                    <span>
-                        <IconButton
-                            disabled={!profileHref}
-                            component={profileHref ? Link : 'button'}
-                            href={profileHref || undefined}
-                            prefetch={Boolean(profileHref)}
-                            sx={{ color: colors.wheatLight }}
-                        >
-                            <SettingsOutlinedIcon fontSize="small" />
-                        </IconButton>
-                    </span>
+            <div className="flex w-full flex-col items-center gap-1.5">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span>
+                            <Button
+                                asChild={Boolean(profileHref)}
+                                disabled={!profileHref}
+                                variant="ghost"
+                                size="icon"
+                                className="text-wheat-light hover:bg-sidebar-accent hover:text-cream"
+                            >
+                                {profileHref ? (
+                                    <Link href={profileHref} prefetch>
+                                        <Settings className="h-4 w-4" />
+                                    </Link>
+                                ) : (
+                                    <Settings className="h-4 w-4" />
+                                )}
+                            </Button>
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Settings</TooltipContent>
                 </Tooltip>
-                <Avatar
-                    sx={{
-                        width: 36,
-                        height: 36,
-                        fontSize: 13,
-                        bgcolor: colors.butter,
-                        color: colors.ink,
-                        fontWeight: 700,
-                    }}
-                >
-                    {userInitials(auth.user?.name)}
+                <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-secondary text-[13px] font-bold text-secondary-foreground">
+                        {userInitials(auth.user?.name)}
+                    </AvatarFallback>
                 </Avatar>
-                <Tooltip title="Log out" placement="right">
-                    <IconButton
-                        onClick={() => router.post(route('logout'))}
-                        sx={{ color: colors.wheatLight }}
-                    >
-                        <LogoutIcon fontSize="small" />
-                    </IconButton>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => router.post(route('logout'))}
+                            className="text-wheat-light hover:bg-sidebar-accent hover:text-cream"
+                        >
+                            <LogOut className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Log out</TooltipContent>
                 </Tooltip>
-            </Stack>
+            </div>
         </>
     );
 
     return (
-        <>
+        <TooltipProvider delayDuration={200}>
             <ImpersonationBanner />
             <FlashMessage />
             <BuildUpdatePrompt />
 
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column', md: 'row' },
-                    minHeight: '100dvh',
-                    bgcolor: colors.kraft,
-                }}
-            >
-                <Box
-                    component="aside"
-                    sx={{
-                        width: 72,
-                        flexShrink: 0,
-                        display: { xs: 'none', md: 'flex' },
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        py: 2,
-                        px: 1,
-                        bgcolor: colors.ink,
-                        color: colors.cream,
-                    }}
-                >
+            <div className="flex min-h-dvh flex-col bg-background md:flex-row">
+                <aside className="hidden w-[72px] shrink-0 flex-col items-center bg-sidebar px-2 py-4 text-sidebar-foreground md:flex">
                     {rail}
-                </Box>
+                </aside>
 
-                <Box
-                    component="main"
-                    sx={{
-                        flex: 1,
-                        minWidth: 0,
-                        minHeight: { xs: 0, md: '100dvh' },
-                        overflow: { xs: 'visible', md: 'hidden' },
-                        pb: {
-                            xs: hideBottomNav ? 0 : 'calc(64px + env(safe-area-inset-bottom))',
-                            md: 0,
-                        },
-                    }}
+                <main
+                    className={cn(
+                        'min-w-0 flex-1 overflow-visible md:min-h-dvh md:overflow-hidden',
+                        !hideBottomNav && 'pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0',
+                    )}
                 >
                     {children}
-                </Box>
+                </main>
 
-                <Box
-                    component="nav"
-                    sx={{
-                        display: {
-                            xs: hideBottomNav ? 'none' : 'flex',
-                            md: 'none',
-                        },
-                        position: 'fixed',
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 1300,
-                        height: 'calc(64px + env(safe-area-inset-bottom))',
-                        pb: 'env(safe-area-inset-bottom)',
-                        px: 0.5,
-                        bgcolor: colors.ink,
-                        color: colors.cream,
-                        alignItems: 'center',
-                        justifyContent: 'space-around',
-                    }}
+                <nav
+                    className={cn(
+                        'fixed bottom-0 left-0 right-0 z-50 flex h-[calc(64px+env(safe-area-inset-bottom))] items-center justify-around bg-sidebar px-1 pb-[env(safe-area-inset-bottom)] text-sidebar-foreground md:hidden',
+                        hideBottomNav && 'hidden',
+                    )}
                 >
                     {primaryNav.map((item) => (
                         <NavIconButton key={item.key} item={item} placement="top" />
                     ))}
-                    <Tooltip title="More" placement="top">
-                        <IconButton
-                            onClick={() => setMoreOpen(true)}
-                            sx={{
-                                width: 44,
-                                height: 44,
-                                color: colors.wheatLight,
-                            }}
-                        >
-                            <MoreHorizIcon />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
-
-                <Drawer
-                    anchor="bottom"
-                    open={moreOpen}
-                    onClose={() => setMoreOpen(false)}
-                    sx={{ display: { md: 'none' } }}
-                    PaperProps={{
-                        sx: {
-                            borderRadius: '16px 16px 0 0',
-                            bgcolor: colors.ink,
-                            color: colors.cream,
-                            pb: 'env(safe-area-inset-bottom)',
-                        },
-                    }}
-                >
-                    <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-                        <Typography variant="overline" sx={{ color: colors.butter }}>
-                            More
-                        </Typography>
-                    </Box>
-                    <List sx={{ px: 1.5, pb: 2 }}>
-                        {extraNav.map((item) => {
-                            const active = isRouteActive(item.route_name);
-                            const Icon = item.Icon;
-                            return (
-                                <ListItemButton
-                                    key={item.key}
-                                    component={Link}
-                                    href={item.href}
-                                    prefetch
-                                    onClick={() => setMoreOpen(false)}
-                                    sx={{
-                                        mb: 0.5,
-                                        color: active ? colors.cream : colors.wheatLight,
-                                        bgcolor: active ? colors.jam : 'transparent',
-                                    }}
-                                >
-                                    <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
-                                        <Icon fontSize="small" />
-                                    </ListItemIcon>
-                                    <ListItemText primary={item.label} />
-                                </ListItemButton>
-                            );
-                        })}
-                        {profileHref && (
-                            <ListItemButton
-                                component={Link}
-                                href={profileHref}
-                                prefetch
-                                onClick={() => setMoreOpen(false)}
-                                sx={{ color: colors.wheatLight }}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setMoreOpen(true)}
+                                className="h-11 w-11 text-wheat-light"
                             >
-                                <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
-                                    <SettingsOutlinedIcon fontSize="small" />
-                                </ListItemIcon>
-                                <ListItemText primary="Settings" />
-                            </ListItemButton>
-                        )}
-                        <ListItemButton
-                            onClick={() => router.post(route('logout'))}
-                            sx={{ color: colors.wheatLight }}
-                        >
-                            <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
-                                <LogoutIcon fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary="Log out" />
-                        </ListItemButton>
-                    </List>
-                </Drawer>
-            </Box>
-        </>
+                                <MoreHorizontal />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">More</TooltipContent>
+                    </Tooltip>
+                </nav>
+
+                <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+                    <SheetContent side="bottom" className="rounded-t-2xl border-0 bg-sidebar text-sidebar-foreground md:hidden">
+                        <SheetHeader>
+                            <SheetTitle className="text-left text-xs uppercase tracking-wider text-secondary">
+                                More
+                            </SheetTitle>
+                        </SheetHeader>
+                        <div className="space-y-1 pb-4 pt-2">
+                            {extraNav.map((item) => {
+                                const active = isRouteActive(item.route_name);
+                                const Icon = item.Icon;
+                                return (
+                                    <Button
+                                        key={item.key}
+                                        asChild
+                                        variant="ghost"
+                                        className={cn(
+                                            'h-11 w-full justify-start gap-3',
+                                            active
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'text-wheat-light hover:bg-sidebar-accent',
+                                        )}
+                                    >
+                                        <Link href={item.href} prefetch onClick={() => setMoreOpen(false)}>
+                                            <Icon className="h-4 w-4" />
+                                            {item.label}
+                                        </Link>
+                                    </Button>
+                                );
+                            })}
+                            {profileHref && (
+                                <Button asChild variant="ghost" className="h-11 w-full justify-start gap-3 text-wheat-light">
+                                    <Link href={profileHref} prefetch onClick={() => setMoreOpen(false)}>
+                                        <Settings className="h-4 w-4" />
+                                        Settings
+                                    </Link>
+                                </Button>
+                            )}
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="h-11 w-full justify-start gap-3 text-wheat-light"
+                                onClick={() => router.post(route('logout'))}
+                            >
+                                <LogOut className="h-4 w-4" />
+                                Log out
+                            </Button>
+                        </div>
+                    </SheetContent>
+                </Sheet>
+            </div>
+        </TooltipProvider>
     );
 }

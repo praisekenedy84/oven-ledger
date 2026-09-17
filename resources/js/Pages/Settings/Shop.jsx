@@ -4,18 +4,11 @@ import InputLabel from '@/Components/InputLabel';
 import PageHeader from '@/Components/PageHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import StatusBadge from '@/Components/StatusBadge';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { colors } from '@/theme/bakeryTheme';
-import {
-    Box,
-    FormControl,
-    MenuItem,
-    Paper,
-    Select,
-    Stack,
-    Typography,
-} from '@mui/material';
 import { Head, router, useForm } from '@inertiajs/react';
 
 export default function Shop({ settings, categories = [] }) {
@@ -44,32 +37,24 @@ export default function Shop({ settings, categories = [] }) {
                 description="Categories split baked goods from hardware. Branding is what the team sees on this shop."
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                }}
-            >
-                <Paper
-                    component="form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        brandForm.post(route('tenant.shop.update'), {
-                            forceFormData: true,
-                        });
-                    }}
-                    variant="outlined"
-                    sx={{ p: 3, borderRadius: 1 }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Shop brand
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-                        Logo and colours apply across this shop.
-                    </Typography>
-                    <Stack spacing={2}>
-                        <Box>
+            <div className="grid gap-6 lg:grid-cols-2">
+                <SurfaceCard>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            brandForm.post(route('tenant.shop.update'), {
+                                forceFormData: true,
+                            });
+                        }}
+                        className="flex flex-col gap-4"
+                    >
+                        <div>
+                            <p className="text-base font-bold">Shop brand</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Logo and colours apply across this shop.
+                            </p>
+                        </div>
+                        <div>
                             <InputLabel value="Shop name" />
                             <TextInput
                                 value={brandForm.data.shop_name}
@@ -77,59 +62,33 @@ export default function Shop({ settings, categories = [] }) {
                                 placeholder="Shown next to the logo"
                             />
                             <InputError message={brandForm.errors.shop_name} />
-                        </Box>
-                        <Box>
+                        </div>
+                        <div>
                             <InputLabel value="Logo" />
                             {settings.logo_url && !brandForm.data.remove_logo && (
-                                <Box
-                                    component="img"
+                                <img
                                     src={settings.logo_url}
                                     alt=""
-                                    sx={{
-                                        display: 'block',
-                                        width: 72,
-                                        height: 72,
-                                        objectFit: 'contain',
-                                        mb: 1,
-                                        p: 1,
-                                        borderRadius: 1,
-                                        bgcolor: colors.wheatLight,
-                                        border: `1px solid ${colors.border}`,
-                                    }}
+                                    className="mb-2 block h-[72px] w-[72px] rounded-md border border-border bg-wheat-light object-contain p-2"
                                 />
                             )}
                             <TextInput
                                 type="file"
-                                inputProps={{ accept: 'image/*' }}
+                                accept="image/*"
                                 onChange={(e) => brandForm.setData('logo', e.target.files?.[0] ?? null)}
                             />
                             <InputError message={brandForm.errors.logo} />
                             {settings.logo_url && (
-                                <Typography
-                                    component="button"
+                                <button
                                     type="button"
-                                    variant="caption"
+                                    className="mt-2 cursor-pointer border-0 bg-transparent p-0 text-xs text-jam"
                                     onClick={() => brandForm.setData('remove_logo', true)}
-                                    sx={{
-                                        mt: 0.75,
-                                        border: 0,
-                                        bgcolor: 'transparent',
-                                        color: colors.jam,
-                                        cursor: 'pointer',
-                                        p: 0,
-                                    }}
                                 >
                                     Remove current logo
-                                </Typography>
+                                </button>
                             )}
-                        </Box>
-                        <Box
-                            sx={{
-                                display: 'grid',
-                                gap: 2,
-                                gridTemplateColumns: '1fr 1fr',
-                            }}
-                        >
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
                             <ColorField
                                 label="Primary colour"
                                 value={brandForm.data.primary_color}
@@ -142,57 +101,58 @@ export default function Shop({ settings, categories = [] }) {
                                 error={brandForm.errors.accent_color}
                                 onChange={(value) => brandForm.setData('accent_color', value)}
                             />
-                        </Box>
+                        </div>
                         <PrimaryButton type="submit" disabled={brandForm.processing}>
                             Save branding
                         </PrimaryButton>
-                    </Stack>
-                </Paper>
+                    </form>
+                </SurfaceCard>
 
-                <Paper
-                    component="form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        categoryForm.post(route('tenant.shop.categories.store'), {
-                            onSuccess: () => categoryForm.reset('name'),
-                        });
-                    }}
-                    variant="outlined"
-                    sx={{ p: 3, borderRadius: 1 }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Add a category
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-                        Baked categories require a recipe. Hardware is bought, not produced.
-                    </Typography>
-                    <Stack spacing={2}>
-                        <Box>
+                <SurfaceCard>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            categoryForm.post(route('tenant.shop.categories.store'), {
+                                onSuccess: () => categoryForm.reset('name'),
+                            });
+                        }}
+                        className="flex flex-col gap-4"
+                    >
+                        <div>
+                            <p className="text-base font-bold">Add a category</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Baked categories require a recipe. Hardware is bought, not produced.
+                            </p>
+                        </div>
+                        <div>
                             <InputLabel value="Name" />
                             <TextInput
                                 value={categoryForm.data.name}
                                 onChange={(e) => categoryForm.setData('name', e.target.value)}
                             />
                             <InputError message={categoryForm.errors.name} />
-                        </Box>
-                        <Box>
+                        </div>
+                        <div>
                             <InputLabel value="Kind" />
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    value={categoryForm.data.kind}
-                                    onChange={(e) => categoryForm.setData('kind', e.target.value)}
-                                >
-                                    <MenuItem value="produced">Baked — needs a recipe</MenuItem>
-                                    <MenuItem value="hardware">Hardware — bought in</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Box>
+                            <Select
+                                value={categoryForm.data.kind}
+                                onValueChange={(value) => categoryForm.setData('kind', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="produced">Baked — needs a recipe</SelectItem>
+                                    <SelectItem value="hardware">Hardware — bought in</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <PrimaryButton type="submit" disabled={categoryForm.processing}>
                             Add category
                         </PrimaryButton>
-                    </Stack>
-                </Paper>
-            </Box>
+                    </form>
+                </SurfaceCard>
+            </div>
 
             <CategoryList title="Baked" items={baked} />
             <CategoryList title="Hardware" items={hardware} />
@@ -202,70 +162,46 @@ export default function Shop({ settings, categories = [] }) {
 
 function ColorField({ label, value, error, onChange }) {
     return (
-        <Box>
+        <div>
             <InputLabel value={label} />
-            <Stack direction="row" spacing={1} alignItems="center">
-                <Box
-                    component="input"
+            <div className="flex items-center gap-2">
+                <input
                     type="color"
                     value={value}
                     onChange={(e) => onChange(e.target.value.toUpperCase())}
-                    sx={{
-                        width: 40,
-                        height: 40,
-                        p: 0,
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: 1,
-                        bgcolor: colors.cream,
-                        cursor: 'pointer',
-                        outline: 'none',
-                        '&:focus, &:focus-visible': {
-                            outline: 'none',
-                            borderColor: colors.jam,
-                        },
-                    }}
+                    className="h-10 w-10 cursor-pointer rounded-md border border-border bg-cream p-0 outline-none focus:border-jam focus-visible:outline-none"
                 />
                 <TextInput
                     value={value}
                     onChange={(e) => onChange(e.target.value.toUpperCase())}
                 />
-            </Stack>
+            </div>
             <InputError message={error} />
-        </Box>
+        </div>
     );
 }
 
 function CategoryList({ title, items }) {
     return (
-        <Paper variant="outlined" sx={{ mt: 3, p: 3, borderRadius: 1 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-                {title}
-            </Typography>
-            <Stack spacing={1.25}>
+        <SurfaceCard className="mt-6">
+            <p className="mb-4 text-base font-bold">{title}</p>
+            <div className="flex flex-col gap-3">
                 {items.length === 0 && (
-                    <Typography variant="body2" color="text.secondary">
-                        None yet.
-                    </Typography>
+                    <p className="text-sm text-muted-foreground">None yet.</p>
                 )}
                 {items.map((category) => (
-                    <Stack
+                    <div
                         key={category.id}
-                        direction={{ xs: 'column', sm: 'row' }}
-                        justifyContent="space-between"
-                        spacing={1}
-                        sx={{
-                            py: 1,
-                            borderBottom: `1px solid ${colors.border}`,
-                        }}
+                        className="flex flex-col justify-between gap-2 border-b border-border py-2 sm:flex-row sm:items-center"
                     >
-                        <Box>
-                            <Typography variant="subtitle2">{category.name}</Typography>
-                            <Typography variant="caption" color="text.secondary">
+                        <div>
+                            <p className="text-sm font-semibold">{category.name}</p>
+                            <p className="text-xs text-muted-foreground">
                                 {category.products_count} product{category.products_count === 1 ? '' : 's'}
                                 {category.is_system ? ' · starter' : ''}
-                            </Typography>
-                        </Box>
-                        <Stack direction="row" spacing={1} alignItems="center">
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
                             <StatusBadge
                                 status={category.kind}
                                 label={category.kind === 'hardware' ? 'Hardware' : 'Baked'}
@@ -285,10 +221,10 @@ function CategoryList({ title, items }) {
                                     Delete
                                 </ConfirmButton>
                             )}
-                        </Stack>
-                    </Stack>
+                        </div>
+                    </div>
                 ))}
-            </Stack>
-        </Paper>
+            </div>
+        </SurfaceCard>
     );
 }

@@ -1,85 +1,59 @@
-import { radius, shadow } from '@/theme/bakeryTheme';
 import {
-    Paper,
     Table,
     TableBody,
     TableCell,
-    TableContainer,
     TableHead,
+    TableHeader,
     TableRow,
-    Typography,
-} from '@mui/material';
+} from '@/Components/ui/table';
+import { cn } from '@/lib/utils';
 
-export default function DataTable({ columns, children, emptyMessage = 'No records found.' }) {
+export default function DataTable({ columns, children, emptyMessage = 'No records found.', className }) {
     const isEmpty = !children || (Array.isArray(children) && children.length === 0);
     const minWidth = Math.max(columns.length * 120, 480);
 
     return (
-        <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{
-                borderRadius: `${radius}px`,
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                WebkitOverflowScrolling: 'touch',
-                boxShadow: shadow,
-            }}
-        >
-            <Table
-                size="medium"
-                sx={{
-                    minWidth,
-                    ...(columns.some((column) => column.label === '') && {
-                        '& tbody td:last-child': { textAlign: 'right' },
-                    }),
-                }}
-            >
-                <TableHead>
-                    <TableRow>
-                        {columns.map((column) => (
-                            <TableCell
-                                key={column.key ?? column.label}
-                                className={column.className}
-                                align={column.align ?? (column.label === '' ? 'right' : 'left')}
-                                sx={{
-                                    whiteSpace: 'nowrap',
-                                    ...column.sx,
-                                }}
-                            >
-                                {column.label}
-                            </TableCell>
-                        ))}
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {isEmpty ? (
+        <div className={cn('overflow-hidden rounded-card border border-border bg-card shadow-card', className)}>
+            <div className="overflow-x-auto">
+                <Table style={{ minWidth }}>
+                    <TableHeader>
                         <TableRow>
-                            <TableCell colSpan={columns.length} align="center" sx={{ py: 6 }}>
-                                <Typography variant="body2" color="text.secondary">
-                                    {emptyMessage}
-                                </Typography>
-                            </TableCell>
+                            {columns.map((column) => (
+                                <TableHead
+                                    key={column.key ?? column.label}
+                                    className={cn(
+                                        'whitespace-nowrap',
+                                        column.align === 'right' || column.label === '' ? 'text-right' : '',
+                                        column.className,
+                                    )}
+                                >
+                                    {column.label}
+                                </TableHead>
+                            ))}
                         </TableRow>
-                    ) : (
-                        children
-                    )}
-                </TableBody>
-            </Table>
-        </TableContainer>
+                    </TableHeader>
+                    <TableBody>
+                        {isEmpty ? (
+                            <TableRow>
+                                <TableCell colSpan={columns.length} className="py-12 text-center text-muted-foreground">
+                                    {emptyMessage}
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            children
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+        </div>
     );
 }
 
-export function DataTableRow({ children, onClick, className = '', sx, ...props }) {
+export function DataTableRow({ children, onClick, className = '', ...props }) {
     return (
         <TableRow
-            hover={Boolean(onClick)}
             onClick={onClick}
-            className={className}
-            sx={{
-                cursor: onClick ? 'pointer' : 'default',
-                ...sx,
-            }}
+            className={cn(onClick && 'cursor-pointer', className)}
             {...props}
         >
             {children}
@@ -87,9 +61,12 @@ export function DataTableRow({ children, onClick, className = '', sx, ...props }
     );
 }
 
-export function DataTableCell({ children, className = '', sx, align, ...props }) {
+export function DataTableCell({ children, className = '', align, ...props }) {
     return (
-        <TableCell className={className} align={align} sx={sx} {...props}>
+        <TableCell
+            className={cn(align === 'right' && 'text-right', className)}
+            {...props}
+        >
             {children}
         </TableCell>
     );

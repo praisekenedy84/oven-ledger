@@ -25,7 +25,7 @@ class ProductController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $products = Product::query()
-            ->with(['priceLists', 'recipe.ingredients.rawMaterial', 'productCategory'])
+            ->with(['priceLists:id,product_id,channel,price', 'recipe.ingredients.rawMaterial:id,unit_cost', 'productCategory:id,name'])
             ->when($search !== '', function ($query) use ($search) {
                 $term = '%'.mb_strtolower($search).'%';
                 $query->where(function ($inner) use ($term) {
@@ -45,12 +45,14 @@ class ProductController extends Controller
                 $prices = $this->economics->priceMap($product);
 
                 return [
-                    ...$product->toArray(),
-                    'retail_price' => $prices['retail'],
-                    'wholesale_price' => $prices['wholesale'],
-                    'restaurant_price' => $prices['restaurant'],
-                    'unit_cost' => $this->economics->unitCostForProduct($product),
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'type' => $product->type,
+                    'unit_of_measure' => $product->unit_of_measure,
+                    'is_active' => $product->is_active,
                     'category' => $product->productCategory?->name ?? $product->category,
+                    'retail_price' => $prices['retail'],
+                    'unit_cost' => $this->economics->unitCostForProduct($product),
                 ];
             });
 
@@ -94,6 +96,8 @@ class ProductController extends Controller
                 $recipe->syncIngredients($validated['ingredients']);
             }
         });
+
+        $this->economics->forgetUnitCostMap();
 
         return redirect()->route('tenant.products.index')
             ->with('success', 'Product created.');
@@ -150,6 +154,8 @@ class ProductController extends Controller
             }
         });
 
+        $this->economics->forgetUnitCostMap();
+
         return back()->with('success', 'Product updated.');
     }
 
@@ -162,6 +168,8 @@ class ProductController extends Controller
         }
 
         $product->delete();
+
+        $this->economics->forgetUnitCostMap();
 
         return redirect()->route('tenant.products.index')
             ->with('success', 'Product deleted.');

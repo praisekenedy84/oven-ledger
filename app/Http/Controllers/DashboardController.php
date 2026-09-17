@@ -139,9 +139,20 @@ class DashboardController extends Controller
             })->values()->all(),
         ];
 
-        $productSales = OrderItem::query()
+        $productSalesQuery = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
+            ->where('orders.status', 'completed')
+            ->where('orders.created_at', '>=', $weekStart);
+
+        $bestSellingSummary = (clone $productSalesQuery)
+            ->selectRaw('COALESCE(SUM(order_items.quantity), 0) as total_quantity')
+            ->selectRaw('COALESCE(SUM(order_items.line_total), 0) as total_revenue')
+            ->selectRaw('COUNT(DISTINCT products.id) as product_count')
+            ->first();
+
+        $topSellers = (clone $productSalesQuery)
             ->select(
                 'products.id',
                 'products.name',
@@ -150,15 +161,16 @@ class DashboardController extends Controller
                 DB::raw('SUM(order_items.quantity) as quantity'),
                 DB::raw('SUM(order_items.line_total) as revenue'),
             )
-            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
-            ->where('orders.status', 'completed')
-            ->where('orders.created_at', '>=', $weekStart)
             ->groupBy('products.id', 'products.name', 'products.type', 'products.unit_of_measure')
             ->orderByDesc('quantity')
+            ->limit(5)
             ->get();
 
-        $topSellers = $productSales->take(5);
-        $otherSellers = $productSales->slice(5);
+        $topQuantity = (float) $topSellers->sum('quantity');
+        $topRevenue = (float) $topSellers->sum('revenue');
+        $totalQuantity = (float) ($bestSellingSummary?->total_quantity ?? 0);
+        $totalRevenue = (float) ($bestSellingSummary?->total_revenue ?? 0);
+
         $bestSellingProducts = $topSellers
             ->map(fn ($row) => [
                 'id' => $row->id,
@@ -171,14 +183,17 @@ class DashboardController extends Controller
             ])
             ->values();
 
-        if ($otherSellers->isNotEmpty()) {
+        $otherQuantity = round($totalQuantity - $topQuantity, 3);
+        $otherRevenue = round($totalRevenue - $topRevenue, 2);
+
+        if ($otherQuantity > 0.0005 || $otherRevenue > 0.009) {
             $bestSellingProducts->push([
                 'id' => 'other',
                 'name' => 'Other products',
                 'type' => null,
                 'unit' => null,
-                'quantity' => (float) $otherSellers->sum('quantity'),
-                'revenue' => (float) $otherSellers->sum('revenue'),
+                'quantity' => $otherQuantity,
+                'revenue' => $otherRevenue,
                 'is_other' => true,
             ]);
         }
@@ -197,9 +212,9 @@ class DashboardController extends Controller
             'salesTrend' => $salesTrend,
             'bestSellingProducts' => $bestSellingProducts,
             'bestSellingSummary' => [
-                'total_quantity' => (float) $productSales->sum('quantity'),
-                'total_revenue' => (float) $productSales->sum('revenue'),
-                'product_count' => $productSales->count(),
+                'total_quantity' => $totalQuantity,
+                'total_revenue' => $totalRevenue,
+                'product_count' => (int) ($bestSellingSummary?->product_count ?? 0),
             ],
             'economics' => $this->reports->statement($weekStart, now(), $branchId),
         ]);

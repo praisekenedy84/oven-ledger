@@ -8,24 +8,22 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Button } from '@/Components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/Components/ui/select';
+import { Separator } from '@/Components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/ui/tooltip';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatQuantity } from '@/lib/format';
-import { colors } from '@/theme/bakeryTheme';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import {
-    Box,
-    Divider,
-    FormControl,
-    IconButton,
-    MenuItem,
-    Select,
-    Stack,
-    Tab,
-    Tabs,
-    Tooltip,
-    Typography,
-} from '@mui/material';
+import { cn } from '@/lib/utils';
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Eye } from 'lucide-react';
 import { useState } from 'react';
 
 function isRawLow(row) {
@@ -69,58 +67,37 @@ function todayInput() {
 
 function Section({ title, description, children, action }) {
     return (
-        <Box sx={{ mb: 3 }}>
-            <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1}
-                alignItems={{ xs: 'stretch', sm: 'flex-start' }}
-                justifyContent="space-between"
-                sx={{ mb: 1.5 }}
-            >
-                <Box>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        {title}
-                    </Typography>
-                    {description && (
-                        <Typography variant="body2" color="text.secondary">
-                            {description}
-                        </Typography>
-                    )}
-                </Box>
+        <div className="mb-6">
+            <div className="mb-3 flex flex-col items-stretch justify-between gap-2 sm:flex-row sm:items-start">
+                <div>
+                    <h2 className="text-base font-bold">{title}</h2>
+                    {description && <p className="text-sm text-muted-foreground">{description}</p>}
+                </div>
                 {action}
-            </Stack>
+            </div>
             {children}
-        </Box>
+        </div>
     );
 }
 
 function SummaryPill({ label, value, tone = 'default' }) {
     const tones = {
-        default: { bg: colors.wheatLight, color: colors.ink },
-        warn: { bg: `${colors.butter}22`, color: '#8A6410' },
-        danger: { bg: `${colors.jam}14`, color: colors.jam },
-        ok: { bg: `${colors.sage}14`, color: colors.sage },
+        default: 'bg-wheat-light text-ink',
+        warn: 'bg-butter/15 text-[#8A6410]',
+        danger: 'bg-jam/10 text-jam',
+        ok: 'bg-sage/10 text-sage',
     };
-    const style = tones[tone] ?? tones.default;
 
     return (
-        <Box
-            sx={{
-                px: 2,
-                py: 1.5,
-                borderRadius: 1,
-                bgcolor: style.bg,
-                border: `1px solid ${colors.border}`,
-                minWidth: 120,
-            }}
+        <div
+            className={cn(
+                'min-w-[120px] rounded-md border border-border px-4 py-3',
+                tones[tone] ?? tones.default,
+            )}
         >
-            <Typography variant="caption" color="text.secondary" display="block">
-                {label}
-            </Typography>
-            <Typography variant="h6" fontWeight={700} sx={{ color: style.color, lineHeight: 1.2 }}>
-                {value}
-            </Typography>
-        </Box>
+            <span className="block text-xs text-muted-foreground">{label}</span>
+            <span className="block text-xl font-bold leading-tight">{value}</span>
+        </div>
     );
 }
 
@@ -193,13 +170,7 @@ export default function Index({
                 }
             />
 
-            <Stack
-                direction="row"
-                spacing={1.5}
-                useFlexGap
-                flexWrap="wrap"
-                sx={{ mb: 2.5 }}
-            >
+            <div className="mb-5 flex flex-row flex-wrap gap-3">
                 <SummaryPill label="On the shelf" value={finishedGoodsStock.length} />
                 <SummaryPill label="Ingredients tracked" value={rawMaterialStock.length} />
                 <SummaryPill
@@ -207,71 +178,73 @@ export default function Index({
                     value={alertCount}
                     tone={alertCount > 0 ? 'warn' : 'ok'}
                 />
-            </Stack>
+            </div>
 
             {alertCount > 0 && (
-                <SurfaceCard sx={{ mb: 3, borderColor: colors.butter, bgcolor: `${colors.butter}14` }}>
-                    <Typography variant="overline" sx={{ color: '#8A6410' }}>
+                <SurfaceCard className="mb-6 border-butter bg-butter/10">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8A6410]">
                         Reorder alerts
-                    </Typography>
-                    <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
+                    </p>
+                    <h2 className="mb-2 text-base font-bold">
                         {alertCount} item{alertCount === 1 ? '' : 's'} under the line
-                    </Typography>
-                    <Stack spacing={0.5}>
+                    </h2>
+                    <div className="space-y-1">
                         {rawAlerts.map((row) => (
-                            <Typography key={`raw-${row.id}`} variant="body2">
+                            <p key={`raw-${row.id}`} className="text-sm">
                                 {row.raw_material?.name} — {formatQuantity(row.quantity_on_hand)}{' '}
                                 {row.raw_material?.unit_of_measure}
-                                <Typography component="span" variant="caption" color="text.secondary">
-                                    {' '}
-                                    · ingredient
-                                </Typography>
-                            </Typography>
+                                <span className="text-xs text-muted-foreground"> · ingredient</span>
+                            </p>
                         ))}
                         {finishedAlerts.map((row) => {
                             const threshold = finishedThreshold(row);
                             return (
-                                <Typography key={`fg-${row.id}`} variant="body2">
+                                <p key={`fg-${row.id}`} className="text-sm">
                                     {row.product?.name} — {formatQuantity(row.quantity_on_hand)}{' '}
                                     {row.product?.unit_of_measure}
-                                    <Typography component="span" variant="caption" color="text.secondary">
+                                    <span className="text-xs text-muted-foreground">
                                         {' '}
                                         · shelf
                                         {threshold == null
                                             ? ' · out of stock'
                                             : ` · at or below reorder of ${threshold}`}
-                                    </Typography>
-                                </Typography>
+                                    </span>
+                                </p>
                             );
                         })}
-                    </Stack>
+                    </div>
                 </SurfaceCard>
             )}
 
-            <Tabs
-                value={tab}
-                onChange={(_, next) => setTab(next)}
-                variant="scrollable"
-                allowScrollButtonsMobile
-                sx={{
-                    mb: 3,
-                    borderBottom: `1px solid ${colors.border}`,
-                    minHeight: 48,
-                    '& .MuiTab-root': {
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        minHeight: 48,
-                    },
-                }}
-            >
-                <Tab value="shelf" label="1. Shelf" />
-                <Tab value="ingredients" label="2. Ingredients" />
-                <Tab value="writeoffs" label="3. Write-offs" />
-                <Tab value="activity" label="4. Activity" />
-            </Tabs>
+            <Tabs value={tab} onValueChange={setTab} className="mb-6">
+                <TabsList className="mb-4 h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
+                    <TabsTrigger
+                        value="shelf"
+                        className="min-h-12 rounded-none border-b-2 border-transparent bg-transparent px-4 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                    >
+                        1. Shelf
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="ingredients"
+                        className="min-h-12 rounded-none border-b-2 border-transparent bg-transparent px-4 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                    >
+                        2. Ingredients
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="writeoffs"
+                        className="min-h-12 rounded-none border-b-2 border-transparent bg-transparent px-4 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                    >
+                        3. Write-offs
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="activity"
+                        className="min-h-12 rounded-none border-b-2 border-transparent bg-transparent px-4 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                    >
+                        4. Activity
+                    </TabsTrigger>
+                </TabsList>
 
-            {tab === 'shelf' && (
-                <Box>
+                <TabsContent value="shelf">
                     <Section
                         title="Finished goods on hand"
                         description={
@@ -295,9 +268,9 @@ export default function Index({
                                 return (
                                     <DataTableRow
                                         key={row.id}
-                                        sx={low ? { bgcolor: `${colors.jam}0d` } : undefined}
+                                        className={low ? 'bg-jam/5' : undefined}
                                     >
-                                        <DataTableCell sx={{ fontWeight: 600 }}>
+                                        <DataTableCell className="font-semibold">
                                             {row.product?.name}
                                         </DataTableCell>
                                         <DataTableCell>
@@ -320,477 +293,465 @@ export default function Index({
                     </Section>
 
                     {simpleStock ? (
-                    <Section
-                        title="Add product to shelf"
-                        description="Adds to the existing on-hand quantity for that product — it does not create a second shelf line. Recipe ingredients are deducted so profit and loss stay accurate."
-                    >
-                            <SurfaceCard
-                                component="form"
-                                onSubmit={(e) => {
-                                    e.preventDefault();
-                                    receiveForm.post(route('tenant.inventory.receive'), {
-                                        preserveScroll: true,
-                                        onSuccess: () => receiveForm.reset('quantity', 'notes'),
-                                    });
-                                }}
-                                sx={{
-                                    display: 'grid',
-                                    gap: 2,
-                                    gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' },
-                                }}
-                            >
-                                <Box>
-                                    <InputLabel value="Product" />
-                                    <FormControl fullWidth size="small">
+                        <Section
+                            title="Add product to shelf"
+                            description="Adds to the existing on-hand quantity for that product — it does not create a second shelf line. Recipe ingredients are deducted so profit and loss stay accurate."
+                        >
+                            <SurfaceCard>
+                                <form
+                                    className="grid gap-4 sm:grid-cols-[2fr_1fr]"
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        receiveForm.post(route('tenant.inventory.receive'), {
+                                            preserveScroll: true,
+                                            onSuccess: () => receiveForm.reset('quantity', 'notes'),
+                                        });
+                                    }}
+                                >
+                                    <div>
+                                        <InputLabel value="Product" />
                                         <Select
-                                            value={receiveForm.data.product_id}
-                                            onChange={(e) =>
-                                                receiveForm.setData('product_id', e.target.value)
+                                            value={String(receiveForm.data.product_id ?? '')}
+                                            onValueChange={(value) =>
+                                                receiveForm.setData('product_id', value)
                                             }
                                         >
-                                            {products.map((p) => (
-                                                <MenuItem key={p.id} value={p.id}>
-                                                    {p.name}
-                                                </MenuItem>
-                                            ))}
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select product" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {products.map((p) => (
+                                                    <SelectItem key={p.id} value={String(p.id)}>
+                                                        {p.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
                                         </Select>
-                                    </FormControl>
-                                    <InputError message={receiveForm.errors.product_id} />
-                                </Box>
-                                <Box>
-                                    <InputLabel value="Quantity ready" />
-                                    <TextInput
-                                        type="number"
-                                        inputProps={{ min: 0, step: '0.001' }}
-                                        value={receiveForm.data.quantity}
-                                        onChange={(e) =>
-                                            receiveForm.setData('quantity', e.target.value)
-                                        }
-                                    />
-                                    <InputError message={receiveForm.errors.quantity} />
-                                </Box>
-                                <Box sx={{ gridColumn: '1 / -1' }}>
-                                    <InputLabel value="Notes" />
-                                    <TextInput
-                                        value={receiveForm.data.notes}
-                                        onChange={(e) =>
-                                            receiveForm.setData('notes', e.target.value)
-                                        }
-                                        placeholder="Morning bake, leftover from yesterday…"
-                                    />
-                                </Box>
-                                <Box sx={{ gridColumn: '1 / -1' }}>
-                                    <PrimaryButton
-                                        type="submit"
-                                        disabled={receiveForm.processing || products.length === 0}
-                                    >
-                                        Add to shelf
-                                    </PrimaryButton>
-                                </Box>
+                                        <InputError message={receiveForm.errors.product_id} />
+                                    </div>
+                                    <div>
+                                        <InputLabel value="Quantity ready" />
+                                        <TextInput
+                                            type="number"
+                                            min={0}
+                                            step="0.001"
+                                            value={receiveForm.data.quantity}
+                                            onChange={(e) =>
+                                                receiveForm.setData('quantity', e.target.value)
+                                            }
+                                        />
+                                        <InputError message={receiveForm.errors.quantity} />
+                                    </div>
+                                    <div className="col-span-full">
+                                        <InputLabel value="Notes" />
+                                        <TextInput
+                                            value={receiveForm.data.notes}
+                                            onChange={(e) =>
+                                                receiveForm.setData('notes', e.target.value)
+                                            }
+                                            placeholder="Morning bake, leftover from yesterday…"
+                                        />
+                                    </div>
+                                    <div className="col-span-full">
+                                        <PrimaryButton
+                                            type="submit"
+                                            disabled={receiveForm.processing || products.length === 0}
+                                        >
+                                            Add to shelf
+                                        </PrimaryButton>
+                                    </div>
+                                </form>
                             </SurfaceCard>
                         </Section>
                     ) : (
-                        <SurfaceCard sx={{ bgcolor: colors.wheatLight }}>
-                            <Typography variant="subtitle2" fontWeight={700}>
-                                Shelf stock comes from production
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1.5 }}>
-                                Complete a batch to dispatch goods onto this shelf. Use Ingredients when
-                                you receive flour, sugar, and other supplies.
-                            </Typography>
-                            <SecondaryButton
-                                component={Link}
-                                href={route('tenant.production-batches.index')}
-                                size="small"
-                            >
-                                Open production
+                        <SurfaceCard className="bg-wheat-light">
+                            <h3 className="text-sm font-bold">Shelf stock comes from production</h3>
+                            <p className="mb-4 mt-0.5 text-sm text-muted-foreground">
+                                Complete a batch to dispatch goods onto this shelf. Use Ingredients when you
+                                receive flour, sugar, and other supplies.
+                            </p>
+                            <SecondaryButton size="small" asChild>
+                                <Link href={route('tenant.production-batches.index')}>Open production</Link>
                             </SecondaryButton>
                         </SurfaceCard>
                     )}
-                </Box>
-            )}
+                </TabsContent>
 
-            {tab === 'ingredients' && (
-                <Box>
+                <TabsContent value="ingredients">
                     <Section
                         title="Ingredient stock"
                         description="Raw materials available for recipes and production."
                         action={
-                            <SecondaryButton
-                                component={Link}
-                                href={route('tenant.raw-materials.index')}
-                                size="small"
-                            >
-                                Manage materials
+                            <SecondaryButton size="small" asChild>
+                                <Link href={route('tenant.raw-materials.index')}>Manage materials</Link>
                             </SecondaryButton>
                         }
                     >
-                        <DataTable
-                            columns={[
-                                { label: 'Material' },
-                                { label: 'On hand' },
-                                { label: 'Reorder' },
-                                { label: 'Status' },
-                                { label: '' },
-                            ]}
-                            emptyMessage="No raw material stock recorded."
-                        >
-                            {rawMaterialStock.map((row) => {
-                                const low = isRawLow(row);
-                                return (
-                                    <DataTableRow
-                                        key={row.id}
-                                        sx={low ? { bgcolor: `${colors.jam}0d` } : undefined}
-                                    >
-                                        <DataTableCell sx={{ fontWeight: 600 }}>
-                                            {row.raw_material?.name}
-                                        </DataTableCell>
-                                        <DataTableCell>
-                                            {formatQuantity(row.quantity_on_hand)}{' '}
-                                            {row.raw_material?.unit_of_measure}
-                                        </DataTableCell>
-                                        <DataTableCell>
-                                            {row.raw_material?.reorder_threshold ?? '—'}
-                                        </DataTableCell>
-                                        <DataTableCell>
-                                            <StatusBadge
-                                                status={low ? 'open' : 'ready'}
-                                                label={low ? 'Reorder' : 'OK'}
-                                            />
-                                        </DataTableCell>
-                                        <DataTableCell>
-                                            {row.raw_material_id && (
-                                                <Tooltip title="View history">
-                                                    <IconButton
-                                                        component={Link}
-                                                        href={route(
-                                                            'tenant.raw-materials.show',
-                                                            row.raw_material_id,
-                                                        )}
-                                                        size="small"
-                                                        aria-label={`View history for ${row.raw_material?.name}`}
-                                                    >
-                                                        <VisibilityOutlinedIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
-                                            )}
-                                        </DataTableCell>
-                                    </DataTableRow>
-                                );
-                            })}
-                        </DataTable>
+                        <TooltipProvider>
+                            <DataTable
+                                columns={[
+                                    { label: 'Material' },
+                                    { label: 'On hand' },
+                                    { label: 'Reorder' },
+                                    { label: 'Status' },
+                                    { label: '' },
+                                ]}
+                                emptyMessage="No raw material stock recorded."
+                            >
+                                {rawMaterialStock.map((row) => {
+                                    const low = isRawLow(row);
+                                    return (
+                                        <DataTableRow
+                                            key={row.id}
+                                            className={low ? 'bg-jam/5' : undefined}
+                                        >
+                                            <DataTableCell className="font-semibold">
+                                                {row.raw_material?.name}
+                                            </DataTableCell>
+                                            <DataTableCell>
+                                                {formatQuantity(row.quantity_on_hand)}{' '}
+                                                {row.raw_material?.unit_of_measure}
+                                            </DataTableCell>
+                                            <DataTableCell>
+                                                {row.raw_material?.reorder_threshold ?? '—'}
+                                            </DataTableCell>
+                                            <DataTableCell>
+                                                <StatusBadge
+                                                    status={low ? 'open' : 'ready'}
+                                                    label={low ? 'Reorder' : 'OK'}
+                                                />
+                                            </DataTableCell>
+                                            <DataTableCell>
+                                                {row.raw_material_id && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="h-8 w-8"
+                                                                asChild
+                                                                aria-label={`View history for ${row.raw_material?.name}`}
+                                                            >
+                                                                <Link
+                                                                    href={route(
+                                                                        'tenant.raw-materials.show',
+                                                                        row.raw_material_id,
+                                                                    )}
+                                                                >
+                                                                    <Eye className="h-4 w-4" />
+                                                                </Link>
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>View history</TooltipContent>
+                                                    </Tooltip>
+                                                )}
+                                            </DataTableCell>
+                                        </DataTableRow>
+                                    );
+                                })}
+                            </DataTable>
+                        </TooltipProvider>
                     </Section>
 
                     <Section
                         title="Restock ingredients"
                         description="Record what arrived from the supplier. On-hand quantity and buy-in price update when you save."
                     >
-                        <SurfaceCard
-                            component="form"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                restockForm.post(route('tenant.inventory.restock'), {
-                                    preserveScroll: true,
-                                    onSuccess: () => restockForm.reset('quantity', 'notes'),
-                                });
-                            }}
-                            sx={{
-                                display: 'grid',
-                                gap: 2,
-                                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                            }}
-                        >
-                            <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
-                                <InputLabel value="Material" />
-                                <FormControl fullWidth size="small">
+                        <SurfaceCard>
+                            <form
+                                className="grid gap-4 sm:grid-cols-2"
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    restockForm.post(route('tenant.inventory.restock'), {
+                                        preserveScroll: true,
+                                        onSuccess: () => restockForm.reset('quantity', 'notes'),
+                                    });
+                                }}
+                            >
+                                <div className="sm:col-span-full">
+                                    <InputLabel value="Material" />
                                     <Select
-                                        value={restockForm.data.raw_material_id}
-                                        onChange={(e) => {
+                                        value={String(restockForm.data.raw_material_id ?? '')}
+                                        onValueChange={(value) => {
                                             const next = rawMaterials.find(
-                                                (item) =>
-                                                    String(item.id) === String(e.target.value),
+                                                (item) => String(item.id) === String(value),
                                             );
                                             restockForm.setData({
                                                 ...restockForm.data,
-                                                raw_material_id: e.target.value,
+                                                raw_material_id: value,
                                                 unit_cost: next?.unit_cost ?? '',
                                             });
                                         }}
                                     >
-                                        {rawMaterials.map((item) => (
-                                            <MenuItem key={item.id} value={item.id}>
-                                                {item.name}
-                                            </MenuItem>
-                                        ))}
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select material" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {rawMaterials.map((item) => (
+                                                <SelectItem key={item.id} value={String(item.id)}>
+                                                    {item.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
                                     </Select>
-                                </FormControl>
-                                <InputError message={restockForm.errors.raw_material_id} />
-                            </Box>
-                            <Box>
-                                <InputLabel
-                                    value={`Quantity${selectedRestock ? ` (${selectedRestock.unit_of_measure})` : ''}`}
-                                />
-                                <TextInput
-                                    type="number"
-                                    inputProps={{ min: 0, step: '0.001' }}
-                                    value={restockForm.data.quantity}
-                                    onChange={(e) =>
-                                        restockForm.setData('quantity', e.target.value)
-                                    }
-                                />
-                                <InputError message={restockForm.errors.quantity} />
-                            </Box>
-                            <Box>
-                                <InputLabel value="Price per unit (TZS)" />
-                                <TextInput
-                                    type="number"
-                                    inputProps={{ min: 0, step: '1' }}
-                                    value={restockForm.data.unit_cost}
-                                    onChange={(e) =>
-                                        restockForm.setData('unit_cost', e.target.value)
-                                    }
-                                />
-                            </Box>
-                            <Box>
-                                <InputLabel value="Received on" />
-                                <TextInput
-                                    type="date"
-                                    value={restockForm.data.occurred_at}
-                                    onChange={(e) =>
-                                        restockForm.setData('occurred_at', e.target.value)
-                                    }
-                                />
-                            </Box>
-                            <Box>
-                                <InputLabel value="Notes" />
-                                <TextInput
-                                    value={restockForm.data.notes}
-                                    onChange={(e) => restockForm.setData('notes', e.target.value)}
-                                    placeholder="Supplier, bag count…"
-                                />
-                            </Box>
-                            <Box sx={{ gridColumn: '1 / -1' }}>
-                                <PrimaryButton
-                                    type="submit"
-                                    disabled={
-                                        restockForm.processing || rawMaterials.length === 0
-                                    }
-                                >
-                                    Record restock
-                                </PrimaryButton>
-                            </Box>
+                                    <InputError message={restockForm.errors.raw_material_id} />
+                                </div>
+                                <div>
+                                    <InputLabel
+                                        value={`Quantity${selectedRestock ? ` (${selectedRestock.unit_of_measure})` : ''}`}
+                                    />
+                                    <TextInput
+                                        type="number"
+                                        min={0}
+                                        step="0.001"
+                                        value={restockForm.data.quantity}
+                                        onChange={(e) => restockForm.setData('quantity', e.target.value)}
+                                    />
+                                    <InputError message={restockForm.errors.quantity} />
+                                </div>
+                                <div>
+                                    <InputLabel value="Price per unit (TZS)" />
+                                    <TextInput
+                                        type="number"
+                                        min={0}
+                                        step="1"
+                                        value={restockForm.data.unit_cost}
+                                        onChange={(e) => restockForm.setData('unit_cost', e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <InputLabel value="Received on" />
+                                    <TextInput
+                                        type="date"
+                                        value={restockForm.data.occurred_at}
+                                        onChange={(e) =>
+                                            restockForm.setData('occurred_at', e.target.value)
+                                        }
+                                    />
+                                </div>
+                                <div>
+                                    <InputLabel value="Notes" />
+                                    <TextInput
+                                        value={restockForm.data.notes}
+                                        onChange={(e) => restockForm.setData('notes', e.target.value)}
+                                        placeholder="Supplier, bag count…"
+                                    />
+                                </div>
+                                <div className="col-span-full">
+                                    <PrimaryButton
+                                        type="submit"
+                                        disabled={restockForm.processing || rawMaterials.length === 0}
+                                    >
+                                        Record restock
+                                    </PrimaryButton>
+                                </div>
+                            </form>
                         </SurfaceCard>
                     </Section>
-                </Box>
-            )}
+                </TabsContent>
 
-            {tab === 'writeoffs' && (
-                <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-                        Use write-offs when stock is spoiled, damaged, or given away — not for normal
-                        sales.
-                    </Typography>
+                <TabsContent value="writeoffs">
+                    <p className="mb-5 text-sm text-muted-foreground">
+                        Use write-offs when stock is spoiled, damaged, or given away — not for normal sales.
+                    </p>
 
                     <Section
                         title="Finished-goods waste"
                         description="Remove items that left the shelf without a sale."
                     >
-                        <SurfaceCard
-                            component="form"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                wasteForm.post(route('tenant.inventory.waste'), {
-                                    preserveScroll: true,
-                                    onSuccess: () => wasteForm.reset('quantity'),
-                                });
-                            }}
-                            sx={{
-                                display: 'grid',
-                                gap: 2,
-                                gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr 1fr' },
-                            }}
-                        >
-                            <Box>
-                                <InputLabel value="Product" />
-                                <FormControl fullWidth size="small">
+                        <SurfaceCard>
+                            <form
+                                className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]"
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    wasteForm.post(route('tenant.inventory.waste'), {
+                                        preserveScroll: true,
+                                        onSuccess: () => wasteForm.reset('quantity'),
+                                    });
+                                }}
+                            >
+                                <div>
+                                    <InputLabel value="Product" />
                                     <Select
-                                        value={wasteForm.data.product_id}
-                                        onChange={(e) =>
-                                            wasteForm.setData('product_id', e.target.value)
-                                        }
+                                        value={String(wasteForm.data.product_id ?? '')}
+                                        onValueChange={(value) => wasteForm.setData('product_id', value)}
                                     >
-                                        {products.map((p) => (
-                                            <MenuItem key={p.id} value={p.id}>
-                                                {p.name}
-                                            </MenuItem>
-                                        ))}
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select product" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {products.map((p) => (
+                                                <SelectItem key={p.id} value={String(p.id)}>
+                                                    {p.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
                                     </Select>
-                                </FormControl>
-                                <InputError message={wasteForm.errors.product_id} />
-                            </Box>
-                            <Box>
-                                <InputLabel value="Quantity" />
-                                <TextInput
-                                    type="number"
-                                    inputProps={{ step: '0.001' }}
-                                    value={wasteForm.data.quantity}
-                                    onChange={(e) =>
-                                        wasteForm.setData('quantity', e.target.value)
-                                    }
-                                />
-                                <InputError message={wasteForm.errors.quantity} />
-                            </Box>
-                            <Box>
-                                <InputLabel value="Reason" />
-                                <FormControl fullWidth size="small">
+                                    <InputError message={wasteForm.errors.product_id} />
+                                </div>
+                                <div>
+                                    <InputLabel value="Quantity" />
+                                    <TextInput
+                                        type="number"
+                                        step="0.001"
+                                        value={wasteForm.data.quantity}
+                                        onChange={(e) => wasteForm.setData('quantity', e.target.value)}
+                                    />
+                                    <InputError message={wasteForm.errors.quantity} />
+                                </div>
+                                <div>
+                                    <InputLabel value="Reason" />
                                     <Select
                                         value={wasteForm.data.reason}
-                                        onChange={(e) =>
-                                            wasteForm.setData('reason', e.target.value)
-                                        }
+                                        onValueChange={(value) => wasteForm.setData('reason', value)}
                                     >
-                                        <MenuItem value="expired">Expired</MenuItem>
-                                        <MenuItem value="damaged">Damaged</MenuItem>
-                                        <MenuItem value="given_away">Given away</MenuItem>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="expired">Expired</SelectItem>
+                                            <SelectItem value="damaged">Damaged</SelectItem>
+                                            <SelectItem value="given_away">Given away</SelectItem>
+                                        </SelectContent>
                                     </Select>
-                                </FormControl>
-                            </Box>
-                            <Box sx={{ gridColumn: '1 / -1' }}>
-                                <PrimaryButton type="submit" disabled={wasteForm.processing}>
-                                    Log shelf waste
-                                </PrimaryButton>
-                            </Box>
+                                </div>
+                                <div className="col-span-full">
+                                    <PrimaryButton type="submit" disabled={wasteForm.processing}>
+                                        Log shelf waste
+                                    </PrimaryButton>
+                                </div>
+                            </form>
                         </SurfaceCard>
                     </Section>
 
-                    <Divider sx={{ my: 3, borderColor: colors.border }} />
+                    <Separator className="my-6" />
 
                     <Section
                         title="Ingredient write-off"
                         description="Expired bags, spills, or damaged raw materials."
                     >
-                        <SurfaceCard
-                            component="form"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                rawWasteForm.post(route('tenant.inventory.raw-waste'), {
-                                    preserveScroll: true,
-                                    onSuccess: () => rawWasteForm.reset('quantity', 'notes'),
-                                });
-                            }}
-                            sx={{
-                                display: 'grid',
-                                gap: 2,
-                                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                            }}
-                        >
-                            <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
-                                <InputLabel value="Material" />
-                                <FormControl fullWidth size="small">
+                        <SurfaceCard>
+                            <form
+                                className="grid gap-4 sm:grid-cols-2"
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    rawWasteForm.post(route('tenant.inventory.raw-waste'), {
+                                        preserveScroll: true,
+                                        onSuccess: () => rawWasteForm.reset('quantity', 'notes'),
+                                    });
+                                }}
+                            >
+                                <div className="sm:col-span-full">
+                                    <InputLabel value="Material" />
                                     <Select
-                                        value={rawWasteForm.data.raw_material_id}
-                                        onChange={(e) =>
-                                            rawWasteForm.setData(
-                                                'raw_material_id',
-                                                e.target.value,
-                                            )
+                                        value={String(rawWasteForm.data.raw_material_id ?? '')}
+                                        onValueChange={(value) =>
+                                            rawWasteForm.setData('raw_material_id', value)
                                         }
                                     >
-                                        {rawMaterials.map((item) => (
-                                            <MenuItem key={item.id} value={item.id}>
-                                                {item.name}
-                                            </MenuItem>
-                                        ))}
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select material" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {rawMaterials.map((item) => (
+                                                <SelectItem key={item.id} value={String(item.id)}>
+                                                    {item.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
                                     </Select>
-                                </FormControl>
-                                <InputError message={rawWasteForm.errors.raw_material_id} />
-                            </Box>
-                            <Box>
-                                <InputLabel value="Quantity" />
-                                <TextInput
-                                    type="number"
-                                    inputProps={{ min: 0, step: '0.001' }}
-                                    value={rawWasteForm.data.quantity}
-                                    onChange={(e) =>
-                                        rawWasteForm.setData('quantity', e.target.value)
-                                    }
-                                />
-                                <InputError message={rawWasteForm.errors.quantity} />
-                            </Box>
-                            <Box>
-                                <InputLabel value="Reason" />
-                                <FormControl fullWidth size="small">
+                                    <InputError message={rawWasteForm.errors.raw_material_id} />
+                                </div>
+                                <div>
+                                    <InputLabel value="Quantity" />
+                                    <TextInput
+                                        type="number"
+                                        min={0}
+                                        step="0.001"
+                                        value={rawWasteForm.data.quantity}
+                                        onChange={(e) =>
+                                            rawWasteForm.setData('quantity', e.target.value)
+                                        }
+                                    />
+                                    <InputError message={rawWasteForm.errors.quantity} />
+                                </div>
+                                <div>
+                                    <InputLabel value="Reason" />
                                     <Select
                                         value={rawWasteForm.data.reason}
-                                        onChange={(e) =>
-                                            rawWasteForm.setData('reason', e.target.value)
-                                        }
+                                        onValueChange={(value) => rawWasteForm.setData('reason', value)}
                                     >
-                                        <MenuItem value="expired">Expired</MenuItem>
-                                        <MenuItem value="damaged">Damaged</MenuItem>
-                                        <MenuItem value="spillage">Spillage</MenuItem>
-                                        <MenuItem value="other">Other</MenuItem>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="expired">Expired</SelectItem>
+                                            <SelectItem value="damaged">Damaged</SelectItem>
+                                            <SelectItem value="spillage">Spillage</SelectItem>
+                                            <SelectItem value="other">Other</SelectItem>
+                                        </SelectContent>
                                     </Select>
-                                </FormControl>
-                            </Box>
-                            <Box sx={{ gridColumn: '1 / -1' }}>
-                                <InputLabel value="Notes" />
-                                <TextInput
-                                    value={rawWasteForm.data.notes}
-                                    onChange={(e) =>
-                                        rawWasteForm.setData('notes', e.target.value)
-                                    }
-                                />
-                            </Box>
-                            <Box sx={{ gridColumn: '1 / -1' }}>
-                                <PrimaryButton
-                                    type="submit"
-                                    disabled={
-                                        rawWasteForm.processing || rawMaterials.length === 0
-                                    }
-                                >
-                                    Log ingredient waste
-                                </PrimaryButton>
-                            </Box>
+                                </div>
+                                <div className="col-span-full">
+                                    <InputLabel value="Notes" />
+                                    <TextInput
+                                        value={rawWasteForm.data.notes}
+                                        onChange={(e) => rawWasteForm.setData('notes', e.target.value)}
+                                    />
+                                </div>
+                                <div className="col-span-full">
+                                    <PrimaryButton
+                                        type="submit"
+                                        disabled={rawWasteForm.processing || rawMaterials.length === 0}
+                                    >
+                                        Log ingredient waste
+                                    </PrimaryButton>
+                                </div>
+                            </form>
                         </SurfaceCard>
                     </Section>
-                </Box>
-            )}
+                </TabsContent>
 
-            {tab === 'activity' && (
-                <Box>
+                <TabsContent value="activity">
                     <Section
                         title="Ingredient movement history"
                         description="Every restock, bake usage, and write-off for this branch."
                         action={
-                            <FormControl size="small" sx={{ minWidth: 220 }}>
-                                <Select
-                                    displayEmpty
-                                    value={filters.raw_material_id ?? ''}
-                                    onChange={(e) =>
-                                        router.get(
-                                            route('tenant.inventory.index'),
-                                            {
-                                                raw_material_id: e.target.value || undefined,
-                                            },
-                                            { preserveState: true, replace: true },
-                                        )
-                                    }
-                                >
-                                    <MenuItem value="">All materials</MenuItem>
+                            <Select
+                                value={
+                                    filters.raw_material_id
+                                        ? String(filters.raw_material_id)
+                                        : 'all'
+                                }
+                                onValueChange={(value) =>
+                                    router.get(
+                                        route('tenant.inventory.index'),
+                                        {
+                                            raw_material_id: value === 'all' ? undefined : value,
+                                        },
+                                        { preserveState: true, replace: true },
+                                    )
+                                }
+                            >
+                                <SelectTrigger className="min-w-[220px]">
+                                    <SelectValue placeholder="All materials" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All materials</SelectItem>
                                     {rawMaterials.map((item) => (
-                                        <MenuItem key={item.id} value={item.id}>
+                                        <SelectItem key={item.id} value={String(item.id)}>
                                             {item.name}
-                                        </MenuItem>
+                                        </SelectItem>
                                     ))}
-                                </Select>
-                            </FormControl>
+                                </SelectContent>
+                            </Select>
                         }
                     >
                         <RawMaterialLifecycleTable movements={movements} showMaterial />
                     </Section>
-                </Box>
-            )}
+                </TabsContent>
+            </Tabs>
         </TenantLayout>
     );
 }

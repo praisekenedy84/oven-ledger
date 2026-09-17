@@ -1,13 +1,9 @@
-import { FormHelperText } from '@mui/material';
+import { cn } from '@/lib/utils';
 
-export default function InputError({ message, className = '', ...props }) {
+export default function InputError({ message, className }) {
     if (!message) {
         return null;
     }
 
-    return (
-        <FormHelperText error className={className} {...props} sx={{ mx: 0, mt: 0.75 }}>
-            {message}
-        </FormHelperText>
-    );
+    return <p className={cn('mt-1 text-sm text-destructive', className)}>{message}</p>;
 }

@@ -1,13 +1,12 @@
-import { Button } from '@mui/material';
+import { Button } from '@/Components/ui/button';
+import { cn } from '@/lib/utils';
 
-export default function PrimaryButton({ className = '', disabled, children, ...props }) {
+export default function PrimaryButton({ className, disabled, children, fullWidth, ...props }) {
     return (
         <Button
-            {...props}
-            variant="contained"
-            color="primary"
+            className={cn(fullWidth && 'w-full', className)}
             disabled={disabled}
-            className={className}
+            {...props}
         >
             {children}
         </Button>

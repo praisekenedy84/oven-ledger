@@ -1,38 +1,35 @@
-import PosLayout from '@/Layouts/PosLayout';
 import ProductVisual from '@/Components/ProductVisual';
 import SaleReceiptDialog from '@/Components/SaleReceiptDialog';
+import TextInput from '@/Components/TextInput';
 import TicketPanel from '@/Components/TicketPanel';
-import { formatMoney, formatQuantity } from '@/lib/format';
-import { colors } from '@/theme/bakeryTheme';
-import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
-import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
-import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import RemoveIcon from '@mui/icons-material/Remove';
-import SearchIcon from '@mui/icons-material/Search';
-import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
+import { Badge } from '@/Components/ui/badge';
+import { Button } from '@/Components/ui/button';
+import { Card, CardContent } from '@/Components/ui/card';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import {
-    Box,
-    Button,
-    Card,
-    CardContent,
-    Chip,
-    Collapse,
-    Drawer,
-    FormControl,
-    IconButton,
-    InputAdornment,
-    MenuItem,
     Select,
-    Stack,
-    TextField,
-    Typography,
-    useMediaQuery,
-} from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/Components/ui/select';
+import { Sheet, SheetContent, SheetTitle } from '@/Components/ui/sheet';
+import PosLayout from '@/Layouts/PosLayout';
+import { formatMoney, formatQuantity } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import {
+    ChevronDown,
+    ChevronUp,
+    CreditCard,
+    Minus,
+    Plus,
+    Search,
+    ShoppingBag,
+    Trash2,
+    X,
+} from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 const CHANNELS = [
@@ -50,6 +47,22 @@ const PAYMENT_METHODS = [
 ];
 
 const LOW_STOCK = 8;
+const NONE = '__none__';
+
+function useIsDesktop() {
+    const [isDesktop, setIsDesktop] = useState(
+        () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches,
+    );
+
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 1024px)');
+        const handler = (event) => setIsDesktop(event.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
+
+    return isDesktop;
+}
 
 function shelfQuantity(product) {
     const quantity = Number(product?.quantity_on_hand);
@@ -68,6 +81,26 @@ function shelfLabel(product) {
     return `${formatQuantity(quantity)}${unit} left`;
 }
 
+function PillButton({ active, onClick, children, className }) {
+    return (
+        <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onClick}
+            className={cn(
+                'min-h-10 rounded-full font-semibold',
+                active
+                    ? 'border-jam bg-jam/8 text-jam hover:border-jam hover:bg-jam/12 hover:text-jam'
+                    : 'border-border text-muted-foreground',
+                className,
+            )}
+        >
+            {children}
+        </Button>
+    );
+}
+
 const ProductCard = memo(function ProductCard({ product, price, qtyInCart, allowOversell, onAdd }) {
     const inCart = qtyInCart > 0;
     const onHand = shelfQuantity(product);
@@ -78,64 +111,46 @@ const ProductCard = memo(function ProductCard({ product, price, qtyInCart, allow
 
     return (
         <Card
-            sx={{
-                height: '100%',
-                borderColor: outOfStock ? colors.border : inCart ? colors.jam : colors.border,
-                opacity: outOfStock && !allowOversell ? 0.72 : 1,
-                '&:hover': { borderColor: canAdd || inCart ? colors.jam : colors.border },
-            }}
+            className={cn(
+                'h-full overflow-hidden transition-colors',
+                outOfStock ? 'border-border opacity-70' : inCart ? 'border-jam' : 'border-border',
+                (canAdd || inCart) && 'hover:border-jam',
+            )}
         >
-            <CardContent
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: '100%',
-                    p: 0,
-                    '&:last-child': { pb: 0 },
-                }}
-            >
-                <Box sx={{ position: 'relative' }}>
+            <CardContent className="flex h-full flex-col p-0">
+                <div className="relative h-[88px] w-full sm:h-[120px]">
                     <ProductVisual
                         product={product}
                         size="100%"
                         radius="10px 10px 0 0"
-                        sx={{
-                            height: { xs: 88, sm: 120 },
-                            width: '100%',
-                            filter: outOfStock ? 'grayscale(0.65)' : 'none',
-                        }}
+                        className="absolute inset-0 h-full w-full"
+                        style={{ filter: outOfStock ? 'grayscale(0.65)' : 'none' }}
                     />
-                    <Chip
-                        label={shelfLabel(product)}
-                        size="small"
-                        sx={{
-                            position: 'absolute',
-                            left: 8,
-                            bottom: 8,
-                            height: 24,
-                            fontWeight: 700,
-                            bgcolor: outOfStock ? colors.jam : lowStock ? colors.butter : colors.sage,
-                            color: outOfStock || !lowStock ? colors.cream : colors.ink,
-                        }}
-                    />
-                </Box>
-                <Box sx={{ p: { xs: 1.25, sm: 2 }, display: 'flex', flexDirection: 'column', flex: 1, gap: 0.75 }}>
-                    <Typography variant="subtitle2" sx={{ lineHeight: 1.25 }}>
-                        {product.name}
-                    </Typography>
-                    <Typography variant="h6" sx={{ color: colors.jam, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
-                        {formatMoney(price)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+                    <Badge
+                        className={cn(
+                            'absolute bottom-2 left-2 h-6 font-bold',
+                            outOfStock
+                                ? 'border-transparent bg-jam text-cream'
+                                : lowStock
+                                  ? 'border-transparent bg-butter text-ink'
+                                  : 'border-transparent bg-sage text-cream',
+                        )}
+                    >
+                        {shelfLabel(product)}
+                    </Badge>
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5 p-3 sm:p-4">
+                    <p className="text-sm font-semibold leading-tight">{product.name}</p>
+                    <p className="text-base font-bold text-jam sm:text-lg">{formatMoney(price)}</p>
+                    <p className="flex-1 text-xs text-muted-foreground">
                         {product.category || (product.type === 'trading' ? 'Tools & supplies' : 'Bakery')}
-                    </Typography>
+                    </p>
                     <Button
-                        fullWidth
-                        variant={inCart ? 'outlined' : 'contained'}
-                        color={inCart ? 'inherit' : 'primary'}
+                        type="button"
+                        variant={inCart ? 'outline' : 'default'}
                         disabled={!canAdd}
                         onClick={() => onAdd(product)}
-                        sx={{ mt: 0.5, minHeight: 40 }}
+                        className="mt-1 min-h-10 w-full"
                     >
                         {outOfStock && !allowOversell
                             ? 'Out of stock'
@@ -147,15 +162,14 @@ const ProductCard = memo(function ProductCard({ product, price, qtyInCart, allow
                                   ? 'Add to pre-order'
                                   : 'Add to ticket'}
                     </Button>
-                </Box>
+                </div>
             </CardContent>
         </Card>
     );
 });
 
 export default function Pos({ products, customers = [], clients = [], priceLists, todayTicketCount = 0 }) {
-    const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('lg'), { defaultMatches: false, noSsr: true });
+    const isDesktop = useIsDesktop();
     const { errors, flash } = usePage().props;
     const [ticket, setTicket] = useState([]);
     const [ticketOpen, setTicketOpen] = useState(false);
@@ -390,111 +404,91 @@ export default function Pos({ products, customers = [], clients = [], priceLists
         !(remainderOnAccount > 0 && !customerId) &&
         !(fulfillmentType === 'delivery' && (!customerId || !deliveryAddressId));
 
+    const showOptions = isDesktop || optionsOpen;
+
     const ticketPanel = (
         <TicketPanel
             component="form"
             onSubmit={submit}
-            sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                borderLeft: { lg: `1px solid ${colors.border}` },
-                bgcolor: colors.cream,
-                height: '100%',
-                minHeight: 0,
-                overflow: 'hidden',
-                borderRadius: { xs: '16px 16px 0 0', lg: 0 },
-            }}
+            className={cn(
+                'flex h-full min-h-0 flex-col overflow-hidden bg-cream',
+                'rounded-t-2xl lg:rounded-none lg:border-l lg:border-border',
+            )}
         >
-            <Box
-                sx={{
-                    flexShrink: 0,
-                    p: { xs: 1.5, sm: 2.5 },
-                    pb: { xs: 1.25, sm: 2 },
-                    borderBottom: `1px solid ${colors.border}`,
-                }}
-            >
-                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-                    <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="overline" sx={{ color: colors.jam, lineHeight: 1.2 }}>
-                            Ticket
-                        </Typography>
-                        <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
-                            Order ticket
-                        </Typography>
-                    </Box>
-                    <Stack direction="row" spacing={0.5} alignItems="center">
+            <div className="shrink-0 border-b border-border px-4 py-3 pb-3 sm:px-5 sm:py-4">
+                <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-jam">Ticket</p>
+                        <p className="text-lg font-semibold text-ink sm:text-xl">Order ticket</p>
+                    </div>
+                    <div className="flex items-center gap-1">
                         {!isDesktop && (
                             <Button
                                 type="button"
-                                size="small"
+                                size="sm"
+                                variant="ghost"
                                 onClick={() => setOptionsOpen((open) => !open)}
-                                endIcon={optionsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                                sx={{ textTransform: 'none', color: colors.muted }}
+                                className="text-muted-foreground"
                             >
                                 Options
+                                {optionsOpen ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                )}
                             </Button>
                         )}
                         {!isDesktop && (
-                            <IconButton onClick={() => setTicketOpen(false)} aria-label="Close ticket">
-                                <CloseIcon />
-                            </IconButton>
-                        )}
-                    </Stack>
-                </Stack>
-
-                <Collapse in={isDesktop || optionsOpen} timeout="auto">
-                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1.5 }}>
-                        {CHANNELS.map((ch) => {
-                            const active = channel === ch.value;
-                            return (
-                                <Button
-                                    key={ch.value}
-                                    type="button"
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => setChannel(ch.value)}
-                                    sx={{
-                                        borderRadius: 999,
-                                        px: 1.75,
-                                        minHeight: 40,
-                                        borderColor: active ? colors.jam : colors.border,
-                                        color: active ? colors.jam : colors.muted,
-                                        bgcolor: active ? `${colors.jam}14` : 'transparent',
-                                        fontWeight: 600,
-                                    }}
-                                >
-                                    {ch.label}
-                                </Button>
-                            );
-                        })}
-                    </Stack>
-
-                    <Stack spacing={1.5} sx={{ mt: 2 }}>
-                        <FormControl fullWidth size="small">
-                            <Select
-                                displayEmpty
-                                value={customerId}
-                                onChange={(e) => {
-                                    setCustomerId(e.target.value);
-                                    setDeliveryAddressId('');
-                                }}
-                            >
-                                <MenuItem value="">
-                                    <em>Walk-in / no account</em>
-                                </MenuItem>
-                                {visibleCustomers.map((c) => (
-                                    <MenuItem key={c.id} value={String(c.id)}>
-                                        {c.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-
-                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                             <Button
                                 type="button"
-                                size="small"
-                                variant="outlined"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setTicketOpen(false)}
+                                aria-label="Close ticket"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {showOptions && (
+                    <div className="mt-4 space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                            {CHANNELS.map((ch) => (
+                                <PillButton
+                                    key={ch.value}
+                                    active={channel === ch.value}
+                                    onClick={() => setChannel(ch.value)}
+                                >
+                                    {ch.label}
+                                </PillButton>
+                            ))}
+                        </div>
+
+                        <Select
+                            value={customerId || NONE}
+                            onValueChange={(value) => {
+                                setCustomerId(value === NONE ? '' : value);
+                                setDeliveryAddressId('');
+                            }}
+                        >
+                            <SelectTrigger className="h-10 bg-card">
+                                <SelectValue placeholder="Walk-in / no account" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={NONE}>Walk-in / no account</SelectItem>
+                                {visibleCustomers.map((c) => (
+                                    <SelectItem key={c.id} value={String(c.id)}>
+                                        {c.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <div className="flex flex-wrap gap-2">
+                            <PillButton
+                                active={isPreOrder}
                                 onClick={() => {
                                     const next = !isPreOrder;
                                     setIsPreOrder(next);
@@ -502,334 +496,197 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                         setDepositAmount('');
                                     }
                                 }}
-                                sx={{
-                                    flex: 1,
-                                    minWidth: 110,
-                                    minHeight: 40,
-                                    borderRadius: 999,
-                                    borderColor: isPreOrder ? colors.jam : colors.border,
-                                    bgcolor: isPreOrder ? `${colors.jam}14` : 'transparent',
-                                    color: isPreOrder ? colors.jam : colors.muted,
-                                    fontWeight: 600,
-                                }}
+                                className="min-w-[110px] flex-1"
                             >
                                 Pre-order
-                            </Button>
+                            </PillButton>
                             {['pickup', 'delivery'].map((type) => (
-                                <Button
+                                <PillButton
                                     key={type}
-                                    type="button"
-                                    size="small"
-                                    variant="outlined"
+                                    active={fulfillmentType === type}
                                     onClick={() => setFulfillmentType(type)}
-                                    sx={{
-                                        flex: 1,
-                                        minWidth: 90,
-                                        minHeight: 40,
-                                        borderRadius: 999,
-                                        borderColor:
-                                            fulfillmentType === type ? colors.jam : colors.border,
-                                        bgcolor:
-                                            fulfillmentType === type
-                                                ? `${colors.jam}14`
-                                                : 'transparent',
-                                        color:
-                                            fulfillmentType === type ? colors.jam : colors.muted,
-                                        fontWeight: 600,
-                                        textTransform: 'capitalize',
-                                    }}
+                                    className="min-w-[90px] flex-1 capitalize"
                                 >
                                     {type}
-                                </Button>
+                                </PillButton>
                             ))}
-                        </Stack>
+                        </div>
 
                         {(isPreOrder || fulfillmentType === 'delivery') && (
-                            <TextField
-                                size="small"
-                                type="datetime-local"
-                                label="Requested for"
-                                value={requestedFulfillmentAt}
-                                onChange={(e) => setRequestedFulfillmentAt(e.target.value)}
-                                InputLabelProps={{ shrink: true }}
-                            />
+                            <div className="space-y-1.5">
+                                <Label htmlFor="requested-fulfillment">Requested for</Label>
+                                <TextInput
+                                    id="requested-fulfillment"
+                                    type="datetime-local"
+                                    value={requestedFulfillmentAt}
+                                    onChange={(e) => setRequestedFulfillmentAt(e.target.value)}
+                                    className="h-10"
+                                />
+                            </div>
                         )}
 
                         {fulfillmentType === 'delivery' && (
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    displayEmpty
-                                    value={deliveryAddressId}
-                                    onChange={(e) => setDeliveryAddressId(e.target.value)}
-                                >
-                                    <MenuItem value="">
-                                        <em>Choose delivery address</em>
-                                    </MenuItem>
+                            <Select
+                                value={deliveryAddressId || NONE}
+                                onValueChange={(value) =>
+                                    setDeliveryAddressId(value === NONE ? '' : value)
+                                }
+                            >
+                                <SelectTrigger className="h-10 bg-card">
+                                    <SelectValue placeholder="Choose delivery address" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={NONE}>Choose delivery address</SelectItem>
                                     {customerAddresses.map((address) => (
-                                        <MenuItem key={address.id} value={String(address.id)}>
+                                        <SelectItem key={address.id} value={String(address.id)}>
                                             {address.label} — {address.address_text}
-                                        </MenuItem>
+                                        </SelectItem>
                                     ))}
-                                </Select>
-                            </FormControl>
+                                </SelectContent>
+                            </Select>
                         )}
 
                         {isPreOrder && (
-                            <TextField
-                                size="small"
-                                type="number"
-                                label="Deposit (TZS)"
-                                value={depositAmount}
-                                onChange={(e) => setDepositAmount(e.target.value)}
-                            />
+                            <div className="space-y-1.5">
+                                    <Label htmlFor="deposit-amount">Deposit (TZS)</Label>
+                                <TextInput
+                                    id="deposit-amount"
+                                    type="number"
+                                    value={depositAmount}
+                                    onChange={(e) => setDepositAmount(e.target.value)}
+                                    className="h-10 bg-card"
+                                    step="1"
+                                    min="0"
+                                />
+                            </div>
                         )}
-                    </Stack>
-                </Collapse>
+                    </div>
+                )}
 
                 {!isDesktop && !optionsOpen && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                    <p className="mt-2 block text-xs text-muted-foreground">
                         {CHANNELS.find((ch) => ch.value === channel)?.label}
                         {selectedCustomer ? ` · ${selectedCustomer.name}` : ' · Walk-in'}
                         {isPreOrder ? ' · Pre-order' : ''}
                         {` · ${fulfillmentType}`}
-                    </Typography>
+                    </p>
                 )}
-            </Box>
+            </div>
 
-            <Box
-                sx={{
-                    flex: 1,
-                    minHeight: 0,
-                    overflowY: 'auto',
-                    px: { xs: 1.5, sm: 2.5 },
-                    py: 1.5,
-                    WebkitOverflowScrolling: 'touch',
-                }}
-            >
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    sx={{ mb: 1.5 }}
-                >
-                    <Typography variant="subtitle2" fontWeight={700}>
-                        Items ({ticket.length})
-                    </Typography>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5">
+                <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-bold text-ink">Items ({ticket.length})</p>
                     {ticket.length > 0 && (
                         <Button
                             type="button"
-                            size="small"
-                            color="error"
-                            startIcon={<DeleteOutlinedIcon fontSize="small" />}
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
                             onClick={clearTicket}
-                            sx={{ textTransform: 'none' }}
                         >
+                            <Trash2 className="h-4 w-4" />
                             Clear all
                         </Button>
                     )}
-                </Stack>
+                </div>
 
                 {ticket.length === 0 ? (
-                    <Box
-                        sx={{
-                            py: 6,
-                            textAlign: 'center',
-                            color: 'text.secondary',
-                        }}
-                    >
-                        <ShoppingBagOutlinedIcon sx={{ fontSize: 40, opacity: 0.35, mb: 1 }} />
-                        <Typography variant="body2">
+                    <div className="py-12 text-center text-muted-foreground">
+                        <ShoppingBag className="mx-auto mb-2 h-10 w-10 opacity-35" />
+                        <p className="text-sm">
                             Tap products to add items to the ticket. Sell only what is on the shelf.
-                        </Typography>
-                    </Box>
+                        </p>
+                    </div>
                 ) : (
-                    <Stack spacing={1.5}>
+                    <div className="space-y-3">
                         {ticket.map((line) => (
-                            <Box
+                            <div
                                 key={line.product_id}
-                                sx={{
-                                    display: 'flex',
-                                    gap: 1.5,
-                                    alignItems: 'center',
-                                    p: 1.25,
-                                    borderRadius: 2,
-                                    border: `1px solid ${colors.border}`,
-                                    bgcolor: colors.surface,
-                                }}
+                                className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3"
                             >
-                                <ProductVisual
-                                    product={line}
-                                    size={52}
-                                />
+                                <ProductVisual product={line} size={52} />
 
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Stack
-                                        direction="row"
-                                        justifyContent="space-between"
-                                        alignItems="baseline"
-                                        spacing={1}
-                                    >
-                                        <Typography
-                                            variant="body2"
-                                            fontWeight={700}
-                                            noWrap
-                                        >
-                                            {line.name}
-                                        </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            fontWeight={700}
-                                            sx={{ color: colors.jam, whiteSpace: 'nowrap' }}
-                                        >
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-baseline justify-between gap-2">
+                                        <p className="truncate text-sm font-bold text-ink">{line.name}</p>
+                                        <p className="whitespace-nowrap text-sm font-bold text-jam">
                                             {formatMoney(line.quantity * line.unit_price)}
-                                        </Typography>
-                                    </Stack>
+                                        </p>
+                                    </div>
 
-                                    <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                        sx={{ display: 'block', mt: 0.25 }}
-                                    >
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
                                         {formatMoney(line.unit_price)} each
                                         {isPreOrder
                                             ? ''
                                             : ` · ${shelfLabel(productById[line.product_id] ?? line)}`}
-                                    </Typography>
+                                    </p>
 
-                                    <Box
-                                        sx={{
-                                            mt: 1,
-                                            display: 'inline-flex',
-                                            alignItems: 'stretch',
-                                            height: 36,
-                                            border: `1px solid ${colors.border}`,
-                                            borderRadius: 1,
-                                            overflow: 'hidden',
-                                            bgcolor: colors.cream,
-                                        }}
-                                    >
-                                        <IconButton
-                                            size="small"
+                                    <div className="mt-2 inline-flex h-9 items-stretch overflow-hidden rounded-md border border-border bg-cream">
+                                        <Button
                                             type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-none text-ink"
                                             onClick={() => bumpQty(line.product_id, -1)}
-                                            sx={{
-                                                width: 36,
-                                                height: 36,
-                                                borderRadius: 0,
-                                                color: colors.ink,
-                                            }}
                                         >
-                                            <RemoveIcon sx={{ fontSize: 18 }} />
-                                        </IconButton>
-                                        <Box
-                                            sx={{
-                                                minWidth: 36,
-                                                px: 0.5,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                borderLeft: `1px solid ${colors.border}`,
-                                                borderRight: `1px solid ${colors.border}`,
-                                                fontWeight: 700,
-                                                fontSize: '0.875rem',
-                                                lineHeight: 1,
-                                                color: colors.ink,
-                                            }}
-                                        >
+                                            <Minus className="h-4 w-4" />
+                                        </Button>
+                                        <span className="flex min-w-9 items-center justify-center border-x border-border px-1 text-sm font-bold leading-none text-ink">
                                             {line.quantity}
-                                        </Box>
-                                        <IconButton
-                                            size="small"
+                                        </span>
+                                        <Button
                                             type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-none text-ink"
                                             disabled={
                                                 !isPreOrder &&
-                                                line.quantity >=
-                                                    shelfQuantity(productById[line.product_id])
+                                                line.quantity >= shelfQuantity(productById[line.product_id])
                                             }
                                             onClick={() => bumpQty(line.product_id, 1)}
-                                            sx={{
-                                                width: 36,
-                                                height: 36,
-                                                borderRadius: 0,
-                                                color: colors.ink,
-                                            }}
                                         >
-                                            <AddIcon sx={{ fontSize: 18 }} />
-                                        </IconButton>
-                                    </Box>
-                                </Box>
-                            </Box>
+                                            <Plus className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
                         ))}
-                    </Stack>
+                    </div>
                 )}
-            </Box>
+            </div>
 
-            <Box
-                sx={{
-                    flexShrink: 0,
-                    borderTop: `1px solid ${colors.border}`,
-                    p: { xs: 1.5, sm: 2.5 },
-                    pb: {
-                        xs: 'calc(12px + env(safe-area-inset-bottom))',
-                        sm: 2.5,
-                    },
-                    bgcolor: 'background.paper',
-                    boxShadow: { xs: '0 -8px 24px rgba(51, 38, 28, 0.08)', lg: 'none' },
-                }}
-            >
-                <Stack spacing={0.75} sx={{ mb: 1.5 }}>
-                    <Stack direction="row" justifyContent="space-between">
-                        <Typography variant="body2" color="text.secondary">
-                            Subtotal
-                        </Typography>
-                        <Typography variant="body2" fontWeight={600}>
-                            {formatMoney(subtotal)}
-                        </Typography>
-                    </Stack>
-                    <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="baseline"
-                    >
-                        <Typography variant="subtitle1" fontWeight={700}>
-                            Grand Total
-                        </Typography>
-                        <Typography
-                            variant="h5"
-                            fontWeight={700}
-                            sx={{ color: colors.jam, fontSize: { xs: '1.35rem', sm: '1.5rem' } }}
-                        >
-                            {formatMoney(total)}
-                        </Typography>
-                    </Stack>
-                </Stack>
+            <div className="shrink-0 border-t border-border bg-card p-4 shadow-[0_-8px_24px_rgba(51,38,28,0.08)] sm:p-5 lg:shadow-none pb-[calc(12px+env(safe-area-inset-bottom))] sm:pb-5">
+                <div className="mb-4 space-y-1.5">
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="font-semibold text-ink">{formatMoney(subtotal)}</span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                        <span className="text-base font-bold text-ink">Grand Total</span>
+                        <span className="text-xl font-bold text-jam sm:text-2xl">{formatMoney(total)}</span>
+                    </div>
+                </div>
 
-                <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
-                    <Select
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        startAdornment={
-                            <InputAdornment position="start">
-                                <CreditCardOutlinedIcon
-                                    sx={{ color: colors.muted, fontSize: 20 }}
-                                />
-                            </InputAdornment>
-                        }
-                    >
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger className="relative mb-4 h-10 bg-card pl-9">
+                        <CreditCard className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
                         {PAYMENT_METHODS.map((method) => (
-                            <MenuItem key={method.value} value={method.value}>
+                            <SelectItem key={method.value} value={method.value}>
                                 {method.label}
-                            </MenuItem>
+                            </SelectItem>
                         ))}
-                    </Select>
-                </FormControl>
+                    </SelectContent>
+                </Select>
 
                 {(stockBlockedLines.length > 0 ||
                     errors?.items ||
                     errors?.customer_id ||
                     errors?.delivery_address_id ||
                     errors?.payments) && (
-                    <Typography variant="body2" color="error" sx={{ mb: 1.5 }}>
+                    <p className="mb-4 text-sm text-destructive">
                         {stockBlockedLines.length > 0
                             ? stockBlockedLines
                                   .map((line) =>
@@ -842,28 +699,20 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                               errors.customer_id ||
                               errors.delivery_address_id ||
                               errors.payments}
-                    </Typography>
+                    </p>
                 )}
 
                 {remainderOnAccount > 0 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                    <p className="mb-4 block text-xs text-muted-foreground">
                         {formatMoney(remainderOnAccount)} will go on the customer account.
-                    </Typography>
+                    </p>
                 )}
 
-                <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    disabled={!canConfirm}
-                    startIcon={<CreditCardOutlinedIcon />}
-                    sx={{ fontWeight: 700 }}
-                >
+                <Button type="submit" size="lg" disabled={!canConfirm} className="w-full font-bold">
+                    <CreditCard className="h-4 w-4" />
                     {processing ? 'Recording...' : 'Confirm Payment'}
                 </Button>
-            </Box>
+            </div>
         </TicketPanel>
     );
 
@@ -871,157 +720,89 @@ export default function Pos({ products, customers = [], clients = [], priceLists
         <PosLayout hideBottomNav={!isDesktop && ticketOpen}>
             <Head title="Point of Sale" />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 380px' },
-                    height: { xs: 'auto', lg: '100%' },
-                    minHeight: { xs: 'auto', lg: '100dvh' },
-                    overflow: { xs: 'visible', lg: 'hidden' },
-                }}
-            >
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        minWidth: 0,
-                        minHeight: { xs: 'auto', lg: 0 },
-                        overflow: { xs: 'visible', lg: 'hidden' },
-                        p: { xs: 2, md: 3 },
-                        gap: 2,
-                        pb: { xs: ticket.length > 0 ? 12 : 2, lg: 3 },
-                    }}
-                >
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        alignItems={{ sm: 'center' }}
-                        justifyContent="space-between"
-                        spacing={1.5}
-                    >
-                        <Box>
-                            <Typography variant="overline" sx={{ color: colors.jam }}>
+            <div className="grid h-auto min-h-0 overflow-visible lg:h-full lg:min-h-dvh lg:grid-cols-[minmax(0,1fr)_min(480px,42vw)] lg:overflow-hidden">
+                <div className="flex min-h-0 min-w-0 flex-col gap-4 overflow-visible p-4 pb-12 md:p-6 lg:overflow-hidden lg:pb-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-jam">
                                 Point of sale
-                            </Typography>
-                            <Typography variant="h4" sx={{ fontSize: { xs: '1.35rem', sm: '1.5rem' } }}>
-                                Order line
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                            </p>
+                            <h1 className="text-2xl font-bold text-ink sm:text-3xl">Order line</h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Shelf counts stay on each card. Sell fewer than you have — leftover stays in stock.
-                            </Typography>
-                        </Box>
-                        <Button
-                            component={Link}
-                            href={route('tenant.pos.tickets')}
-                            prefetch
-                            variant="outlined"
-                            sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}
-                        >
-                            Today’s tickets{todayTicketCount ? ` (${todayTicketCount})` : ''}
+                            </p>
+                        </div>
+                        <Button asChild variant="outline" className="sm:self-center">
+                            <Link href={route('tenant.pos.tickets')} prefetch>
+                                Today’s tickets{todayTicketCount ? ` (${todayTicketCount})` : ''}
+                            </Link>
                         </Button>
-                    </Stack>
+                    </div>
 
-                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    <div className="flex flex-wrap gap-2">
                         {[
                             { value: 'bakery', label: 'Bakery' },
                             { value: 'tools', label: 'Tools & supplies' },
-                        ].map((tab) => {
-                            const active = department === tab.value;
-                            return (
-                                <Button
-                                    key={tab.value}
-                                    type="button"
-                                    variant={active ? 'contained' : 'outlined'}
-                                    onClick={() => setDepartment(tab.value)}
-                                    sx={{ px: 2, flex: { xs: 1, sm: 'none' } }}
-                                >
-                                    {tab.label}
-                                </Button>
-                            );
-                        })}
-                    </Stack>
+                        ].map((tab) => (
+                            <Button
+                                key={tab.value}
+                                type="button"
+                                variant={department === tab.value ? 'default' : 'outline'}
+                                onClick={() => setDepartment(tab.value)}
+                                className="flex-1 px-4 sm:flex-none"
+                            >
+                                {tab.label}
+                            </Button>
+                        ))}
+                    </div>
 
-                    <TextField
-                        size="small"
-                        placeholder="Search products..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon sx={{ color: colors.muted }} />
-                                </InputAdornment>
-                            ),
-                        }}
-                        sx={{
-                            width: '100%',
-                            maxWidth: { sm: 420 },
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: 999,
-                                bgcolor: 'background.paper',
-                            },
-                        }}
-                    />
+                    <div className="relative w-full max-w-[420px]">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Search products..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="h-10 rounded-full bg-card pl-9"
+                        />
+                    </div>
 
-                    <Stack
-                        direction="row"
-                        spacing={1}
-                        useFlexGap
-                        flexWrap="wrap"
-                        sx={{ pb: 0.5 }}
-                    >
+                    <div className="flex flex-wrap gap-2 pb-1">
                         {categories.map((cat) => {
                             const active = category === cat;
                             const label = cat === 'all' ? 'All' : cat;
                             return (
-                                <Chip
+                                <Badge
                                     key={cat}
-                                    label={label}
-                                    clickable
+                                    variant="outline"
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={() => setCategory(cat)}
-                                    variant="outlined"
-                                    sx={{
-                                        height: 36,
-                                        px: 0.5,
-                                        fontWeight: 600,
-                                        borderColor: active ? colors.jam : colors.border,
-                                        color: active ? colors.jam : colors.muted,
-                                        bgcolor: active ? `${colors.jam}14` : 'transparent',
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            setCategory(cat);
+                                        }
                                     }}
-                                />
+                                    className={cn(
+                                        'h-9 cursor-pointer px-3 text-sm font-semibold',
+                                        active
+                                            ? 'border-jam bg-jam/8 text-jam'
+                                            : 'border-border text-muted-foreground',
+                                    )}
+                                >
+                                    {label}
+                                </Badge>
                             );
                         })}
-                    </Stack>
+                    </div>
 
-                    <Box
-                        sx={{
-                            flex: { lg: 1 },
-                            overflowY: { lg: 'auto' },
-                            pr: { lg: 0.5 },
-                            pb: 2,
-                        }}
-                    >
+                    <div className="flex-1 overflow-y-auto pb-4 lg:pr-1">
                         {filteredProducts.length === 0 ? (
-                            <Box
-                                sx={{
-                                    py: 8,
-                                    textAlign: 'center',
-                                    color: 'text.secondary',
-                                }}
-                            >
-                                <Typography>No products match this filter.</Typography>
-                            </Box>
+                            <div className="py-16 text-center text-muted-foreground">
+                                <p>No products match this filter.</p>
+                            </div>
                         ) : (
-                            <Box
-                                sx={{
-                                    display: 'grid',
-                                    gap: { xs: 1.25, sm: 2 },
-                                    gridTemplateColumns: {
-                                        xs: 'repeat(2, minmax(0, 1fr))',
-                                        sm: 'repeat(3, minmax(0, 1fr))',
-                                        xl: 'repeat(4, minmax(0, 1fr))',
-                                    },
-                                }}
-                            >
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
                                 {filteredProducts.map((product) => (
                                     <ProductCard
                                         key={product.id}
@@ -1032,97 +813,58 @@ export default function Pos({ products, customers = [], clients = [], priceLists
                                         onAdd={addToTicket}
                                     />
                                 ))}
-                            </Box>
+                            </div>
                         )}
-                    </Box>
-                </Box>
+                    </div>
+                </div>
 
                 {isDesktop ? (
                     ticketPanel
                 ) : (
-                    <Drawer
-                        anchor="bottom"
-                        open={ticketOpen}
-                        onClose={() => setTicketOpen(false)}
-                        ModalProps={{ keepMounted: true }}
-                        sx={{ zIndex: (muiTheme) => muiTheme.zIndex.modal + 2 }}
-                        PaperProps={{
-                            sx: {
-                                height: '100dvh',
-                                maxHeight: '100dvh',
-                                bgcolor: 'transparent',
-                                boxShadow: 'none',
-                                overflow: 'hidden',
-                            },
-                        }}
-                    >
-                        {ticketPanel}
-                    </Drawer>
+                    <Sheet open={ticketOpen} onOpenChange={setTicketOpen}>
+                        <SheetContent
+                            side="bottom"
+                            className="h-dvh max-h-dvh border-0 bg-transparent p-0 shadow-none [&>button]:hidden"
+                        >
+                            <SheetTitle className="sr-only">Order ticket</SheetTitle>
+                            {ticketPanel}
+                        </SheetContent>
+                    </Sheet>
                 )}
 
                 {!isDesktop && ticket.length > 0 && !ticketOpen && (
-                    <Box
-                        sx={{
-                            position: 'fixed',
-                            left: 0,
-                            right: 0,
-                            bottom: 'calc(64px + env(safe-area-inset-bottom))',
-                            zIndex: 1200,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 1.25,
-                            px: 2,
-                            py: 1.25,
-                            bgcolor: colors.ink,
-                            color: colors.cream,
-                        }}
-                    >
-                        <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="caption" sx={{ color: colors.wheatLight }}>
+                    <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom))] left-0 right-0 z-[1200] flex items-center justify-between gap-3 bg-ink px-4 py-3 text-cream">
+                        <div className="min-w-0">
+                            <p className="text-xs text-wheat-light">
                                 {ticket.length} item{ticket.length === 1 ? '' : 's'}
-                            </Typography>
-                            <Typography variant="subtitle1" fontWeight={700} noWrap>
-                                {formatMoney(total)}
-                            </Typography>
-                        </Box>
-                        <Stack direction="row" spacing={1} flexShrink={0}>
+                            </p>
+                            <p className="truncate text-base font-bold">{formatMoney(total)}</p>
+                        </div>
+                        <div className="flex shrink-0 gap-2">
                             <Button
-                                size="small"
-                                variant="contained"
+                                size="sm"
                                 onClick={() => {
                                     setOptionsOpen(true);
                                     setTicketOpen(true);
                                 }}
-                                sx={{
-                                    color: colors.ink,
-                                    bgcolor: colors.cream,
-                                    boxShadow: 'none',
-                                    border: `1px solid ${colors.wheatLight}`,
-                                    '&:hover': {
-                                        bgcolor: colors.wheatLight,
-                                        color: colors.ink,
-                                        boxShadow: 'none',
-                                    },
-                                }}
+                                className="border border-wheat-light bg-cream text-ink shadow-none hover:bg-wheat-light hover:text-ink"
                             >
                                 Ticket
                             </Button>
                             <Button
-                                size="small"
-                                variant="contained"
+                                size="sm"
                                 onClick={() => {
                                     setOptionsOpen(false);
                                     setTicketOpen(true);
                                 }}
-                                sx={{ minWidth: 88 }}
+                                className="min-w-[88px]"
                             >
                                 Pay
                             </Button>
-                        </Stack>
-                    </Box>
+                        </div>
+                    </div>
                 )}
-            </Box>
+            </div>
 
             <SaleReceiptDialog
                 sale={receiptSale}

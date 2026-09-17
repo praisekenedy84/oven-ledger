@@ -8,24 +8,19 @@ import PageHeader from '@/Components/PageHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import StatusBadge from '@/Components/StatusBadge';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
 import UsageBar from '@/Components/UsageBar';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/Components/ui/select';
 import PlatformLayout from '@/Layouts/PlatformLayout';
 import { businessSizeLabel, featureLabel } from '@/lib/features';
 import { roleLabel, sameIdList } from '@/lib/roles';
-import { colors } from '@/theme/bakeryTheme';
-import {
-    Box,
-    FormControl,
-    List,
-    ListItem,
-    ListItemText,
-    MenuItem,
-    Paper,
-    Select,
-    Stack,
-    Typography,
-} from '@mui/material';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -91,18 +86,10 @@ export default function Show({
                 }
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                }}
-            >
-                <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Overview
-                    </Typography>
-                    <Stack spacing={1.5} sx={{ mt: 2 }}>
+            <div className="grid gap-6 lg:grid-cols-2">
+                <SurfaceCard>
+                    <h2 className="text-base font-bold">Overview</h2>
+                    <div className="mt-4 space-y-3">
                         <Row label="Status">
                             <StatusBadge status={tenant.status} />
                         </Row>
@@ -116,128 +103,94 @@ export default function Show({
                         <Row label="Branches">
                             <UsageBar value={branchCount} max={tenant.max_branches} />
                         </Row>
-                    </Stack>
-                </Paper>
+                    </div>
+                </SurfaceCard>
 
-                <Paper
-                    component="form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        sizeForm.patch(route('platform.tenants.business-size', tenant.id), {
-                            preserveScroll: true,
-                        });
-                    }}
-                    variant="outlined"
-                    sx={{ p: 3, borderRadius: 1 }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Bakery size
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        Changing size applies matching presets (production batches, multi-branch,
-                        transfers). You can still tweak flags below.
-                    </Typography>
-                    <Stack direction="row" spacing={1.5} alignItems="flex-end" sx={{ mt: 2 }}>
-                        <Box sx={{ flex: 1 }}>
-                            <InputLabel value="Size" />
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    value={sizeForm.data.business_size}
-                                    onChange={(e) =>
-                                        sizeForm.setData('business_size', e.target.value)
-                                    }
-                                >
-                                    {businessSizes.map((size) => (
-                                        <MenuItem key={size} value={size}>
-                                            {businessSizeLabel(size)}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                            <InputError message={sizeForm.errors.business_size} />
-                        </Box>
-                        <PrimaryButton type="submit" disabled={sizeForm.processing}>
-                            Update
-                        </PrimaryButton>
-                    </Stack>
-                </Paper>
-
-                <Paper
-                    component="form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        branchesForm.patch(route('platform.tenants.max-branches', tenant.id));
-                    }}
-                    variant="outlined"
-                    sx={{ p: 3, borderRadius: 1 }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Branch limit
-                    </Typography>
-                    <Stack direction="row" spacing={1.5} alignItems="flex-end" sx={{ mt: 2 }}>
-                        <Box sx={{ flex: 1 }}>
-                            <InputLabel value="Max branches" />
-                            <TextInput
-                                type="number"
-                                inputProps={{ min: 1 }}
-                                value={branchesForm.data.max_branches}
-                                onChange={(e) =>
-                                    branchesForm.setData('max_branches', Number(e.target.value))
-                                }
-                            />
-                            <InputError message={branchesForm.errors.max_branches} />
-                        </Box>
-                        <PrimaryButton type="submit" disabled={branchesForm.processing}>
-                            Update
-                        </PrimaryButton>
-                    </Stack>
-                </Paper>
-
-                <Paper
-                    variant="outlined"
-                    sx={{ p: 3, borderRadius: 1, gridColumn: { lg: '1 / -1' } }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Feature flags
-                    </Typography>
-                    <Box
-                        sx={{
-                            mt: 2,
-                            display: 'grid',
-                            gap: 1.5,
-                            gridTemplateColumns: {
-                                xs: '1fr',
-                                sm: '1fr 1fr',
-                                lg: 'repeat(3, 1fr)',
-                            },
+                <SurfaceCard>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            sizeForm.patch(route('platform.tenants.business-size', tenant.id), {
+                                preserveScroll: true,
+                            });
                         }}
                     >
+                        <h2 className="text-base font-bold">Bakery size</h2>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                            Changing size applies matching presets (production batches, multi-branch, transfers).
+                            You can still tweak flags below.
+                        </p>
+                        <div className="mt-4 flex flex-row items-end gap-3">
+                            <div className="flex-1">
+                                <InputLabel value="Size" />
+                                <Select
+                                    value={sizeForm.data.business_size}
+                                    onValueChange={(value) => sizeForm.setData('business_size', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select size" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {businessSizes.map((size) => (
+                                            <SelectItem key={size} value={size}>
+                                                {businessSizeLabel(size)}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={sizeForm.errors.business_size} />
+                            </div>
+                            <PrimaryButton type="submit" disabled={sizeForm.processing}>
+                                Update
+                            </PrimaryButton>
+                        </div>
+                    </form>
+                </SurfaceCard>
+
+                <SurfaceCard>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            branchesForm.patch(route('platform.tenants.max-branches', tenant.id));
+                        }}
+                    >
+                        <h2 className="text-base font-bold">Branch limit</h2>
+                        <div className="mt-4 flex flex-row items-end gap-3">
+                            <div className="flex-1">
+                                <InputLabel value="Max branches" />
+                                <TextInput
+                                    type="number"
+                                    min={1}
+                                    value={branchesForm.data.max_branches}
+                                    onChange={(e) =>
+                                        branchesForm.setData('max_branches', Number(e.target.value))
+                                    }
+                                />
+                                <InputError message={branchesForm.errors.max_branches} />
+                            </div>
+                            <PrimaryButton type="submit" disabled={branchesForm.processing}>
+                                Update
+                            </PrimaryButton>
+                        </div>
+                    </form>
+                </SurfaceCard>
+
+                <SurfaceCard className="lg:col-span-full">
+                    <h2 className="text-base font-bold">Feature flags</h2>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {featureKeys.map((key) => {
                             const enabled = flagsByKey[key] ?? false;
                             return (
-                                <Box
+                                <div
                                     key={key}
-                                    sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        gap: 1.5,
-                                        border: `1px solid ${colors.border}`,
-                                        borderRadius: 2,
-                                        p: 1.5,
-                                    }}
+                                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
                                 >
-                                    <Box>
+                                    <div>
                                         <FeatureBadge featureKey={key} enabled={enabled} />
-                                        <Typography
-                                            variant="caption"
-                                            color="text.secondary"
-                                            display="block"
-                                            sx={{ mt: 0.5 }}
-                                        >
+                                        <span className="mt-1 block text-xs text-muted-foreground">
                                             {featureLabel(key)}
-                                        </Typography>
-                                    </Box>
+                                        </span>
+                                    </div>
                                     <SecondaryButton
                                         size="small"
                                         onClick={() =>
@@ -250,23 +203,18 @@ export default function Show({
                                     >
                                         {enabled ? 'Disable' : 'Enable'}
                                     </SecondaryButton>
-                                </Box>
+                                </div>
                             );
                         })}
-                    </Box>
-                </Paper>
+                    </div>
+                </SurfaceCard>
 
-                <Paper
-                    variant="outlined"
-                    sx={{ p: 3, borderRadius: 1, gridColumn: { lg: '1 / -1' } }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Menu availability
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-                        Control which stations this bakery can see at every menu level. Feature-flagged
-                        items stay hidden until that module is enabled.
-                    </Typography>
+                <SurfaceCard className="lg:col-span-full">
+                    <h2 className="text-base font-bold">Menu availability</h2>
+                    <p className="mb-4 mt-0.5 text-sm text-muted-foreground">
+                        Control which stations this bakery can see at every menu level. Feature-flagged items stay
+                        hidden until that module is enabled.
+                    </p>
                     <AccessMatrix
                         columns={[{ id: 'available', name: 'Available' }]}
                         rows={visibleMenuRows.map((row) => ({
@@ -280,7 +228,7 @@ export default function Show({
                         onChange={(_, ids) => setMenuIds(ids)}
                     />
                     {menusDirty && (
-                        <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
+                        <div className="mt-4 flex justify-end">
                             <PrimaryButton
                                 disabled={savingMenus}
                                 onClick={() =>
@@ -297,21 +245,16 @@ export default function Show({
                             >
                                 Save menu availability
                             </PrimaryButton>
-                        </Stack>
+                        </div>
                     )}
-                </Paper>
+                </SurfaceCard>
 
-                <Paper
-                    variant="outlined"
-                    sx={{ p: 3, borderRadius: 1, gridColumn: { lg: '1 / -1' } }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Users
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-                        Open the bakery as a staff member to see exactly what they see. Actions you
-                        take are recorded as that user.
-                    </Typography>
+                <SurfaceCard className="lg:col-span-full">
+                    <h2 className="text-base font-bold">Users</h2>
+                    <p className="mb-4 mt-0.5 text-sm text-muted-foreground">
+                        Open the bakery as a staff member to see exactly what they see. Actions you take are
+                        recorded as that user.
+                    </p>
                     <DataTable
                         columns={[
                             { label: 'Name' },
@@ -324,7 +267,7 @@ export default function Show({
                     >
                         {users.map((user) => (
                             <DataTableRow key={user.id}>
-                                <DataTableCell sx={{ fontWeight: 600 }}>{user.name}</DataTableCell>
+                                <DataTableCell className="font-semibold">{user.name}</DataTableCell>
                                 <DataTableCell>{user.username || '—'}</DataTableCell>
                                 <DataTableCell>{user.email}</DataTableCell>
                                 <DataTableCell>
@@ -348,47 +291,34 @@ export default function Show({
                             </DataTableRow>
                         ))}
                     </DataTable>
-                </Paper>
+                </SurfaceCard>
 
                 {branchSuspensions?.length > 0 && (
-                    <Paper
-                        variant="outlined"
-                        sx={{ p: 3, borderRadius: 1, gridColumn: { lg: '1 / -1' } }}
-                    >
-                        <Typography variant="subtitle1" fontWeight={700}>
-                            Branch suspensions
-                        </Typography>
-                        <List sx={{ mt: 1 }}>
+                    <SurfaceCard className="lg:col-span-full">
+                        <h2 className="text-base font-bold">Branch suspensions</h2>
+                        <ul className="mt-2 space-y-2">
                             {branchSuspensions.map((s) => (
-                                <ListItem
+                                <li
                                     key={s.id}
-                                    sx={{
-                                        bgcolor: colors.surface,
-                                        borderRadius: 2,
-                                        mb: 1,
-                                    }}
-                                    secondaryAction={<StatusBadge status="suspended" />}
+                                    className="flex items-center justify-between rounded-lg bg-surface px-4 py-3"
                                 >
-                                    <ListItemText primary={`Branch ID ${s.branch_id}`} />
-                                </ListItem>
+                                    <span>Branch ID {s.branch_id}</span>
+                                    <StatusBadge status="suspended" />
+                                </li>
                             ))}
-                        </List>
-                    </Paper>
+                        </ul>
+                    </SurfaceCard>
                 )}
-            </Box>
+            </div>
         </PlatformLayout>
     );
 }
 
 function Row({ label, children }) {
     return (
-        <Stack direction="row" justifyContent="space-between" spacing={2}>
-            <Typography variant="body2" color="text.secondary">
-                {label}
-            </Typography>
-            <Typography variant="body2" fontWeight={600} textAlign="right">
-                {children}
-            </Typography>
-        </Stack>
+        <div className="flex flex-row justify-between gap-4">
+            <span className="text-sm text-muted-foreground">{label}</span>
+            <span className="text-right text-sm font-semibold">{children}</span>
+        </div>
     );
 }

@@ -8,10 +8,14 @@ use App\Models\Product;
 use App\Models\Recipe;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class CatalogEconomics
 {
     public const CHANNELS = ['retail', 'wholesale', 'restaurant'];
+
+    /** @var array<int, float>|null */
+    protected ?array $requestUnitCostMap = null;
 
     public function syncPrices(Product $product, array $prices): void
     {
@@ -101,10 +105,52 @@ class CatalogEconomics
      */
     public function unitCostMap(?Collection $products = null): array
     {
-        $products ??= Product::query()
-            ->with(['recipe.ingredients.rawMaterial'])
-            ->get();
+        if ($products === null && $this->requestUnitCostMap !== null) {
+            return $this->requestUnitCostMap;
+        }
 
+        if ($products !== null) {
+            return $this->buildUnitCostMap($products);
+        }
+
+        $tenantId = tenant('id');
+        $resolver = fn () => $this->buildUnitCostMap(
+            Product::query()
+                ->with(['recipe.ingredients.rawMaterial:id,unit_cost'])
+                ->get(['id', 'type', 'cost_price'])
+        );
+
+        if (! $tenantId) {
+            return $this->requestUnitCostMap = $resolver();
+        }
+
+        return $this->requestUnitCostMap = Cache::remember(
+            $this->unitCostCacheKey($tenantId),
+            now()->addMinutes(2),
+            $resolver
+        );
+    }
+
+    public function forgetUnitCostMap(?string $tenantId = null): void
+    {
+        $this->requestUnitCostMap = null;
+        $tenantId = $tenantId ?? tenant('id');
+
+        if ($tenantId) {
+            Cache::forget($this->unitCostCacheKey($tenantId));
+        }
+    }
+
+    protected function unitCostCacheKey(string $tenantId): string
+    {
+        return "tenant:{$tenantId}:unit_cost_map";
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    protected function buildUnitCostMap(Collection $products): array
+    {
         $map = [];
 
         foreach ($products as $product) {

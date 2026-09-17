@@ -5,18 +5,10 @@ import InputLabel from '@/Components/InputLabel';
 import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import TenantLayout from '@/Layouts/TenantLayout';
-import {
-    Box,
-    FormControl,
-    FormGroup,
-    MenuItem,
-    Paper,
-    Select,
-    Stack,
-    Typography,
-} from '@mui/material';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function Index({ staff, roles, branches }) {
@@ -45,37 +37,27 @@ export default function Index({ staff, roles, branches }) {
                 description="Team members, roles, and branch assignments."
             />
 
-            <Paper
-                component="form"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    form.post(route('tenant.staff.store'), {
-                        onSuccess: () => form.reset('name', 'username', 'email', 'password'),
-                    });
-                }}
-                variant="outlined"
-                sx={{ mb: 3, p: 3, borderRadius: 1 }}
-            >
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-                    Add staff member
-                </Typography>
-                <Stack spacing={2}>
-                    <Box
-                        sx={{
-                            display: 'grid',
-                            gap: 2,
-                            gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                        }}
-                    >
-                        <Box>
+            <SurfaceCard className="mb-6">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        form.post(route('tenant.staff.store'), {
+                            onSuccess: () => form.reset('name', 'username', 'email', 'password'),
+                        });
+                    }}
+                    className="flex flex-col gap-4"
+                >
+                    <p className="text-base font-bold">Add staff member</p>
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <div>
                             <InputLabel value="Name" />
                             <TextInput
                                 value={form.data.name}
                                 onChange={(e) => form.setData('name', e.target.value)}
                             />
                             <InputError message={form.errors.name} />
-                        </Box>
-                        <Box>
+                        </div>
+                        <div>
                             <InputLabel value="Username" />
                             <TextInput
                                 value={form.data.username}
@@ -83,8 +65,8 @@ export default function Index({ staff, roles, branches }) {
                                 onChange={(e) => form.setData('username', e.target.value)}
                             />
                             <InputError message={form.errors.username} />
-                        </Box>
-                        <Box>
+                        </div>
+                        <div>
                             <InputLabel value="Email" />
                             <TextInput
                                 type="email"
@@ -92,8 +74,8 @@ export default function Index({ staff, roles, branches }) {
                                 onChange={(e) => form.setData('email', e.target.value)}
                             />
                             <InputError message={form.errors.email} />
-                        </Box>
-                        <Box>
+                        </div>
+                        <div>
                             <InputLabel value="Password" />
                             <TextInput
                                 type="password"
@@ -101,28 +83,31 @@ export default function Index({ staff, roles, branches }) {
                                 onChange={(e) => form.setData('password', e.target.value)}
                             />
                             <InputError message={form.errors.password} />
-                        </Box>
-                        <Box>
+                        </div>
+                        <div>
                             <InputLabel value="Role" />
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    value={form.data.role_id}
-                                    onChange={(e) => form.setData('role_id', e.target.value)}
-                                >
+                            <Select
+                                value={String(form.data.role_id)}
+                                onValueChange={(value) => form.setData('role_id', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
                                     {roles.map((role) => (
-                                        <MenuItem key={role.id} value={role.id}>
+                                        <SelectItem key={role.id} value={String(role.id)}>
                                             {role.name}
-                                        </MenuItem>
+                                        </SelectItem>
                                     ))}
-                                </Select>
-                            </FormControl>
-                        </Box>
-                    </Box>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
 
                     {branches.length > 0 && (
-                        <Box>
+                        <div>
                             <InputLabel value="Assigned branches" />
-                            <FormGroup row sx={{ gap: 1, mt: 0.5 }}>
+                            <div className="mt-1 flex flex-row flex-wrap gap-2">
                                 {branches.map((branch) => (
                                     <Checkbox
                                         key={branch.id}
@@ -131,15 +116,15 @@ export default function Index({ staff, roles, branches }) {
                                         label={branch.name}
                                     />
                                 ))}
-                            </FormGroup>
-                        </Box>
+                            </div>
+                        </div>
                     )}
 
                     <PrimaryButton type="submit" disabled={form.processing}>
                         Add staff
                     </PrimaryButton>
-                </Stack>
-            </Paper>
+                </form>
+            </SurfaceCard>
 
             <DataTable
                 columns={[
@@ -152,7 +137,7 @@ export default function Index({ staff, roles, branches }) {
             >
                 {staff.data.map((member) => (
                     <DataTableRow key={member.id}>
-                        <DataTableCell sx={{ fontWeight: 600 }}>{member.name}</DataTableCell>
+                        <DataTableCell className="font-semibold">{member.name}</DataTableCell>
                         <DataTableCell>{member.username}</DataTableCell>
                         <DataTableCell>{member.email}</DataTableCell>
                         <DataTableCell>

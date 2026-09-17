@@ -49,28 +49,46 @@ class FinishedGoodsInventory
     public function shelfSnapshot(?int $branchId): Collection
     {
         return BranchFinishedGoodsStock::query()
-            ->with('product:id,name,type,unit_of_measure,reorder_threshold')
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->orderBy('id')
+            ->select('branch_finished_goods_stock.product_id')
+            ->selectRaw('MIN(branch_finished_goods_stock.id) as id')
+            ->selectRaw('COALESCE(SUM(branch_finished_goods_stock.quantity_on_hand), 0) as quantity_on_hand')
+            ->join('products', 'products.id', '=', 'branch_finished_goods_stock.product_id')
+            ->addSelect([
+                'products.name as product_name',
+                'products.type as product_type',
+                'products.unit_of_measure as product_unit',
+                'products.reorder_threshold',
+            ])
+            ->when($branchId, fn ($q) => $q->where('branch_finished_goods_stock.branch_id', $branchId))
+            ->groupBy(
+                'branch_finished_goods_stock.product_id',
+                'products.name',
+                'products.type',
+                'products.unit_of_measure',
+                'products.reorder_threshold',
+            )
+            ->orderBy('products.name')
             ->get()
-            ->groupBy('product_id')
-            ->map(function (Collection $rows) {
-                /** @var BranchFinishedGoodsStock $first */
-                $first = $rows->first();
-                $quantity = round((float) $rows->sum(fn (BranchFinishedGoodsStock $row) => (float) $row->quantity_on_hand), 3);
-                $threshold = $first->product?->reorder_threshold;
+            ->map(function ($row) {
+                $quantity = round((float) $row->quantity_on_hand, 3);
+                $threshold = $row->reorder_threshold;
                 $thresholdValue = $threshold === null ? null : (float) $threshold;
 
                 return [
-                    'id' => $first->id,
-                    'product_id' => $first->product_id,
+                    'id' => (int) $row->id,
+                    'product_id' => (int) $row->product_id,
                     'quantity_on_hand' => $quantity,
-                    'product' => $first->product,
+                    'product' => (object) [
+                        'id' => (int) $row->product_id,
+                        'name' => $row->product_name,
+                        'type' => $row->product_type,
+                        'unit_of_measure' => $row->product_unit,
+                        'reorder_threshold' => $thresholdValue,
+                    ],
                     'reorder_threshold' => $thresholdValue,
                     'is_low' => $this->isBelowReorder($quantity, $thresholdValue),
                 ];
-            })
-            ->values();
+            });
     }
 
     /**
@@ -78,18 +96,37 @@ class FinishedGoodsInventory
      */
     public function lowStockAlerts(?int $branchId, int $limit = 8): Collection
     {
-        return $this->shelfSnapshot($branchId)
-            ->filter(fn (array $row) => $row['is_low'])
-            ->sortBy('quantity_on_hand')
-            ->take($limit)
-            ->values()
-            ->map(fn (array $row) => [
-                'id' => 'fg-'.$row['id'],
+        return BranchFinishedGoodsStock::query()
+            ->select('branch_finished_goods_stock.product_id')
+            ->selectRaw('MIN(branch_finished_goods_stock.id) as id')
+            ->selectRaw('COALESCE(SUM(branch_finished_goods_stock.quantity_on_hand), 0) as quantity_on_hand')
+            ->join('products', 'products.id', '=', 'branch_finished_goods_stock.product_id')
+            ->addSelect([
+                'products.name',
+                'products.unit_of_measure',
+                'products.reorder_threshold',
+            ])
+            ->when($branchId, fn ($q) => $q->where('branch_finished_goods_stock.branch_id', $branchId))
+            ->groupBy(
+                'branch_finished_goods_stock.product_id',
+                'products.name',
+                'products.unit_of_measure',
+                'products.reorder_threshold',
+            )
+            ->havingRaw('(
+                (products.reorder_threshold IS NULL AND COALESCE(SUM(branch_finished_goods_stock.quantity_on_hand), 0) <= 0)
+                OR (products.reorder_threshold IS NOT NULL AND COALESCE(SUM(branch_finished_goods_stock.quantity_on_hand), 0) <= products.reorder_threshold)
+            )')
+            ->orderBy('quantity_on_hand')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => [
+                'id' => 'fg-'.(int) $row->id,
                 'kind' => 'finished',
-                'name' => $row['product']?->name,
-                'quantity' => $row['quantity_on_hand'],
-                'unit' => $row['product']?->unit_of_measure,
-                'threshold' => $row['reorder_threshold'],
+                'name' => $row->name,
+                'quantity' => round((float) $row->quantity_on_hand, 3),
+                'unit' => $row->unit_of_measure,
+                'threshold' => $row->reorder_threshold === null ? null : (float) $row->reorder_threshold,
             ]);
     }
 
@@ -223,10 +260,15 @@ class FinishedGoodsInventory
      */
     public function assertAvailable(int $branchId, array $requestedByProduct): void
     {
+        if ($requestedByProduct === []) {
+            return;
+        }
+
+        $onHand = $this->quantitiesOnHand($branchId);
         $errors = [];
 
         foreach ($requestedByProduct as $productId => $requested) {
-            $available = $this->quantityOnHand($branchId, (int) $productId);
+            $available = (float) ($onHand[(int) $productId] ?? 0);
 
             try {
                 $this->assertQuantityAvailable((int) $productId, $requested, $available);

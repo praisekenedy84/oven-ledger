@@ -4,7 +4,6 @@ import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
-import { Box, Stack, Typography } from '@mui/material';
 import { useForm } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 
@@ -31,16 +30,14 @@ export default function DeleteUserForm() {
     };
 
     return (
-        <Stack spacing={2}>
+        <div className="space-y-4">
             <div>
-                <Typography variant="h6" fontWeight={700}>
-                    Delete Account
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                <h2 className="text-lg font-semibold text-foreground">Delete Account</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                     Once your account is deleted, all of its resources and data will be permanently
                     deleted. Before deleting your account, please download any data or information
                     that you wish to retain.
-                </Typography>
+                </p>
             </div>
 
             <DangerButton onClick={() => setConfirmingUserDeletion(true)}>
@@ -48,8 +45,8 @@ export default function DeleteUserForm() {
             </DangerButton>
 
             <Modal show={confirmingUserDeletion} onClose={closeModal}>
-                <Box
-                    component="form"
+                <form
+                    className="p-6"
                     onSubmit={(e) => {
                         e.preventDefault();
                         destroy(route('profile.destroy'), {
@@ -59,18 +56,17 @@ export default function DeleteUserForm() {
                             onFinish: () => reset(),
                         });
                     }}
-                    sx={{ p: 3 }}
                 >
-                    <Typography variant="h6" fontWeight={700}>
+                    <h3 className="text-lg font-semibold text-foreground">
                         Are you sure you want to delete your account?
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    </h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
                         Once your account is deleted, all of its resources and data will be
                         permanently deleted. Please enter your password to confirm you would like to
                         permanently delete your account.
-                    </Typography>
+                    </p>
 
-                    <Box sx={{ mt: 3 }}>
+                    <div className="mt-6">
                         <InputLabel htmlFor="password" value="Password" />
                         <TextInput
                             id="password"
@@ -82,16 +78,16 @@ export default function DeleteUserForm() {
                             placeholder="Password"
                         />
                         <InputError message={errors.password} />
-                    </Box>
+                    </div>
 
-                    <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 3 }}>
+                    <div className="mt-6 flex justify-end gap-2">
                         <SecondaryButton onClick={closeModal}>Cancel</SecondaryButton>
                         <DangerButton type="submit" disabled={processing}>
                             Delete Account
                         </DangerButton>
-                    </Stack>
-                </Box>
+                    </div>
+                </form>
             </Modal>
-        </Stack>
+        </div>
     );
 }

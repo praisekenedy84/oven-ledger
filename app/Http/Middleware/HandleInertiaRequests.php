@@ -14,6 +14,7 @@ use App\Services\Impersonation;
 use App\Services\StaffNotificationFeed;
 use App\Support\MenuCatalog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Middleware;
 
@@ -97,7 +98,7 @@ class HandleInertiaRequests extends Middleware
                 }
 
                 $shared['staffNotifications'] = $user
-                    ? $this->notifications->forCurrentBranch(12)
+                    ? fn () => $this->notifications->forCurrentBranch(12)
                     : ['items' => [], 'unread_count' => 0];
 
                 return $shared;
@@ -128,48 +129,53 @@ class HandleInertiaRequests extends Middleware
             return [];
         }
 
-        $roleIds = $user->userRoles()->pluck('role_id');
-        $visibleMenuIds = $roleIds->isEmpty()
-            ? collect()
-            : RoleMenuVisibility::query()
-                ->whereIn('role_id', $roleIds)
-                ->where('visible', true)
-                ->pluck('menu_item_id');
+        $roleIds = $user->userRoles()->pluck('role_id')->sort()->values()->all();
+        $featureSignature = collect($features)->filter()->keys()->sort()->implode(',');
+        $cacheKey = 'tenant:'.tenant('id').':menu:'.$user->id.':'.md5(json_encode($roleIds).'|'.$featureSignature);
 
-        return tenancy()->central(function () use ($features, $visibleMenuIds) {
-            $availableMenuIds = TenantMenuAvailability::query()
-                ->where('tenant_id', tenant('id'))
-                ->where('available', true)
-                ->pluck('menu_item_id');
+        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($features, $roleIds) {
+            $visibleMenuIds = empty($roleIds)
+                ? collect()
+                : RoleMenuVisibility::query()
+                    ->whereIn('role_id', $roleIds)
+                    ->where('visible', true)
+                    ->pluck('menu_item_id');
 
-            $menuQuery = MenuItem::query()
-                ->where('scope', 'tenant')
-                ->orderBy('sort_order');
+            return tenancy()->central(function () use ($features, $visibleMenuIds) {
+                $availableMenuIds = TenantMenuAvailability::query()
+                    ->where('tenant_id', tenant('id'))
+                    ->where('available', true)
+                    ->pluck('menu_item_id');
 
-            if ($availableMenuIds->isNotEmpty()) {
-                $menuQuery->whereIn('id', $availableMenuIds);
-            }
+                $menuQuery = MenuItem::query()
+                    ->where('scope', 'tenant')
+                    ->orderBy('sort_order');
 
-            $menus = $menuQuery->get()->filter(function (MenuItem $item) use ($features) {
-                if ($item->feature_key && ! ($features[$item->feature_key] ?? false)) {
-                    return false;
+                if ($availableMenuIds->isNotEmpty()) {
+                    $menuQuery->whereIn('id', $availableMenuIds);
                 }
 
-                return true;
+                $menus = $menuQuery->get()->filter(function (MenuItem $item) use ($features) {
+                    if ($item->feature_key && ! ($features[$item->feature_key] ?? false)) {
+                        return false;
+                    }
+
+                    return true;
+                });
+
+                $visible = $visibleMenuIds->isEmpty()
+                    ? $menus
+                    : $menus->whereIn('id', $visibleMenuIds)->values();
+
+                $withAncestors = $this->menuCatalog->withAncestors(
+                    $menus,
+                    $visible->pluck('id')->all()
+                );
+
+                $resolved = $menus->whereIn('id', $withAncestors)->values();
+
+                return $this->menuCatalog->toTree($resolved);
             });
-
-            $visible = $visibleMenuIds->isEmpty()
-                ? $menus
-                : $menus->whereIn('id', $visibleMenuIds)->values();
-
-            $withAncestors = $this->menuCatalog->withAncestors(
-                $menus,
-                $visible->pluck('id')->all()
-            );
-
-            $resolved = $menus->whereIn('id', $withAncestors)->values();
-
-            return $this->menuCatalog->toTree($resolved);
         });
     }
 }

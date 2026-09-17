@@ -5,36 +5,24 @@ import PageHeader from '@/Components/PageHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import ProductPriceFields from '@/Components/ProductPriceFields';
 import SecondaryButton from '@/Components/SecondaryButton';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Separator } from '@/Components/ui/separator';
 import TenantLayout from '@/Layouts/TenantLayout';
 import RecipeFields from '@/Pages/Recipes/RecipeFields';
-import { colors } from '@/theme/bakeryTheme';
-import {
-    Box,
-    Divider,
-    FormControl,
-    MenuItem,
-    Paper,
-    Select,
-    Stack,
-    Typography,
-} from '@mui/material';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 function FormSection({ title, description, children, showDivider = true }) {
     return (
-        <Box>
-            {showDivider && <Divider sx={{ mb: 2.5, borderColor: colors.border }} />}
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
-                {title}
-            </Typography>
+        <div>
+            {showDivider && <Separator className="mb-5" />}
+            <p className="mb-1 text-sm font-bold">{title}</p>
             {description && (
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-                    {description}
-                </Typography>
+                <p className="mb-4 block text-xs text-muted-foreground">{description}</p>
             )}
-            <Stack spacing={2}>{children}</Stack>
-        </Box>
+            <div className="flex flex-col gap-4">{children}</div>
+        </div>
     );
 }
 
@@ -70,77 +58,70 @@ export default function Create({ categories = [], rawMaterials = [] }) {
 
             <PageHeader title="Add product" backHref={route('tenant.products.index')} />
 
-            <Paper
-                component="form"
-                onSubmit={submit}
-                variant="outlined"
-                sx={{ mx: 'auto', maxWidth: 720, p: 3, borderRadius: 1 }}
-            >
-                <Stack spacing={3}>
+            <SurfaceCard className="mx-auto max-w-[720px]">
+                <form onSubmit={submit} className="flex flex-col gap-6">
                     <FormSection
                         title="1. Product details"
                         description="Name it, pick a category, and set the unit you sell in."
                         showDivider={false}
                     >
-                        <Box>
+                        <div>
                             <InputLabel value="Name" />
                             <TextInput
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
                             />
                             <InputError message={errors.name} />
-                        </Box>
+                        </div>
 
-                        <Box
-                            sx={{
-                                display: 'grid',
-                                gap: 2,
-                                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                            }}
-                        >
-                            <Box>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div>
                                 <InputLabel value="Category" />
-                                <FormControl fullWidth size="small">
-                                    <Select
-                                        value={data.product_category_id}
-                                        onChange={(e) => setData('product_category_id', e.target.value)}
-                                    >
+                                <Select
+                                    value={String(data.product_category_id)}
+                                    onValueChange={(value) => setData('product_category_id', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
                                         {categories.map((category) => (
-                                            <MenuItem key={category.id} value={category.id}>
+                                            <SelectItem key={category.id} value={String(category.id)}>
                                                 {category.name}
                                                 {category.kind === 'hardware' ? ' · hardware' : ''}
-                                            </MenuItem>
+                                            </SelectItem>
                                         ))}
-                                    </Select>
-                                </FormControl>
+                                    </SelectContent>
+                                </Select>
                                 <InputError message={errors.product_category_id} />
-                                <Typography variant="caption" color="text.secondary">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                     Baked categories need a recipe so ingredient cost is locked. Hardware is bought in.
-                                </Typography>
-                            </Box>
-                            <Box>
+                                </p>
+                            </div>
+                            <div>
                                 <InputLabel value="Unit of measure" />
                                 <TextInput
                                     value={data.unit_of_measure}
                                     onChange={(e) => setData('unit_of_measure', e.target.value)}
                                 />
                                 <InputError message={errors.unit_of_measure} />
-                            </Box>
-                        </Box>
-                        <Box>
+                            </div>
+                        </div>
+                        <div>
                             <InputLabel value="Shelf reorder at" />
                             <TextInput
                                 type="number"
-                                inputProps={{ min: 0, step: '0.001' }}
+                                min={0}
+                                step="0.001"
                                 value={data.reorder_threshold}
                                 onChange={(e) => setData('reorder_threshold', e.target.value)}
                                 placeholder="e.g. 12"
                             />
                             <InputError message={errors.reorder_threshold} />
-                            <Typography variant="caption" color="text.secondary">
+                            <p className="mt-1 text-xs text-muted-foreground">
                                 Alert when shelf stock falls to this number or below. Leave blank to only warn when empty.
-                            </Typography>
-                        </Box>
+                            </p>
+                        </div>
                     </FormSection>
 
                     {!isHardware && (
@@ -176,7 +157,7 @@ export default function Create({ categories = [], rawMaterials = [] }) {
                         />
                     </FormSection>
 
-                    <Divider sx={{ borderColor: colors.border }} />
+                    <Separator />
 
                     <Checkbox
                         checked={data.is_active}
@@ -184,16 +165,16 @@ export default function Create({ categories = [], rawMaterials = [] }) {
                         label="Active"
                     />
 
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <SecondaryButton component={Link} href={route('tenant.products.index')}>
-                            Cancel
+                    <div className="flex justify-end gap-2">
+                        <SecondaryButton asChild>
+                            <Link href={route('tenant.products.index')}>Cancel</Link>
                         </SecondaryButton>
                         <PrimaryButton type="submit" disabled={processing}>
                             Save
                         </PrimaryButton>
-                    </Stack>
-                </Stack>
-            </Paper>
+                    </div>
+                </form>
+            </SurfaceCard>
         </TenantLayout>
     );
 }

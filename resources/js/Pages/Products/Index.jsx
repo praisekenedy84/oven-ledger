@@ -5,12 +5,11 @@ import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
 import TextInput from '@/Components/TextInput';
+import { Button } from '@/Components/ui/button';
 import TenantLayout from '@/Layouts/TenantLayout';
 import useDebouncedValue from '@/hooks/useDebouncedValue';
-import CloseIcon from '@mui/icons-material/Close';
-import SearchIcon from '@mui/icons-material/Search';
-import { Button, IconButton, InputAdornment, Stack, Typography } from '@mui/material';
 import { Head, Link, router } from '@inertiajs/react';
+import { Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function Index({ products, filters = {} }) {
@@ -46,55 +45,43 @@ export default function Index({ products, filters = {} }) {
                 title="Products"
                 description="Baked goods carry a recipe so cost is locked. Hardware is bought in."
                 actions={
-                    <Button
-                        component={Link}
-                        href={route('tenant.products.create')}
-                        variant="contained"
-                    >
-                        Add product
+                    <Button asChild>
+                        <Link href={route('tenant.products.create')}>Add product</Link>
                     </Button>
                 }
             />
 
-            <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={2}
-                alignItems={{ sm: 'center' }}
-                sx={{ mb: 3 }}
-            >
-                <TextInput
-                    placeholder="Search by name, category, type, or unit…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <SearchIcon fontSize="small" />
-                            </InputAdornment>
-                        ),
-                        endAdornment: search ? (
-                            <InputAdornment position="end">
-                                <IconButton
-                                    size="small"
-                                    aria-label="Clear product search"
-                                    onClick={() => {
-                                        setSearch('');
-                                        applyFilters({ search: '' });
-                                    }}
-                                >
-                                    <CloseIcon fontSize="small" />
-                                </IconButton>
-                            </InputAdornment>
-                        ) : null,
-                    }}
-                    sx={{ maxWidth: { sm: 420 } }}
-                />
-            </Stack>
+            <div className="mb-6 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+                <div className="relative w-full sm:max-w-[420px]">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <TextInput
+                        placeholder="Search by name, category, type, or unit…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-9 pr-9"
+                    />
+                    {search ? (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Clear product search"
+                            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                            onClick={() => {
+                                setSearch('');
+                                applyFilters({ search: '' });
+                            }}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    ) : null}
+                </div>
+            </div>
 
             {activeSearch !== '' && (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                <p className="mb-3 text-sm text-muted-foreground">
                     Showing products matching “{activeSearch}”.
-                </Typography>
+                </p>
             )}
 
             <DataTable
@@ -116,7 +103,7 @@ export default function Index({ products, filters = {} }) {
             >
                 {products.data.map((product) => (
                     <DataTableRow key={product.id}>
-                        <DataTableCell sx={{ fontWeight: 600 }}>{product.name}</DataTableCell>
+                        <DataTableCell className="font-semibold">{product.name}</DataTableCell>
                         <DataTableCell>
                             <StatusBadge
                                 status={product.type === 'trading' ? 'hardware' : product.type}
@@ -135,13 +122,9 @@ export default function Index({ products, filters = {} }) {
                             <StatusBadge status={product.is_active ? 'active' : 'inactive'} />
                         </DataTableCell>
                         <DataTableCell>
-                            <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                <Button
-                                    component={Link}
-                                    href={route('tenant.products.show', product.id)}
-                                    size="small"
-                                >
-                                    Edit
+                            <div className="flex justify-end gap-2">
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link href={route('tenant.products.show', product.id)}>Edit</Link>
                                 </Button>
                                 <ConfirmButton
                                     size="small"
@@ -156,7 +139,7 @@ export default function Index({ products, filters = {} }) {
                                 >
                                     Delete
                                 </ConfirmButton>
-                            </Stack>
+                            </div>
                         </DataTableCell>
                     </DataTableRow>
                 ))}

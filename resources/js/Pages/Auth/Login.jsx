@@ -3,9 +3,8 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { Alert } from '@/Components/ui/alert';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { colors } from '@/theme/bakeryTheme';
-import { Alert, Stack, Typography } from '@mui/material';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function Login({ status }) {
@@ -19,22 +18,17 @@ export default function Login({ status }) {
         <GuestLayout>
             <Head title="Log in" />
 
-            <Typography variant="h4" sx={{ mb: 0.5 }}>
-                Sign in
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                The morning board is waiting.
-            </Typography>
+            <h1 className="text-2xl font-semibold text-foreground">Sign in</h1>
+            <p className="mb-6 mt-1 text-sm text-muted-foreground">The morning board is waiting.</p>
 
             {status && (
-                <Alert severity="success" sx={{ mb: 2 }}>
+                <Alert variant="success" className="mb-4">
                     {status}
                 </Alert>
             )}
 
-            <Stack
-                component="form"
-                spacing={2.5}
+            <form
+                className="space-y-5"
                 onSubmit={(e) => {
                     e.preventDefault();
                     post(route('login'), { onFinish: () => reset('password') });
@@ -51,9 +45,9 @@ export default function Login({ status }) {
                         onChange={(e) => setData('login', e.target.value)}
                     />
                     <InputError message={errors.login ?? errors.email} />
-                    <Typography variant="caption" color="text.secondary">
+                    <p className="mt-1 text-xs text-muted-foreground">
                         Use the username set when the account was created, or the email.
-                    </Typography>
+                    </p>
                 </div>
 
                 <div>
@@ -77,14 +71,11 @@ export default function Login({ status }) {
                 <PrimaryButton type="submit" fullWidth disabled={processing}>
                     Enter the bakery
                 </PrimaryButton>
-            </Stack>
+            </form>
 
-            <Typography
-                variant="caption"
-                sx={{ display: 'block', mt: 3, textAlign: 'center', color: colors.muted }}
-            >
+            <p className="mt-6 block text-center text-xs text-muted-foreground">
                 Staff accounts only. Ask the owner if you need a seat.
-            </Typography>
+            </p>
         </GuestLayout>
     );
 }

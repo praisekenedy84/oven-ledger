@@ -4,9 +4,10 @@ import Money from '@/Components/Money';
 import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SurfaceCard from '@/Components/SurfaceCard';
+import { Button } from '@/Components/ui/button';
 import TenantLayout from '@/Layouts/TenantLayout';
 import RecipeFields from './RecipeFields';
-import { Button, Paper, Stack, Typography } from '@mui/material';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 
 export default function Index({ recipes, products, rawMaterials }) {
@@ -28,30 +29,27 @@ export default function Index({ recipes, products, rawMaterials }) {
             />
 
             {products.length > 0 && (
-                <Paper
-                    component="form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        post(route('tenant.recipes.store'), { onSuccess: () => reset() });
-                    }}
-                    variant="outlined"
-                    sx={{ mb: 3, p: { xs: 2, sm: 3 }, borderRadius: 1 }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-                        New recipe
-                    </Typography>
-                    <RecipeFields
-                        data={data}
-                        setData={setData}
-                        errors={errors}
-                        products={products}
-                        rawMaterials={rawMaterials}
+                <SurfaceCard className="mb-6">
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            post(route('tenant.recipes.store'), { onSuccess: () => reset() });
+                        }}
                     >
-                        <PrimaryButton type="submit" disabled={processing}>
-                            Create recipe
-                        </PrimaryButton>
-                    </RecipeFields>
-                </Paper>
+                        <h2 className="mb-4 text-base font-bold">New recipe</h2>
+                        <RecipeFields
+                            data={data}
+                            setData={setData}
+                            errors={errors}
+                            products={products}
+                            rawMaterials={rawMaterials}
+                        >
+                            <PrimaryButton type="submit" disabled={processing}>
+                                Create recipe
+                            </PrimaryButton>
+                        </RecipeFields>
+                    </form>
+                </SurfaceCard>
             )}
 
             <DataTable
@@ -66,7 +64,7 @@ export default function Index({ recipes, products, rawMaterials }) {
             >
                 {recipes.data.map((recipe) => (
                     <DataTableRow key={recipe.id}>
-                        <DataTableCell sx={{ fontWeight: 600 }}>
+                        <DataTableCell className="font-semibold">
                             {recipe.product?.name}
                         </DataTableCell>
                         <DataTableCell>{recipe.expected_yield}</DataTableCell>
@@ -78,13 +76,9 @@ export default function Index({ recipes, products, rawMaterials }) {
                             {recipe.unit_cost ? <Money amount={recipe.unit_cost} /> : '—'}
                         </DataTableCell>
                         <DataTableCell>
-                            <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                <Button
-                                    component={Link}
-                                    href={route('tenant.recipes.show', recipe.id)}
-                                    size="small"
-                                >
-                                    Edit
+                            <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="ghost" asChild>
+                                    <Link href={route('tenant.recipes.show', recipe.id)}>Edit</Link>
                                 </Button>
                                 {recipe.product?.type === 'trading' && (
                                     <ConfirmButton
@@ -101,7 +95,7 @@ export default function Index({ recipes, products, rawMaterials }) {
                                         Delete
                                     </ConfirmButton>
                                 )}
-                            </Stack>
+                            </div>
                         </DataTableCell>
                     </DataTableRow>
                 ))}

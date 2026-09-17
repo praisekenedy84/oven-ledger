@@ -5,9 +5,14 @@ namespace App\Services;
 use App\Models\BranchRawMaterialStock;
 use App\Models\BusinessLiability;
 use App\Models\Customer;
+use App\Models\CustomerLedgerEntry;
 use App\Models\Order;
 use App\Models\ProductionBatch;
+use App\Models\StaffNotificationRead;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class StaffNotificationFeed
 {
@@ -22,17 +27,13 @@ class StaffNotificationFeed
     public function forCurrentBranch(?int $limit = 40): array
     {
         $branchId = $this->currentBranch->id();
-        $items = collect()
-            ->merge($this->preOrderReminders($branchId))
-            ->merge($this->productionAlerts($branchId))
-            ->merge($this->stockAlerts($branchId))
-            ->merge($this->debtAlerts($branchId))
-            ->merge($this->receivableAlerts())
-            ->sortByDesc(fn (array $item) => $item['sort_at'])
-            ->values()
-            ->take($limit)
-            ->map(function (array $item) {
-                unset($item['sort_at']);
+        $user = Auth::user();
+        $readKeys = $this->readKeysFor($user);
+        $rawItems = $this->cachedFeedItems($branchId, $limit);
+
+        $items = collect($rawItems)
+            ->map(function (array $item) use ($readKeys) {
+                $item['is_read'] = isset($readKeys[$item['id']]);
 
                 return $item;
             })
@@ -40,8 +41,141 @@ class StaffNotificationFeed
 
         return [
             'items' => $items,
-            'unread_count' => count($items),
+            'unread_count' => collect($items)->where('is_read', false)->count(),
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function cachedFeedItems(?int $branchId, int $limit): array
+    {
+        $tenantId = tenant('id');
+        $resolver = function () use ($branchId, $limit) {
+            return collect()
+                ->merge($this->preOrderReminders($branchId))
+                ->merge($this->productionAlerts($branchId))
+                ->merge($this->stockAlerts($branchId))
+                ->merge($this->debtAlerts($branchId))
+                ->merge($this->receivableAlerts())
+                ->sortByDesc(fn (array $item) => $item['sort_at'])
+                ->values()
+                ->take($limit)
+                ->map(function (array $item) {
+                    unset($item['sort_at']);
+
+                    return $item;
+                })
+                ->all();
+        };
+
+        if (! $tenantId) {
+            return $resolver();
+        }
+
+        return Cache::remember(
+            "tenant:{$tenantId}:staff_feed:".($branchId ?? 'all').":{$limit}",
+            now()->addSeconds(45),
+            $resolver,
+        );
+    }
+
+    public function forget(?int $branchId = null, ?string $tenantId = null): void
+    {
+        $tenantId = $tenantId ?? tenant('id');
+
+        if (! $tenantId) {
+            return;
+        }
+
+        $branchId ??= $this->currentBranch->id();
+
+        foreach ([12, 40, 80] as $limit) {
+            Cache::forget("tenant:{$tenantId}:staff_feed:".($branchId ?? 'all').":{$limit}");
+            Cache::forget("tenant:{$tenantId}:staff_feed:all:{$limit}");
+        }
+    }
+
+    public function markAsRead(User $user, string $notificationKey): void
+    {
+        $key = trim($notificationKey);
+        if ($key === '') {
+            return;
+        }
+
+        StaffNotificationRead::query()->updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'notification_key' => $key,
+            ],
+            [
+                'read_at' => now(),
+            ],
+        );
+    }
+
+    /**
+     * @param  list<string>  $notificationKeys
+     */
+    public function markManyAsRead(User $user, array $notificationKeys): int
+    {
+        $keys = collect($notificationKeys)
+            ->map(fn ($key) => trim((string) $key))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($keys->isEmpty()) {
+            return 0;
+        }
+
+        $now = now();
+        foreach ($keys as $key) {
+            StaffNotificationRead::query()->updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'notification_key' => $key,
+                ],
+                [
+                    'read_at' => $now,
+                ],
+            );
+        }
+
+        return $keys->count();
+    }
+
+    public function markAllCurrentAsRead(?int $limit = 80): int
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return 0;
+        }
+
+        $feed = $this->forCurrentBranch($limit);
+        $unreadKeys = collect($feed['items'])
+            ->where('is_read', false)
+            ->pluck('id')
+            ->all();
+
+        return $this->markManyAsRead($user, $unreadKeys);
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    protected function readKeysFor(?User $user): array
+    {
+        if (! $user) {
+            return [];
+        }
+
+        return StaffNotificationRead::query()
+            ->where('user_id', $user->id)
+            ->pluck('notification_key')
+            ->flip()
+            ->map(fn () => true)
+            ->all();
     }
 
     /**
@@ -240,31 +374,42 @@ class StaffNotificationFeed
      */
     protected function receivableAlerts(): array
     {
-        return Customer::query()
-            ->withOutstandingBalance()
-            ->get()
-            ->filter(fn (Customer $customer) => (float) ($customer->outstanding_balance ?? 0) > 0.009)
-            ->sortByDesc(fn (Customer $customer) => (float) $customer->outstanding_balance)
-            ->take(6)
-            ->values()
-            ->map(function (Customer $customer) {
-                $balance = round((float) ($customer->outstanding_balance ?? 0), 2);
+        $rows = CustomerLedgerEntry::query()
+            ->select('customer_id')
+            ->selectRaw("SUM(CASE WHEN type = 'charge' THEN amount ELSE -amount END) as outstanding")
+            ->groupBy('customer_id')
+            ->havingRaw("SUM(CASE WHEN type = 'charge' THEN amount ELSE -amount END) > 0.009")
+            ->orderByDesc('outstanding')
+            ->limit(6)
+            ->get();
 
-                return [
-                    'id' => 'receivable-'.$customer->id,
-                    'kind' => 'reminder',
-                    'category' => 'customers',
-                    'title' => "{$customer->name} still owes",
-                    'body' => number_format($balance, 0).' outstanding — collect or check the ledger',
-                    'href' => route('tenant.customers.show', $customer, false),
-                    'action_label' => 'Open customer',
-                    'sort_at' => '5'.(int) ($balance * 100),
-                    'meta' => [
-                        'customer_id' => $customer->id,
-                        'balance' => $balance,
-                    ],
-                ];
-            })
-            ->all();
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $customers = Customer::query()
+            ->whereIn('id', $rows->pluck('customer_id'))
+            ->get(['id', 'name'])
+            ->keyBy('id');
+
+        return $rows->map(function (CustomerLedgerEntry $row) use ($customers) {
+            $customer = $customers->get($row->customer_id);
+            $balance = round((float) $row->outstanding, 2);
+
+            return [
+                'id' => 'receivable-'.$row->customer_id,
+                'kind' => 'reminder',
+                'category' => 'customers',
+                'title' => ($customer?->name ?? 'Customer').' still owes',
+                'body' => number_format($balance, 0).' outstanding — collect or check the ledger',
+                'href' => route('tenant.customers.show', $row->customer_id, false),
+                'action_label' => 'Open customer',
+                'sort_at' => '5'.(int) ($balance * 100),
+                'meta' => [
+                    'customer_id' => $row->customer_id,
+                    'balance' => $balance,
+                ],
+            ];
+        })->all();
     }
 }

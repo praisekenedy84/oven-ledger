@@ -3,7 +3,6 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Stack } from '@mui/material';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function ResetPassword({ token, email }) {
@@ -18,9 +17,8 @@ export default function ResetPassword({ token, email }) {
         <GuestLayout>
             <Head title="Reset Password" />
 
-            <Stack
-                component="form"
-                spacing={2.5}
+            <form
+                className="space-y-5"
                 onSubmit={(e) => {
                     e.preventDefault();
                     post(route('password.store'), {
@@ -68,7 +66,7 @@ export default function ResetPassword({ token, email }) {
                 <PrimaryButton type="submit" disabled={processing}>
                     Reset Password
                 </PrimaryButton>
-            </Stack>
+            </form>
         </GuestLayout>
     );
 }

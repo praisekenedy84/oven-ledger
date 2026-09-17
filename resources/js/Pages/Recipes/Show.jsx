@@ -2,9 +2,9 @@ import ConfirmButton from '@/Components/ConfirmButton';
 import Money from '@/Components/Money';
 import PageHeader from '@/Components/PageHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TenantLayout from '@/Layouts/TenantLayout';
 import RecipeFields from './RecipeFields';
-import { Box, Paper, Stack, Typography } from '@mui/material';
 import { Head, router, useForm } from '@inertiajs/react';
 
 export default function Show({ recipe, rawMaterials, cost = null, prices = null }) {
@@ -43,56 +43,48 @@ export default function Show({ recipe, rawMaterials, cost = null, prices = null 
                 }
             />
 
-            <Paper
-                component="form"
-                onSubmit={submit}
-                variant="outlined"
-                sx={{ p: { xs: 2, sm: 3 }, borderRadius: 1 }}
-            >
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-                    Edit recipe
-                </Typography>
-                <RecipeFields
-                    data={data}
-                    setData={setData}
-                    errors={errors}
-                    rawMaterials={rawMaterials}
-                    lockProduct
-                    productName={recipe.product?.name}
-                >
-                    <PrimaryButton type="submit" disabled={processing}>
-                        Save changes
-                    </PrimaryButton>
-                </RecipeFields>
-            </Paper>
+            <SurfaceCard>
+                <form onSubmit={submit}>
+                    <h2 className="mb-4 text-base font-bold">Edit recipe</h2>
+                    <RecipeFields
+                        data={data}
+                        setData={setData}
+                        errors={errors}
+                        rawMaterials={rawMaterials}
+                        lockProduct
+                        productName={recipe.product?.name}
+                    >
+                        <PrimaryButton type="submit" disabled={processing}>
+                            Save changes
+                        </PrimaryButton>
+                    </RecipeFields>
+                </form>
+            </SurfaceCard>
 
             {cost && (
-                <Paper variant="outlined" sx={{ mt: 3, p: { xs: 2, sm: 3 }, borderRadius: 1 }}>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Ingredient cost
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
+                <SurfaceCard className="mt-6">
+                    <h2 className="text-base font-bold">Ingredient cost</h2>
+                    <p className="mb-4 mt-0.5 text-sm text-muted-foreground">
                         From current raw-material prices. Batch <Money amount={cost.batch_cost} /> ·{' '}
                         <Money amount={cost.unit_cost} /> per piece.
-                    </Typography>
-                    <Stack spacing={1}>
+                    </p>
+                    <div className="space-y-2">
                         {(cost.lines ?? []).map((line) => (
-                            <Stack
+                            <div
                                 key={line.id ?? line.raw_material_id}
-                                direction="row"
-                                justifyContent="space-between"
+                                className="flex flex-row justify-between"
                             >
-                                <Typography variant="body2">
+                                <p className="text-sm">
                                     {line.name} · {line.quantity} {line.unit}
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600}>
+                                </p>
+                                <p className="text-sm font-semibold">
                                     <Money amount={line.line_cost} />
-                                </Typography>
-                            </Stack>
+                                </p>
+                            </div>
                         ))}
-                    </Stack>
+                    </div>
                     {prices?.retail != null && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                        <p className="mt-4 text-sm text-muted-foreground">
                             Retail <Money amount={prices.retail} />
                             {cost.unit_cost
                                 ? ` · ${prices.retail - cost.unit_cost >= 0 ? 'margin' : 'loss'} `
@@ -100,9 +92,9 @@ export default function Show({ recipe, rawMaterials, cost = null, prices = null 
                             {cost.unit_cost ? (
                                 <Money amount={Math.abs(prices.retail - cost.unit_cost)} />
                             ) : null}
-                        </Typography>
+                        </p>
                     )}
-                </Paper>
+                </SurfaceCard>
             )}
         </TenantLayout>
     );

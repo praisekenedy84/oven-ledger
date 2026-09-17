@@ -1,21 +1,9 @@
-import { Button } from '@mui/material';
+import { Button } from '@/Components/ui/button';
+import { cn } from '@/lib/utils';
 
-export default function SecondaryButton({
-    type = 'button',
-    className = '',
-    disabled,
-    children,
-    ...props
-}) {
+export default function SecondaryButton({ className, disabled, children, fullWidth, ...props }) {
     return (
-        <Button
-            {...props}
-            type={type}
-            variant="outlined"
-            color="inherit"
-            disabled={disabled}
-            className={className}
-        >
+        <Button variant="outline" className={cn(fullWidth && 'w-full', className)} disabled={disabled} {...props}>
             {children}
         </Button>
     );

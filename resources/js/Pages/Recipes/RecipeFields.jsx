@@ -2,8 +2,16 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Money from '@/Components/Money';
 import TextInput from '@/Components/TextInput';
-import { colors } from '@/theme/bakeryTheme';
-import { Box, Button, FormControl, MenuItem, Select, Stack, Typography } from '@mui/material';
+import { Button } from '@/Components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/Components/ui/select';
+import { formatMoney } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 function toAmount(value) {
     const amount = Number(value);
@@ -91,113 +99,90 @@ export default function RecipeFields({
     const yieldQty = toAmount(data.expected_yield);
     const unitCost = yieldQty > 0 ? batchCost / yieldQty : 0;
 
-    const quantityInputProps = {
-        inputMode: 'decimal',
-        step: 'any',
-        min: '0',
-    };
-
     return (
-        <Stack spacing={2}>
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                }}
-            >
-                <Box>
+        <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+                <div>
                     <InputLabel value="Product" />
                     {lockProduct ? (
-                        <Typography fontWeight={600} sx={{ pt: 1 }}>
-                            {productName}
-                        </Typography>
+                        <p className="pt-2 font-semibold">{productName}</p>
                     ) : (
                         <>
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    value={data.product_id}
-                                    onChange={(e) => setData('product_id', e.target.value)}
-                                >
+                            <Select
+                                value={String(data.product_id ?? '')}
+                                onValueChange={(value) => setData('product_id', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select product" />
+                                </SelectTrigger>
+                                <SelectContent>
                                     {products.map((product) => (
-                                        <MenuItem key={product.id} value={product.id}>
+                                        <SelectItem key={product.id} value={String(product.id)}>
                                             {product.name}
-                                        </MenuItem>
+                                        </SelectItem>
                                     ))}
-                                </Select>
-                            </FormControl>
+                                </SelectContent>
+                            </Select>
                             <InputError message={errors.product_id} />
                         </>
                     )}
-                </Box>
-                <Box>
+                </div>
+                <div>
                     <InputLabel value="Expected yield" />
                     <TextInput
-                        type="text"
-                        inputProps={quantityInputProps}
+                        type="number"
+                        step="any"
+                        min="0"
                         value={data.expected_yield}
                         onChange={(e) => setExpectedYield(e.target.value)}
-                        onInput={(e) => setExpectedYield(e.target.value)}
                     />
                     <InputError message={errors.expected_yield} />
-                </Box>
-            </Box>
+                </div>
+            </div>
 
-            <Box>
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    sx={{ mb: 1 }}
-                >
+            <div>
+                <div className="mb-2 flex items-center justify-between">
                     <InputLabel value="Ingredients" />
-                    <Button size="small" onClick={addIngredient}>
+                    <Button type="button" size="sm" variant="ghost" onClick={addIngredient}>
                         + Add ingredient
                     </Button>
-                </Stack>
-                <Stack spacing={1.5}>
+                </div>
+                <div className="space-y-3">
                     {ingredients.map((ingredient, index) => {
                         const lineCost = lineIngredientCost(ingredient, rawMaterials);
 
                         return (
-                            <Box
+                            <div
                                 key={index}
-                                sx={{
-                                    display: 'grid',
-                                    gap: 1.5,
-                                    gridTemplateColumns: {
-                                        xs: '1fr',
-                                        sm: '2fr 1fr 1fr auto',
-                                    },
-                                    alignItems: 'center',
-                                }}
+                                className="grid items-center gap-3 sm:grid-cols-[2fr_1fr_1fr_auto]"
                             >
-                                <FormControl fullWidth size="small">
-                                    <Select
-                                        value={ingredient.raw_material_id}
-                                        onChange={(e) =>
-                                            updateIngredient(index, 'raw_material_id', e.target.value)
-                                        }
-                                    >
+                                <Select
+                                    value={String(ingredient.raw_material_id ?? '')}
+                                    onValueChange={(value) =>
+                                        updateIngredient(index, 'raw_material_id', value)
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select material" />
+                                    </SelectTrigger>
+                                    <SelectContent>
                                         {rawMaterials.map((rawMaterial) => (
-                                            <MenuItem key={rawMaterial.id} value={rawMaterial.id}>
+                                            <SelectItem key={rawMaterial.id} value={String(rawMaterial.id)}>
                                                 {rawMaterial.name}
                                                 {Number(rawMaterial.unit_cost)
-                                                    ? ` · TZS ${Number(rawMaterial.unit_cost).toLocaleString('en-TZ')}`
+                                                    ? ` · ${formatMoney(rawMaterial.unit_cost)}`
                                                     : ''}
-                                            </MenuItem>
+                                            </SelectItem>
                                         ))}
-                                    </Select>
-                                </FormControl>
+                                    </SelectContent>
+                                </Select>
                                 <TextInput
-                                    type="text"
-                                    inputProps={quantityInputProps}
+                                    type="number"
+                                    step="any"
+                                    min="0"
                                     placeholder="Qty"
                                     value={ingredient.quantity}
                                     onChange={(e) =>
-                                        updateIngredient(index, 'quantity', e.target.value)
-                                    }
-                                    onInput={(e) =>
                                         updateIngredient(index, 'quantity', e.target.value)
                                     }
                                 />
@@ -206,64 +191,46 @@ export default function RecipeFields({
                                     value={ingredient.unit}
                                     onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
                                 />
-                                <Stack
-                                    direction={{ xs: 'row', sm: 'column' }}
-                                    alignItems={{ xs: 'center', sm: 'flex-end' }}
-                                    justifyContent="space-between"
-                                    spacing={0.5}
-                                >
-                                    <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                        sx={{ whiteSpace: 'nowrap' }}
-                                    >
+                                <div className="flex flex-row items-center justify-between gap-2 sm:flex-col sm:items-end">
+                                    <span className="whitespace-nowrap text-xs text-muted-foreground">
                                         Line <Money amount={lineCost} />
-                                    </Typography>
+                                    </span>
                                     <Button
-                                        size="small"
-                                        color="inherit"
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
                                         disabled={ingredients.length === 1}
                                         onClick={() => removeIngredient(index)}
                                     >
                                         Remove
                                     </Button>
-                                </Stack>
-                            </Box>
+                                </div>
+                            </div>
                         );
                     })}
-                </Stack>
+                </div>
                 <InputError message={errors.ingredients} />
 
-                <Box
-                    sx={{
-                        position: { xs: 'sticky', sm: 'static' },
-                        bottom: { xs: 12, sm: 'auto' },
-                        zIndex: 2,
-                        mt: 2,
-                        p: 2,
-                        borderRadius: 1,
-                        bgcolor: colors.wheatLight,
-                        border: `1px solid ${colors.border}`,
-                        boxShadow: { xs: '0 -4px 16px rgba(51, 38, 28, 0.12)', sm: 'none' },
-                        display: 'grid',
-                        gap: 1,
-                        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                    }}
+                <div
+                    className={cn(
+                        'mt-4 grid gap-2 rounded-md border border-border bg-wheat-light p-4 sm:grid-cols-2',
+                        'sticky bottom-3 z-[2] shadow-[0_-4px_16px_rgba(51,38,28,0.12)] sm:static sm:shadow-none',
+                    )}
                 >
-                    <Typography variant="body2">
+                    <p className="text-sm">
                         Batch ingredient cost:{' '}
                         <strong>
                             <Money amount={batchCost} />
                         </strong>
-                    </Typography>
-                    <Typography variant="body2">
+                    </p>
+                    <p className="text-sm">
                         Cost per piece:{' '}
                         <strong>{yieldQty > 0 ? <Money amount={unitCost} /> : '—'}</strong>
-                    </Typography>
-                </Box>
-            </Box>
+                    </p>
+                </div>
+            </div>
 
             {children}
-        </Stack>
+        </div>
     );
 }

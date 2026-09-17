@@ -6,11 +6,11 @@ import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import PrimaryButton from '@/Components/PrimaryButton';
 import StatusBadge from '@/Components/StatusBadge';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDateTime } from '@/lib/format';
-import { colors } from '@/theme/bakeryTheme';
-import { Box, FormControl, MenuItem, Paper, Select, Typography } from '@mui/material';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function Index({ ownerTransactions, totals }) {
@@ -30,90 +30,77 @@ export default function Index({ ownerTransactions, totals }) {
                 description="Money the owner put into the bakery, and drawings taken out."
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-                    mb: 3,
-                }}
-            >
+            <div className="mb-6 grid gap-6 md:grid-cols-3">
                 {[
                     { label: 'Capital in', value: totals.capital_in },
                     { label: 'Drawings', value: totals.drawings },
                     { label: 'Still in the business', value: totals.capital_remaining },
                 ].map((card) => (
-                    <Paper key={card.label} variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                            {card.label}
-                        </Typography>
-                        <Typography variant="h6" fontWeight={700} sx={{ color: colors.cocoa }}>
+                    <SurfaceCard key={card.label}>
+                        <p className="text-xs text-muted-foreground">{card.label}</p>
+                        <p className="text-lg font-bold text-cocoa">
                             <Money amount={card.value} />
-                        </Typography>
-                    </Paper>
+                        </p>
+                    </SurfaceCard>
                 ))}
-            </Box>
+            </div>
 
-            <Paper
-                component="form"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    ownerForm.post(route('tenant.capital.store'), {
-                        onSuccess: () => ownerForm.reset('amount', 'notes'),
-                    });
-                }}
-                variant="outlined"
-                sx={{
-                    mb: 3,
-                    p: 3,
-                    borderRadius: 1,
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
-                }}
-            >
-                <Box>
-                    <InputLabel value="Type" />
-                    <FormControl fullWidth size="small">
+            <SurfaceCard className="mb-6">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        ownerForm.post(route('tenant.capital.store'), {
+                            onSuccess: () => ownerForm.reset('amount', 'notes'),
+                        });
+                    }}
+                    className="grid gap-4 lg:grid-cols-3"
+                >
+                    <div>
+                        <InputLabel value="Type" />
                         <Select
                             value={ownerForm.data.type}
-                            onChange={(e) => ownerForm.setData('type', e.target.value)}
+                            onValueChange={(value) => ownerForm.setData('type', value)}
                         >
-                            <MenuItem value="capital_injection">Capital in</MenuItem>
-                            <MenuItem value="drawing">Drawing</MenuItem>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="capital_injection">Capital in</SelectItem>
+                                <SelectItem value="drawing">Drawing</SelectItem>
+                            </SelectContent>
                         </Select>
-                    </FormControl>
-                </Box>
-                <Box>
-                    <InputLabel value="Amount (TZS)" />
-                    <TextInput
-                        type="number"
-                        value={ownerForm.data.amount}
-                        onChange={(e) => ownerForm.setData('amount', e.target.value)}
-                    />
-                    <InputError message={ownerForm.errors.amount} />
-                </Box>
-                <Box>
-                    <InputLabel value="Date" />
-                    <TextInput
-                        type="date"
-                        value={ownerForm.data.transacted_at}
-                        onChange={(e) => ownerForm.setData('transacted_at', e.target.value)}
-                    />
-                </Box>
-                <Box>
-                    <InputLabel value="Notes" />
-                    <TextInput
-                        value={ownerForm.data.notes}
-                        onChange={(e) => ownerForm.setData('notes', e.target.value)}
-                    />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-                    <PrimaryButton type="submit" fullWidth disabled={ownerForm.processing}>
-                        Record
-                    </PrimaryButton>
-                </Box>
-            </Paper>
+                    </div>
+                    <div>
+                        <InputLabel value="Amount (TZS)" />
+                        <TextInput
+                            type="number"
+                            value={ownerForm.data.amount}
+                            onChange={(e) => ownerForm.setData('amount', e.target.value)}
+                        />
+                        <InputError message={ownerForm.errors.amount} />
+                    </div>
+                    <div>
+                        <InputLabel value="Date" />
+                        <TextInput
+                            type="date"
+                            value={ownerForm.data.transacted_at}
+                            onChange={(e) => ownerForm.setData('transacted_at', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <InputLabel value="Notes" />
+                        <TextInput
+                            value={ownerForm.data.notes}
+                            onChange={(e) => ownerForm.setData('notes', e.target.value)}
+                        />
+                    </div>
+                    <div className="flex items-end">
+                        <PrimaryButton type="submit" className="w-full" disabled={ownerForm.processing}>
+                            Record
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </SurfaceCard>
 
             <DataTable
                 columns={[
@@ -130,7 +117,7 @@ export default function Index({ ownerTransactions, totals }) {
                         <DataTableCell>
                             <StatusBadge status={row.type} />
                         </DataTableCell>
-                        <DataTableCell sx={{ fontWeight: 600 }}>
+                        <DataTableCell className="font-semibold">
                             <Money amount={row.amount} />
                         </DataTableCell>
                         <DataTableCell>{row.notes || '—'}</DataTableCell>

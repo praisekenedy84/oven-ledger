@@ -5,12 +5,13 @@ import Money from '@/Components/Money';
 import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
 import StatusBadge from '@/Components/StatusBadge';
+import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDate } from '@/lib/format';
-import { colors } from '@/theme/bakeryTheme';
-import { Box, Button, FormControl, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -19,6 +20,9 @@ const LIABILITY_TYPES = [
     { value: 'loan', label: 'Loan' },
     { value: 'other', label: 'Other' },
 ];
+
+const selectClassName =
+    'flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
 export default function Index({ liabilities, branches, filters, totals }) {
     const [payingId, setPayingId] = useState(null);
@@ -47,135 +51,122 @@ export default function Index({ liabilities, branches, filters, totals }) {
                 description="Money the bakery owes — supplier credit, loans, and other payables."
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-                    mb: 3,
-                }}
-            >
-                <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                        Open payables
-                    </Typography>
-                    <Typography variant="h6" fontWeight={700} sx={{ color: colors.cocoa }}>
+            <div className="mb-6 grid gap-6 md:grid-cols-3">
+                <SurfaceCard>
+                    <p className="text-xs text-muted-foreground">Open payables</p>
+                    <p className="text-lg font-bold text-cocoa">
                         <Money amount={totals.payables_open} />
-                    </Typography>
-                </Paper>
-            </Box>
+                    </p>
+                </SurfaceCard>
+            </div>
 
-            <Paper
-                component="form"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    liabilityForm.post(route('tenant.debts.store'), {
-                        onSuccess: () => liabilityForm.reset(),
-                    });
-                }}
-                variant="outlined"
-                sx={{
-                    mb: 3,
-                    p: 3,
-                    borderRadius: 1,
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
-                }}
-            >
-                <Box>
-                    <InputLabel value="Type" />
-                    <FormControl fullWidth size="small">
+            <SurfaceCard className="mb-6">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        liabilityForm.post(route('tenant.debts.store'), {
+                            onSuccess: () => liabilityForm.reset(),
+                        });
+                    }}
+                    className="grid gap-4 lg:grid-cols-3"
+                >
+                    <div>
+                        <InputLabel value="Type" />
                         <Select
                             value={liabilityForm.data.type}
-                            onChange={(e) => liabilityForm.setData('type', e.target.value)}
+                            onValueChange={(value) => liabilityForm.setData('type', value)}
                         >
-                            {LIABILITY_TYPES.map((type) => (
-                                <MenuItem key={type.value} value={type.value}>
-                                    {type.label}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </Box>
-                <Box>
-                    <InputLabel value="Creditor" />
-                    <TextInput
-                        value={liabilityForm.data.creditor_name}
-                        onChange={(e) =>
-                            liabilityForm.setData('creditor_name', e.target.value)
-                        }
-                    />
-                    <InputError message={liabilityForm.errors.creditor_name} />
-                </Box>
-                <Box>
-                    <InputLabel value="Original amount (TZS)" />
-                    <TextInput
-                        type="number"
-                        value={liabilityForm.data.original_amount}
-                        onChange={(e) =>
-                            liabilityForm.setData('original_amount', e.target.value)
-                        }
-                    />
-                    <InputError message={liabilityForm.errors.original_amount} />
-                </Box>
-                <Box>
-                    <InputLabel value="Due date" />
-                    <TextInput
-                        type="date"
-                        value={liabilityForm.data.due_date}
-                        onChange={(e) => liabilityForm.setData('due_date', e.target.value)}
-                    />
-                </Box>
-                {branches.length > 1 && (
-                    <Box>
-                        <InputLabel value="Branch" />
-                        <FormControl fullWidth size="small">
-                            <Select
-                                value={liabilityForm.data.branch_id}
-                                onChange={(e) =>
-                                    liabilityForm.setData('branch_id', e.target.value)
-                                }
-                            >
-                                {branches.map((branch) => (
-                                    <MenuItem key={branch.id} value={branch.id}>
-                                        {branch.name}
-                                    </MenuItem>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {LIABILITY_TYPES.map((type) => (
+                                    <SelectItem key={type.value} value={type.value}>
+                                        {type.label}
+                                    </SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <InputLabel value="Creditor" />
+                        <TextInput
+                            value={liabilityForm.data.creditor_name}
+                            onChange={(e) =>
+                                liabilityForm.setData('creditor_name', e.target.value)
+                            }
+                        />
+                        <InputError message={liabilityForm.errors.creditor_name} />
+                    </div>
+                    <div>
+                        <InputLabel value="Original amount (TZS)" />
+                        <TextInput
+                            type="number"
+                            value={liabilityForm.data.original_amount}
+                            onChange={(e) =>
+                                liabilityForm.setData('original_amount', e.target.value)
+                            }
+                        />
+                        <InputError message={liabilityForm.errors.original_amount} />
+                    </div>
+                    <div>
+                        <InputLabel value="Due date" />
+                        <TextInput
+                            type="date"
+                            value={liabilityForm.data.due_date}
+                            onChange={(e) => liabilityForm.setData('due_date', e.target.value)}
+                        />
+                    </div>
+                    {branches.length > 1 && (
+                        <div>
+                            <InputLabel value="Branch" />
+                            <Select
+                                value={String(liabilityForm.data.branch_id)}
+                                onValueChange={(value) => liabilityForm.setData('branch_id', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {branches.map((branch) => (
+                                        <SelectItem key={branch.id} value={String(branch.id)}>
+                                            {branch.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
                             </Select>
-                        </FormControl>
-                    </Box>
-                )}
-                <Box>
-                    <InputLabel value="Notes" />
-                    <TextInput
-                        value={liabilityForm.data.notes}
-                        onChange={(e) => liabilityForm.setData('notes', e.target.value)}
-                    />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-                    <PrimaryButton type="submit" fullWidth disabled={liabilityForm.processing}>
-                        Add liability
-                    </PrimaryButton>
-                </Box>
-            </Paper>
+                        </div>
+                    )}
+                    <div>
+                        <InputLabel value="Notes" />
+                        <TextInput
+                            value={liabilityForm.data.notes}
+                            onChange={(e) => liabilityForm.setData('notes', e.target.value)}
+                        />
+                    </div>
+                    <div className="flex items-end">
+                        <PrimaryButton type="submit" className="w-full" disabled={liabilityForm.processing}>
+                            Add liability
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </SurfaceCard>
 
-            <FormControl size="small" sx={{ mb: 2, minWidth: 160 }}>
-                <Select
-                    value={filters.status ?? 'open'}
-                    onChange={(e) =>
-                        router.get(
-                            route('tenant.debts.index'),
-                            { status: e.target.value },
-                            { preserveState: true, preserveScroll: true, only: ['liabilities', 'filters'] },
-                        )
-                    }
-                >
-                    <MenuItem value="open">Open</MenuItem>
-                    <MenuItem value="settled">Settled</MenuItem>
-                    <MenuItem value="all">All</MenuItem>
-                </Select>
-            </FormControl>
+            <select
+                className={`${selectClassName} mb-4 min-w-[160px]`}
+                value={filters.status ?? 'open'}
+                onChange={(e) =>
+                    router.get(
+                        route('tenant.debts.index'),
+                        { status: e.target.value },
+                        { preserveState: true, preserveScroll: true, only: ['liabilities', 'filters'] },
+                    )
+                }
+            >
+                <option value="open">Open</option>
+                <option value="settled">Settled</option>
+                <option value="all">All</option>
+            </select>
 
             <DataTable
                 columns={[
@@ -192,8 +183,7 @@ export default function Index({ liabilities, branches, filters, totals }) {
                     <DataTableRow key={liability.id}>
                         {payingId === liability.id ? (
                             <DataTableCell colSpan={6}>
-                                <Box
-                                    component="form"
+                                <form
                                     onSubmit={(e) => {
                                         e.preventDefault();
                                         paymentForm.post(
@@ -206,14 +196,7 @@ export default function Index({ liabilities, branches, filters, totals }) {
                                             },
                                         );
                                     }}
-                                    sx={{
-                                        display: 'grid',
-                                        gap: 1.5,
-                                        gridTemplateColumns: {
-                                            xs: '1fr',
-                                            md: '1fr 1fr 1fr auto',
-                                        },
-                                    }}
+                                    className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]"
                                 >
                                     <TextInput
                                         type="number"
@@ -237,20 +220,20 @@ export default function Index({ liabilities, branches, filters, totals }) {
                                             paymentForm.setData('notes', e.target.value)
                                         }
                                     />
-                                    <Stack direction="row" spacing={1}>
-                                        <PrimaryButton type="submit" size="small">
+                                    <div className="flex gap-2">
+                                        <PrimaryButton type="submit" size="sm">
                                             Save
                                         </PrimaryButton>
-                                        <Button size="small" onClick={() => setPayingId(null)}>
+                                        <SecondaryButton type="button" size="sm" onClick={() => setPayingId(null)}>
                                             Cancel
-                                        </Button>
-                                    </Stack>
+                                        </SecondaryButton>
+                                    </div>
                                     <InputError message={paymentForm.errors.amount} />
-                                </Box>
+                                </form>
                             </DataTableCell>
                         ) : (
                             <>
-                                <DataTableCell sx={{ fontWeight: 600 }}>
+                                <DataTableCell className="font-semibold">
                                     {liability.creditor_name}
                                 </DataTableCell>
                                 <DataTableCell>
@@ -265,8 +248,8 @@ export default function Index({ liabilities, branches, filters, totals }) {
                                 </DataTableCell>
                                 <DataTableCell>
                                     {liability.status === 'open' && (
-                                        <Button
-                                            size="small"
+                                        <SecondaryButton
+                                            size="sm"
                                             onClick={() => {
                                                 setPayingId(liability.id);
                                                 paymentForm.setData(
@@ -276,7 +259,7 @@ export default function Index({ liabilities, branches, filters, totals }) {
                                             }}
                                         >
                                             Record payment
-                                        </Button>
+                                        </SecondaryButton>
                                     )}
                                 </DataTableCell>
                             </>

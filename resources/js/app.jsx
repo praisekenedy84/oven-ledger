@@ -1,36 +1,37 @@
 import '../css/app.css';
 import './bootstrap';
 
-import bakeryTheme, { createBakeryTheme } from './theme/bakeryTheme';
-import { CssBaseline, ThemeProvider } from '@mui/material';
+import { applyBakeryBrand } from './theme/bakeryTheme';
 import { createInertiaApp, router, usePage } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
+import { Toaster } from 'sonner';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Oven Ledger';
 
 function BrandTheme({ children }) {
     const shop = usePage().props.shop;
-    const theme = useMemo(
-        () => createBakeryTheme(shop),
-        [shop?.primary_color, shop?.accent_color],
-    );
 
     useEffect(() => {
-        if (shop?.primary_color) {
-            document.documentElement.style.setProperty('--color-jam', shop.primary_color);
-        }
-        if (shop?.accent_color) {
-            document.documentElement.style.setProperty('--color-butter', shop.accent_color);
-        }
+        applyBakeryBrand(shop);
     }, [shop?.primary_color, shop?.accent_color]);
 
     return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline />
+        <>
             {children}
-        </ThemeProvider>
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    className: 'font-sans',
+                    style: {
+                        background: 'var(--card)',
+                        color: 'var(--foreground)',
+                        border: '1px solid var(--border)',
+                    },
+                }}
+            />
+        </>
     );
 }
 
@@ -44,15 +45,13 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
         root.render(
-            <ThemeProvider theme={bakeryTheme}>
-                <App {...props}>
-                    {({ Component, key, props: pageProps }) => (
-                        <BrandTheme>
-                            <Component key={key} {...pageProps} />
-                        </BrandTheme>
-                    )}
-                </App>
-            </ThemeProvider>,
+            <App {...props}>
+                {({ Component, key, props: pageProps }) => (
+                    <BrandTheme>
+                        <Component key={key} {...pageProps} />
+                    </BrandTheme>
+                )}
+            </App>,
         );
     },
     progress: {

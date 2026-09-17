@@ -1,125 +1,85 @@
-import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import { colors } from '@/theme/bakeryTheme';
-import { IconButton, InputAdornment, TextField } from '@mui/material';
+import DateInput from '@/Components/DateInput';
+import NumberInput from '@/Components/NumberInput';
+import { Input } from '@/Components/ui/input';
+import { cn } from '@/lib/utils';
+import { Eye, EyeOff } from 'lucide-react';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
-export default forwardRef(function TextInput(
-    {
-        type = 'text',
-        className = '',
-        isFocused = false,
-        InputProps,
-        inputProps,
-        slotProps,
-        sx,
-        ...props
-    },
+const TextInput = forwardRef(function TextInput(
+    { className = '', type = 'text', isFocused = false, inputProps, ...props },
     ref,
 ) {
     const localRef = useRef(null);
     const [visible, setVisible] = useState(false);
     const isPassword = type === 'password';
+    const isDateField =
+        type === 'date' ||
+        type === 'datetime-local' ||
+        type === 'time' ||
+        type === 'month' ||
+        type === 'week';
+    const isNumberField = type === 'number';
 
     useImperativeHandle(ref, () => ({
         focus: () => localRef.current?.focus(),
     }));
 
     useEffect(() => {
-        if (isFocused) {
+        if (isFocused && !isDateField && !isNumberField) {
             localRef.current?.focus();
         }
-    }, [isFocused]);
+    }, [isFocused, isDateField, isNumberField]);
 
-    const incomingInputSlot =
-        slotProps?.input && typeof slotProps.input === 'object' ? slotProps.input : {};
-    const existingAdornment = InputProps?.endAdornment ?? incomingInputSlot.endAdornment;
-    const passwordAdornment = isPassword ? (
-        <InputAdornment position="end">
-            <IconButton
-                type="button"
-                edge="end"
-                aria-label={visible ? 'Hide password' : 'Show password'}
-                aria-pressed={visible}
-                onClick={() => setVisible((current) => !current)}
-                onMouseDown={(event) => event.preventDefault()}
-                sx={{
-                    color: colors.muted,
-                    width: { xs: 44, sm: 40 },
-                    height: { xs: 44, sm: 40 },
-                    minWidth: { xs: 44, sm: 40 },
-                    minHeight: { xs: 44, sm: 40 },
-                    '&:hover': { color: colors.ink, bgcolor: 'rgba(51, 38, 28, 0.06)' },
-                }}
-            >
-                {visible ? (
-                    <VisibilityOffOutlinedIcon fontSize="small" />
-                ) : (
-                    <VisibilityOutlinedIcon fontSize="small" />
-                )}
-            </IconButton>
-        </InputAdornment>
-    ) : null;
+    if (isDateField) {
+        return (
+            <DateInput
+                ref={ref}
+                type={type}
+                className={className}
+                isFocused={isFocused}
+                {...props}
+            />
+        );
+    }
+
+    if (isNumberField) {
+        return (
+            <NumberInput
+                ref={ref}
+                className={className}
+                isFocused={isFocused}
+                {...(inputProps ?? {})}
+                {...props}
+            />
+        );
+    }
 
     return (
-        <TextField
-            {...props}
-            type={isPassword && visible ? 'text' : type}
-            className={className}
-            inputRef={localRef}
-            fullWidth
-            sx={[
-                {
-                    '& .MuiOutlinedInput-root': {
-                        minHeight: 48,
-                    },
-                    '& .MuiInputBase-input, & .MuiInputBase-input:focus, & .MuiInputBase-input:focus-visible':
-                        {
-                            outline: 'none',
-                            boxShadow: 'none',
-                            border: 'none',
-                            color: colors.ink,
-                            caretColor: colors.ink,
-                            WebkitTextFillColor: colors.ink,
-                            fontSize: '1rem',
-                            lineHeight: 1.5,
-                            minHeight: 48,
-                            paddingTop: '12px',
-                            paddingBottom: '12px',
-                            overflow: 'visible',
-                        },
-                    ...(isPassword
-                        ? {
-                              '& .MuiInputBase-input': {
-                                  letterSpacing: visible ? 'normal' : '0.12em',
-                                  fontWeight: 600,
-                              },
-                          }
-                        : {}),
-                },
-                sx,
-            ]}
-            slotProps={{
-                ...slotProps,
-                htmlInput: {
-                    ...inputProps,
-                    ...(slotProps?.htmlInput && typeof slotProps.htmlInput === 'object'
-                        ? slotProps.htmlInput
-                        : {}),
-                },
-                input: {
-                    ...InputProps,
-                    ...incomingInputSlot,
-                    endAdornment: passwordAdornment ? (
-                        <>
-                            {existingAdornment}
-                            {passwordAdornment}
-                        </>
-                    ) : (
-                        existingAdornment
-                    ),
-                },
-            }}
-        />
+        <div className="relative w-full">
+            <Input
+                {...props}
+                ref={localRef}
+                type={isPassword && visible ? 'text' : type}
+                className={cn(
+                    className,
+                    isPassword && 'pr-12',
+                    isPassword && !visible && 'font-semibold tracking-[0.12em]',
+                )}
+            />
+            {isPassword && (
+                <button
+                    type="button"
+                    aria-label={visible ? 'Hide password' : 'Show password'}
+                    aria-pressed={visible}
+                    onClick={() => setVisible((current) => !current)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-ink/5 hover:text-foreground sm:h-10 sm:w-10"
+                >
+                    {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+            )}
+        </div>
     );
 });
+
+export default TextInput;

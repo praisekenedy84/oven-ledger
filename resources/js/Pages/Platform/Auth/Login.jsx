@@ -3,9 +3,8 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { Alert } from '@/Components/ui/alert';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { colors } from '@/theme/bakeryTheme';
-import { Alert, Stack, Typography } from '@mui/material';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function Login({ status }) {
@@ -19,22 +18,19 @@ export default function Login({ status }) {
         <GuestLayout variant="platform">
             <Head title="Platform Login" />
 
-            <Typography variant="h4" sx={{ mb: 0.5 }}>
-                Platform sign in
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            <h1 className="text-2xl font-semibold text-foreground">Platform sign in</h1>
+            <p className="mb-6 mt-1 text-sm text-muted-foreground">
                 Tenant health, flags, and the audit trail.
-            </Typography>
+            </p>
 
             {status && (
-                <Alert severity="success" sx={{ mb: 2 }}>
+                <Alert variant="success" className="mb-4">
                     {status}
                 </Alert>
             )}
 
-            <Stack
-                component="form"
-                spacing={2.5}
+            <form
+                className="space-y-5"
                 onSubmit={(e) => {
                     e.preventDefault();
                     post(route('platform.login'), {
@@ -76,14 +72,11 @@ export default function Login({ status }) {
                 <PrimaryButton type="submit" fullWidth disabled={processing}>
                     Enter the console
                 </PrimaryButton>
-            </Stack>
+            </form>
 
-            <Typography
-                variant="caption"
-                sx={{ display: 'block', mt: 3, textAlign: 'center', color: colors.muted }}
-            >
+            <p className="mt-6 block text-center text-xs text-muted-foreground">
                 Platform administrators only.
-            </Typography>
+            </p>
         </GuestLayout>
     );
 }

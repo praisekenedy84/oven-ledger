@@ -6,33 +6,20 @@ import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
 import VoidSaleDialog, { canVoidOrder } from '@/Components/VoidSaleDialog';
+import { Button } from '@/Components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/Components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/ui/tooltip';
 import TenantLayout from '@/Layouts/TenantLayout';
 import useDebouncedValue from '@/hooks/useDebouncedValue';
-import { formatDateTime } from '@/lib/format';
-import { colors } from '@/theme/bakeryTheme';
-import {
-    Box,
-    Button,
-    Divider,
-    FormControl,
-    IconButton,
-    ListItemIcon,
-    ListItemText,
-    Menu,
-    MenuItem,
-    Select,
-    Stack,
-    TextField,
-    Tooltip,
-    Typography,
-} from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
-import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
-import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
-import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import { formatDateTime, formatQuantity } from '@/lib/format';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Fragment, useEffect, useState } from 'react';
+import { CheckCircle, Download, FileSpreadsheet, FileText, Undo2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 function localIsoDate(date = new Date()) {
     const year = date.getFullYear();
@@ -53,12 +40,15 @@ function monthStart() {
 }
 
 function saleItems(sale) {
-    return (sale.items ?? []).map((item) => `${item.quantity} ${item.name}`).join(', ');
+    return (sale.items ?? [])
+        .map((item) => `${formatQuantity(item.quantity)} ${item.name}`)
+        .join(', ');
 }
 
-function SalesExportMenu({ filters }) {
-    const [anchor, setAnchor] = useState(null);
+const filterSelectClassName =
+    'flex h-10 w-full min-w-[150px] rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
+function SalesExportMenu({ filters }) {
     const hrefFor = (format) =>
         route('tenant.sales.export', {
             format,
@@ -72,44 +62,28 @@ function SalesExportMenu({ filters }) {
         });
 
     return (
-        <>
-            <Button
-                size="small"
-                variant="contained"
-                startIcon={<FileDownloadOutlinedIcon />}
-                onClick={(event) => setAnchor(event.currentTarget)}
-            >
-                Export
-            </Button>
-            <Menu
-                anchorEl={anchor}
-                open={Boolean(anchor)}
-                onClose={() => setAnchor(null)}
-                slotProps={{ paper: { sx: { minWidth: 220 } } }}
-            >
-                {[
-                    { format: 'pdf', label: 'Download PDF', icon: PictureAsPdfOutlinedIcon },
-                    { format: 'xlsx', label: 'Download Excel', icon: TableChartOutlinedIcon },
-                ].map((option, index) => {
-                    const Icon = option.icon;
-                    return (
-                        <Fragment key={option.format}>
-                            {index > 0 ? <Divider sx={{ my: 0.5 }} /> : null}
-                            <MenuItem
-                                component="a"
-                                href={hrefFor(option.format)}
-                                onClick={() => setAnchor(null)}
-                            >
-                                <ListItemIcon>
-                                    <Icon fontSize="small" />
-                                </ListItemIcon>
-                                <ListItemText primary={option.label} />
-                            </MenuItem>
-                        </Fragment>
-                    );
-                })}
-            </Menu>
-        </>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button size="sm">
+                    <Download className="h-4 w-4" />
+                    Export
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[220px]">
+                <DropdownMenuItem asChild>
+                    <a href={hrefFor('pdf')} className="flex cursor-pointer items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Download PDF
+                    </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <a href={hrefFor('xlsx')} className="flex cursor-pointer items-center gap-2">
+                        <FileSpreadsheet className="h-4 w-4" />
+                        Download Excel
+                    </a>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
 
@@ -196,111 +170,76 @@ export default function Index({
                 actions={<SalesExportMenu filters={filters} />}
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
-                    mb: 3,
-                }}
-            >
+            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.jam }}>
-                        Today’s total
-                    </Typography>
-                    <Typography variant="h4" sx={{ color: colors.ink, mt: 0.5 }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-jam">Today’s total</p>
+                    <p className="mt-1 text-3xl font-semibold text-ink">
                         <Money amount={summary.today_total} />
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         {summary.today_count} sold ticket{summary.today_count === 1 ? '' : 's'} today
-                    </Typography>
+                    </p>
                 </SurfaceCard>
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.butter }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-butter">
                         {periodSameDay ? 'Selected day' : 'Selected range'}
-                    </Typography>
-                    <Typography variant="h4" sx={{ color: colors.ink, mt: 0.5 }}>
+                    </p>
+                    <p className="mt-1 text-3xl font-semibold text-ink">
                         <Money amount={summary.period_total} />
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         {summary.period_count} sold · {summary.voided_count} voided
-                    </Typography>
+                    </p>
                 </SurfaceCard>
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.sage }}>
-                        Open pre-orders
-                    </Typography>
-                    <Typography variant="h4" sx={{ color: colors.ink, mt: 0.5 }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-sage">Open pre-orders</p>
+                    <p className="mt-1 text-3xl font-semibold text-ink">
                         {summary.pending_count}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Still waiting in this date range
-                    </Typography>
+                    </p>
                 </SurfaceCard>
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.muted }}>
-                        Live view
-                    </Typography>
-                    <Typography variant="subtitle1" fontWeight={700} sx={{ color: colors.ink, mt: 0.5 }}>
-                        Auto-refreshing
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live view</p>
+                    <p className="mt-1 text-base font-bold text-ink">Auto-refreshing</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Updated {refreshedAt ? formatDateTime(refreshedAt) : 'just now'}
-                    </Typography>
+                    </p>
                 </SurfaceCard>
-            </Box>
+            </div>
 
-            <SurfaceCard sx={{ mb: 3 }}>
-                <Stack
-                    direction={{ xs: 'column', lg: 'row' }}
-                    spacing={2}
-                    useFlexGap
-                    flexWrap="wrap"
-                    alignItems={{ lg: 'flex-end' }}
-                >
-                    <Box sx={{ minWidth: { sm: 150 } }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                            From
-                        </Typography>
-                        <TextField
-                            size="small"
+            <SurfaceCard className="mb-6">
+                <div className="flex flex-col flex-wrap items-stretch gap-4 lg:flex-row lg:items-end">
+                    <div className="min-w-[11.75rem]">
+                        <p className="mb-1 block text-xs text-muted-foreground">From</p>
+                        <TextInput
                             type="date"
-                            fullWidth
                             value={filters.date_from}
                             onChange={(e) => applyFilters({ ...filters, date_from: e.target.value })}
-                            InputLabelProps={{ shrink: true }}
                         />
-                    </Box>
-                    <Box sx={{ minWidth: { sm: 150 } }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                            To
-                        </Typography>
-                        <TextField
-                            size="small"
+                    </div>
+                    <div className="min-w-[11.75rem]">
+                        <p className="mb-1 block text-xs text-muted-foreground">To</p>
+                        <TextInput
                             type="date"
-                            fullWidth
                             value={filters.date_to}
                             onChange={(e) => applyFilters({ ...filters, date_to: e.target.value })}
-                            InputLabelProps={{ shrink: true }}
                         />
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: { sm: 200 } }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                            Search staff
-                        </Typography>
+                    </div>
+                    <div className="min-w-[200px] flex-1">
+                        <p className="mb-1 block text-xs text-muted-foreground">Search staff</p>
                         <TextInput
                             placeholder="Cashier name…"
                             value={staffSearch}
                             onChange={(e) => setStaffSearch(e.target.value)}
                         />
-                    </Box>
-                    <FormControl size="small" sx={{ minWidth: 180 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                            Staff
-                        </Typography>
-                        <Select
+                    </div>
+                    <div className="min-w-[180px]">
+                        <p className="mb-1 block text-xs text-muted-foreground">Staff</p>
+                        <select
+                            className={filterSelectClassName}
                             value={filters.staff_user_id ?? ''}
-                            displayEmpty
                             onChange={(e) =>
                                 applyFilters({
                                     ...filters,
@@ -308,53 +247,48 @@ export default function Index({
                                 })
                             }
                         >
-                            <MenuItem value="">All staff</MenuItem>
-                            <MenuItem value={0}>Unassigned</MenuItem>
+                            <option value="">All staff</option>
+                            <option value="0">Unassigned</option>
                             {staffOptions.map((person) => (
-                                <MenuItem key={person.id} value={person.id}>
+                                <option key={person.id} value={person.id}>
                                     {person.name}
-                                </MenuItem>
+                                </option>
                             ))}
-                        </Select>
-                    </FormControl>
-                    <FormControl size="small" sx={{ minWidth: 150 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                            Channel
-                        </Typography>
-                        <Select
+                        </select>
+                    </div>
+                    <div className="min-w-[150px]">
+                        <p className="mb-1 block text-xs text-muted-foreground">Channel</p>
+                        <select
+                            className={filterSelectClassName}
                             value={filters.channel ?? ''}
-                            displayEmpty
                             onChange={(e) => applyFilters({ ...filters, channel: e.target.value })}
                         >
-                            <MenuItem value="">All channels</MenuItem>
-                            <MenuItem value="retail">Retail</MenuItem>
-                            <MenuItem value="wholesale">Wholesale</MenuItem>
-                            <MenuItem value="restaurant">Restaurant</MenuItem>
-                            <MenuItem value="custom">Custom</MenuItem>
-                        </Select>
-                    </FormControl>
-                    <FormControl size="small" sx={{ minWidth: 150 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                            Status
-                        </Typography>
-                        <Select
+                            <option value="">All channels</option>
+                            <option value="retail">Retail</option>
+                            <option value="wholesale">Wholesale</option>
+                            <option value="restaurant">Restaurant</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div className="min-w-[150px]">
+                        <p className="mb-1 block text-xs text-muted-foreground">Status</p>
+                        <select
+                            className={filterSelectClassName}
                             value={filters.status ?? 'completed'}
                             onChange={(e) => applyFilters({ ...filters, status: e.target.value })}
                         >
-                            <MenuItem value="completed">Sold</MenuItem>
-                            <MenuItem value="voided">Voided</MenuItem>
-                            <MenuItem value="pending">Pending</MenuItem>
-                            <MenuItem value="all">Sold + voided</MenuItem>
-                        </Select>
-                    </FormControl>
+                            <option value="completed">Sold</option>
+                            <option value="voided">Voided</option>
+                            <option value="pending">Pending</option>
+                            <option value="all">Sold + voided</option>
+                        </select>
+                    </div>
                     {branches.length > 1 && (
-                        <FormControl size="small" sx={{ minWidth: 160 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                                Branch
-                            </Typography>
-                            <Select
+                        <div className="min-w-[160px]">
+                            <p className="mb-1 block text-xs text-muted-foreground">Branch</p>
+                            <select
+                                className={filterSelectClassName}
                                 value={filters.branch_id ?? ''}
-                                displayEmpty
                                 onChange={(e) =>
                                     applyFilters({
                                         ...filters,
@@ -362,18 +296,18 @@ export default function Index({
                                     })
                                 }
                             >
-                                <MenuItem value="">All branches</MenuItem>
+                                <option value="">All branches</option>
                                 {branches.map((branch) => (
-                                    <MenuItem key={branch.id} value={branch.id}>
+                                    <option key={branch.id} value={branch.id}>
                                         {branch.name}
-                                    </MenuItem>
+                                    </option>
                                 ))}
-                            </Select>
-                        </FormControl>
+                            </select>
+                        </div>
                     )}
-                </Stack>
+                </div>
 
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 2 }}>
+                <div className="mt-4 flex flex-wrap gap-2">
                     {[
                         { label: 'Today', from: localIsoDate(), to: localIsoDate() },
                         { label: 'Last 7 days', from: shiftDays(-6), to: localIsoDate() },
@@ -384,8 +318,8 @@ export default function Index({
                         return (
                             <Button
                                 key={preset.label}
-                                size="small"
-                                variant={active ? 'contained' : 'outlined'}
+                                size="sm"
+                                variant={active ? 'default' : 'outline'}
                                 onClick={() =>
                                     applyFilters({
                                         ...filters,
@@ -398,26 +332,17 @@ export default function Index({
                             </Button>
                         );
                     })}
-                </Stack>
+                </div>
             </SurfaceCard>
 
             {byChannel.length > 0 && (
-                <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    spacing={1.5}
-                    useFlexGap
-                    flexWrap="wrap"
-                    sx={{ mb: 3 }}
-                >
+                <div className="mb-6 flex flex-col flex-wrap gap-3 sm:flex-row">
                     {byChannel.map((row) => (
                         <SurfaceCard
                             key={row.channel}
-                            sx={{
-                                flex: '1 1 160px',
-                                cursor: 'pointer',
-                                borderColor:
-                                    filters.channel === row.channel ? colors.jam : colors.border,
-                            }}
+                            className={`min-w-[160px] flex-1 cursor-pointer ${
+                                filters.channel === row.channel ? 'border-jam' : ''
+                            }`}
                             onClick={() =>
                                 applyFilters({
                                     ...filters,
@@ -425,18 +350,18 @@ export default function Index({
                                 })
                             }
                         >
-                            <Typography variant="overline" sx={{ color: colors.muted }}>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 {row.channel}
-                            </Typography>
-                            <Typography variant="h6" sx={{ color: colors.ink }}>
+                            </p>
+                            <p className="text-lg font-semibold text-ink">
                                 <Money amount={row.total} />
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            </p>
+                            <p className="text-xs text-muted-foreground">
                                 {row.tickets} ticket{row.tickets === 1 ? '' : 's'}
-                            </Typography>
+                            </p>
                         </SurfaceCard>
                     ))}
-                </Stack>
+                </div>
             )}
 
             <DataTable
@@ -456,18 +381,18 @@ export default function Index({
                         <DataTableCell>{formatDateTime(sale.created_at)}</DataTableCell>
                         <DataTableCell>{sale.cashier?.name ?? 'Unassigned'}</DataTableCell>
                         <DataTableCell>
-                            <Typography variant="body2" fontWeight={600}>
+                            <p className="text-sm font-semibold">
                                 #{sale.id}
                                 {sale.customer?.name ? ` · ${sale.customer.name}` : ''}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            </p>
+                            <p className="text-xs text-muted-foreground">
                                 {saleItems(sale) || '—'}
-                            </Typography>
+                            </p>
                         </DataTableCell>
                         <DataTableCell>
                             <StatusBadge status={sale.channel} />
                         </DataTableCell>
-                        <DataTableCell sx={{ fontWeight: 600 }}>
+                        <DataTableCell className="font-semibold">
                             <Money amount={sale.total_amount} />
                         </DataTableCell>
                         <DataTableCell>
@@ -482,18 +407,12 @@ export default function Index({
                                 }
                             />
                         </DataTableCell>
-                        <DataTableCell sx={{ width: 1, whiteSpace: 'nowrap' }}>
-                            <Stack
-                                direction="row"
-                                spacing={0.75}
-                                justifyContent="flex-end"
-                                alignItems="center"
-                            >
+                        <DataTableCell className="w-px whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
                                 {sale.status === 'pending' && (
                                     <Button
-                                        size="small"
-                                        variant="contained"
-                                        startIcon={<CheckCircleOutlineIcon sx={{ fontSize: 16 }} />}
+                                        size="sm"
+                                        className="px-3"
                                         onClick={() =>
                                             router.patch(
                                                 route('tenant.orders.fulfill', sale.id),
@@ -501,34 +420,31 @@ export default function Index({
                                                 { preserveScroll: true },
                                             )
                                         }
-                                        sx={{ px: 1.25 }}
                                     >
+                                        <CheckCircle className="h-4 w-4" />
                                         Mark sold
                                     </Button>
                                 )}
                                 {canVoidOrder(auth, sale) && (
-                                    <Tooltip title="Void ticket" arrow>
-                                        <IconButton
-                                            size="small"
-                                            aria-label="Void ticket"
-                                            onClick={() => setVoidTarget(sale)}
-                                            sx={{
-                                                color: colors.jam,
-                                                border: `1px solid ${colors.border}`,
-                                                borderRadius: '7px',
-                                                bgcolor: colors.cream,
-                                                '&:hover': {
-                                                    color: colors.cream,
-                                                    borderColor: colors.jam,
-                                                    bgcolor: colors.jam,
-                                                },
-                                            }}
-                                        >
-                                            <UndoOutlinedIcon sx={{ fontSize: 18 }} />
-                                        </IconButton>
-                                    </Tooltip>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    aria-label="Void ticket"
+                                                    className="h-8 w-8 rounded-[7px] border-border bg-cream text-jam hover:border-jam hover:bg-jam hover:text-cream"
+                                                    onClick={() => setVoidTarget(sale)}
+                                                >
+                                                    <Undo2 className="h-[18px] w-[18px]" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Void ticket</TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 )}
-                            </Stack>
+                            </div>
                         </DataTableCell>
                     </DataTableRow>
                 ))}

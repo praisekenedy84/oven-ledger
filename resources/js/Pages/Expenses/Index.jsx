@@ -1,4 +1,4 @@
-import { BarChart } from '@/Components/AccentChart';
+import { LazyBarChart } from '@/Components/LazyCharts';
 import DataTable, { DataTableCell, DataTableRow } from '@/Components/DataTable';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
@@ -9,10 +9,10 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDate } from '@/lib/format';
-import { colors, chartPalette } from '@/theme/bakeryTheme';
-import { Box, FormControl, MenuItem, Select, Stack, Typography } from '@mui/material';
+import { chartPalette } from '@/theme/bakeryTheme';
 import { Head, router, useForm } from '@inertiajs/react';
 
 function localIsoDate() {
@@ -23,6 +23,9 @@ function localIsoDate() {
 
     return `${year}-${month}-${day}`;
 }
+
+const selectClassName =
+    'flex h-10 min-w-[220px] rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
 export default function Index({ expenses, branches = [], categories = [], filters, totals }) {
     const form = useForm({
@@ -44,47 +47,32 @@ export default function Index({ expenses, branches = [], categories = [], filter
                 description="Rent, fees, salaries, and other money that leaves the bakery outside of flour, sugar, and waste."
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
-                    mb: 3,
-                }}
-            >
+            <div className="mb-6 grid gap-6 md:grid-cols-2">
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.jam }}>
-                        This month
-                    </Typography>
-                    <Typography variant="h5" sx={{ color: colors.ink }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-jam">This month</p>
+                    <p className="text-xl font-semibold text-ink">
                         <Money amount={totals.this_month} />
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Shop costs recorded since {formatDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}
-                    </Typography>
+                    </p>
                 </SurfaceCard>
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.sage }}>
-                        All time
-                    </Typography>
-                    <Typography variant="h5" sx={{ color: colors.ink }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-sage">All time</p>
+                    <p className="text-xl font-semibold text-ink">
                         <Money amount={totals.all_time} />
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Every rent, fee, and shop bill on the books.
-                    </Typography>
+                    </p>
                 </SurfaceCard>
-            </Box>
+            </div>
 
             {(totals.by_category ?? []).length > 0 && (
-                <SurfaceCard sx={{ mb: 3 }}>
-                    <Typography variant="overline" sx={{ color: colors.butter }}>
-                        This month by type
-                    </Typography>
-                    <Typography variant="h6" sx={{ mb: 1 }}>
-                        Where the money went
-                    </Typography>
-                    <BarChart
+                <SurfaceCard className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-butter">This month by type</p>
+                    <p className="mb-2 text-base font-semibold">Where the money went</p>
+                    <LazyBarChart
                         items={(totals.by_category ?? []).map((row, index) => ({
                             label: row.label,
                             value: row.total,
@@ -95,117 +83,117 @@ export default function Index({ expenses, branches = [], categories = [], filter
                 </SurfaceCard>
             )}
 
-            <SurfaceCard
-                component="form"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    form.post(route('tenant.expenses.store'), {
-                        onSuccess: () => form.reset('payee', 'amount', 'notes'),
-                    });
-                }}
-                sx={{
-                    mb: 3,
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
-                }}
-            >
-                <Box>
-                    <InputLabel value="Type" />
-                    <FormControl fullWidth size="small">
+            <SurfaceCard className="mb-6">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        form.post(route('tenant.expenses.store'), {
+                            onSuccess: () => form.reset('payee', 'amount', 'notes'),
+                        });
+                    }}
+                    className="grid gap-4 lg:grid-cols-3"
+                >
+                    <div>
+                        <InputLabel value="Type" />
                         <Select
                             value={form.data.category}
-                            onChange={(e) => form.setData('category', e.target.value)}
+                            onValueChange={(value) => form.setData('category', value)}
                         >
-                            {categories.map((category) => (
-                                <MenuItem key={category.value} value={category.value}>
-                                    {category.label}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                    <InputError message={form.errors.category} />
-                </Box>
-                <Box>
-                    <InputLabel value="Paid to / for" />
-                    <TextInput
-                        value={form.data.payee}
-                        onChange={(e) => form.setData('payee', e.target.value)}
-                        placeholder="Landlord, TRA, TANESCO…"
-                    />
-                    <InputError message={form.errors.payee} />
-                </Box>
-                <Box>
-                    <InputLabel value="Amount (TZS)" />
-                    <TextInput
-                        type="number"
-                        value={form.data.amount}
-                        onChange={(e) => form.setData('amount', e.target.value)}
-                    />
-                    <InputError message={form.errors.amount} />
-                </Box>
-                <Box>
-                    <InputLabel value="Date" />
-                    <TextInput
-                        type="date"
-                        value={form.data.incurred_at}
-                        onChange={(e) => form.setData('incurred_at', e.target.value)}
-                    />
-                </Box>
-                {branches.length > 1 && (
-                    <Box>
-                        <InputLabel value="Branch" />
-                        <FormControl fullWidth size="small">
-                            <Select
-                                value={form.data.branch_id}
-                                onChange={(e) => form.setData('branch_id', e.target.value)}
-                            >
-                                {branches.map((branch) => (
-                                    <MenuItem key={branch.id} value={branch.id}>
-                                        {branch.name}
-                                    </MenuItem>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {categories.map((category) => (
+                                    <SelectItem key={category.value} value={category.value}>
+                                        {category.label}
+                                    </SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={form.errors.category} />
+                    </div>
+                    <div>
+                        <InputLabel value="Paid to / for" />
+                        <TextInput
+                            value={form.data.payee}
+                            onChange={(e) => form.setData('payee', e.target.value)}
+                            placeholder="Landlord, TRA, TANESCO…"
+                        />
+                        <InputError message={form.errors.payee} />
+                    </div>
+                    <div>
+                        <InputLabel value="Amount (TZS)" />
+                        <TextInput
+                            type="number"
+                            value={form.data.amount}
+                            onChange={(e) => form.setData('amount', e.target.value)}
+                        />
+                        <InputError message={form.errors.amount} />
+                    </div>
+                    <div>
+                        <InputLabel value="Date" />
+                        <TextInput
+                            type="date"
+                            value={form.data.incurred_at}
+                            onChange={(e) => form.setData('incurred_at', e.target.value)}
+                        />
+                    </div>
+                    {branches.length > 1 && (
+                        <div>
+                            <InputLabel value="Branch" />
+                            <Select
+                                value={String(form.data.branch_id)}
+                                onValueChange={(value) => form.setData('branch_id', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {branches.map((branch) => (
+                                        <SelectItem key={branch.id} value={String(branch.id)}>
+                                            {branch.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
                             </Select>
-                        </FormControl>
-                    </Box>
-                )}
-                <Box>
-                    <InputLabel value="Notes" />
-                    <TextInput
-                        value={form.data.notes}
-                        onChange={(e) => form.setData('notes', e.target.value)}
-                        placeholder="Optional"
-                    />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-                    <PrimaryButton type="submit" fullWidth disabled={form.processing}>
-                        Record expense
-                    </PrimaryButton>
-                </Box>
+                        </div>
+                    )}
+                    <div>
+                        <InputLabel value="Notes" />
+                        <TextInput
+                            value={form.data.notes}
+                            onChange={(e) => form.setData('notes', e.target.value)}
+                            placeholder="Optional"
+                        />
+                    </div>
+                    <div className="flex items-end">
+                        <PrimaryButton type="submit" className="w-full" disabled={form.processing}>
+                            Record expense
+                        </PrimaryButton>
+                    </div>
+                </form>
             </SurfaceCard>
 
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-                <FormControl size="small" sx={{ minWidth: 220 }}>
-                    <Select
-                        displayEmpty
-                        value={filters.category ?? ''}
-                        onChange={(e) =>
-                            router.get(
-                                route('tenant.expenses.index'),
-                                { category: e.target.value },
-                                { preserveState: true, preserveScroll: true, only: ['expenses', 'filters'] },
-                            )
-                        }
-                    >
-                        <MenuItem value="">All types</MenuItem>
-                        {categories.map((category) => (
-                            <MenuItem key={category.value} value={category.value}>
-                                {category.label}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-            </Stack>
+            <div className="mb-4">
+                <select
+                    className={selectClassName}
+                    value={filters.category ?? ''}
+                    onChange={(e) =>
+                        router.get(
+                            route('tenant.expenses.index'),
+                            { category: e.target.value },
+                            { preserveState: true, preserveScroll: true, only: ['expenses', 'filters'] },
+                        )
+                    }
+                >
+                    <option value="">All types</option>
+                    {categories.map((category) => (
+                        <option key={category.value} value={category.value}>
+                            {category.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
 
             <DataTable
                 columns={[
@@ -221,22 +209,18 @@ export default function Index({ expenses, branches = [], categories = [], filter
                     <DataTableRow key={expense.id}>
                         <DataTableCell>{formatDate(expense.incurred_at)}</DataTableCell>
                         <DataTableCell>
-                        <StatusBadge
-                            status={expense.category}
-                            label={categories.find((category) => category.value === expense.category)?.label}
-                        />
+                            <StatusBadge
+                                status={expense.category}
+                                label={categories.find((category) => category.value === expense.category)?.label}
+                            />
                         </DataTableCell>
                         <DataTableCell>
-                            <Typography variant="body2" fontWeight={600}>
-                                {expense.payee}
-                            </Typography>
+                            <p className="text-sm font-semibold">{expense.payee}</p>
                             {expense.notes ? (
-                                <Typography variant="caption" color="text.secondary">
-                                    {expense.notes}
-                                </Typography>
+                                <p className="text-xs text-muted-foreground">{expense.notes}</p>
                             ) : null}
                         </DataTableCell>
-                        <DataTableCell sx={{ fontWeight: 600 }}>
+                        <DataTableCell className="font-semibold">
                             <Money amount={expense.amount} />
                         </DataTableCell>
                         <DataTableCell>{expense.branch?.name ?? '—'}</DataTableCell>

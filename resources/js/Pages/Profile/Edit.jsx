@@ -1,6 +1,7 @@
 import PageHeader from '@/Components/PageHeader';
+import { Alert } from '@/Components/ui/alert';
+import { Card } from '@/Components/ui/card';
 import TenantLayout from '@/Layouts/TenantLayout';
-import { Alert, Paper, Stack } from '@mui/material';
 import { Head, usePage } from '@inertiajs/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
@@ -18,33 +19,33 @@ export default function Edit({ mustVerifyEmail, status }) {
                 description="Manage your account details and security."
             />
 
-            <Stack spacing={3} sx={{ maxWidth: 720 }}>
+            <div className="max-w-[720px] space-y-6">
                 {impersonation && (
-                    <Alert severity="warning">
+                    <Alert variant="warning">
                         Account details cannot be changed while impersonating. Stop impersonation
                         first.
                     </Alert>
                 )}
 
-                <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
+                <Card className="p-6">
                     <UpdateProfileInformationForm
                         mustVerifyEmail={mustVerifyEmail}
                         status={status}
                     />
-                </Paper>
+                </Card>
 
                 {!impersonation && (
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
+                    <Card className="p-6">
                         <UpdatePasswordForm />
-                    </Paper>
+                    </Card>
                 )}
 
                 {!impersonation && (
-                    <Paper variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
+                    <Card className="p-6">
                         <DeleteUserForm />
-                    </Paper>
+                    </Card>
                 )}
-            </Stack>
+            </div>
         </TenantLayout>
     );
 }

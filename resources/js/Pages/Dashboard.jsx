@@ -1,12 +1,16 @@
-import { BarChart, LineChart, PieChart } from '@/Components/AccentChart';
+import { LazyBarChart, LazyLineChart, LazyPieChart } from '@/Components/LazyCharts';
+import BalanceCard from '@/Components/bencho/BalanceCard';
+import RankingList from '@/Components/bencho/RankingList';
 import PageHeader from '@/Components/PageHeader';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
+import SmoothButton from '@/Components/smoothui/SmoothButton';
+import { MotionItem, MotionRise, MotionStagger } from '@/Components/smoothui/MotionRise';
+import { Button } from '@/Components/ui/button';
 import TenantLayout from '@/Layouts/TenantLayout';
-import { formatDateTime, formatMoney } from '@/lib/format';
+import { formatDateTime, formatMoney, formatQuantity } from '@/lib/format';
 import { colors, chartPalette } from '@/theme/bakeryTheme';
 import { resolveNavIcon } from '@/theme/nav';
-import { Box, Button, Stack, Typography } from '@mui/material';
 import { Head, Link, router } from '@inertiajs/react';
 
 const CHANNEL_COLORS = {
@@ -15,17 +19,6 @@ const CHANNEL_COLORS = {
     restaurant: chartPalette[2],
     tools: colors.ink,
 };
-
-function riseSx(delay = 0) {
-    return {
-        '@keyframes chartRise': {
-            from: { opacity: 0, transform: 'translateY(14px)' },
-            to: { opacity: 1, transform: 'none' },
-        },
-        animation: `chartRise 0.62s cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms both`,
-        '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-    };
-}
 
 export default function Dashboard({
     currentBranch,
@@ -71,433 +64,272 @@ export default function Dashboard({
                 title="Today’s bake"
                 description="Batches on the floor, stock that needs a reorder, and the wholesale tickets still due."
                 actions={
-                    <Button component={Link} href={route('tenant.pos.index')} prefetch variant="contained">
-                        Open POS
+                    <Button asChild>
+                        <Link href={route('tenant.pos.index')} prefetch>
+                            Open POS
+                        </Link>
                     </Button>
                 }
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-                    mb: 3,
-                }}
-            >
-                <StatTile label="Live batches" value={bakingCount} hint="Baking, cooling, ready" accent={colors.jam} delay={0} />
-                <StatTile label="Reorder alerts" value={alertCount} hint="Raw + finished" accent={colors.butter} delay={60} />
-                <StatTile label="Orders due" value={dueCount} hint="Wholesale & restaurant" accent={colors.sage} delay={120} />
-                <StatTile label="7-day sales" value={formatMoney(weekSales)} hint="All channels" accent={colors.ink} delay={180} />
-            </Box>
+            <MotionStagger className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+                <MotionItem>
+                    <BalanceCard label="Live batches" value={bakingCount} format="number" deltaLabel="Baking, cooling, ready" />
+                </MotionItem>
+                <MotionItem>
+                    <BalanceCard label="Reorder alerts" value={alertCount} format="number" deltaLabel="Raw + finished" />
+                </MotionItem>
+                <MotionItem>
+                    <BalanceCard label="Orders due" value={dueCount} format="number" deltaLabel="Wholesale & restaurant" />
+                </MotionItem>
+                <MotionItem>
+                    <BalanceCard label="7-day sales" value={weekSales} deltaLabel="All channels" />
+                </MotionItem>
+            </MotionStagger>
 
             {economics && (
-                <SurfaceCard sx={{ mb: 3, ...riseSx(80) }}>
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        justifyContent="space-between"
-                        spacing={1}
-                        sx={{ mb: 2 }}
-                    >
-                        <Box>
-                            <Typography variant="overline" sx={{ color: economics.is_loss ? colors.jam : colors.sage }}>
-                                {economics.is_loss ? 'This week is a loss' : economics.is_profit ? 'This week is a profit' : 'This week is even'}
-                            </Typography>
-                            <Typography variant="h6">
-                                Capital, ingredient cost, and the week’s result
-                            </Typography>
-                        </Box>
-                        <Button component={Link} href={route('tenant.reports.index')} prefetch size="small">
-                            Full P&L
-                        </Button>
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 640 }}>
-                        This week’s sales minus ingredient cost and waste, using current buy-in prices.
-                    </Typography>
-                    <Box
-                        sx={{
-                            display: 'grid',
-                            gap: 2,
-                            gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(6, 1fr)' },
-                        }}
-                    >
-                        <InsightChip label="Capital in" value={formatMoney(economics.capital_in)} />
-                        <InsightChip label="Still in the business" value={formatMoney(economics.capital_remaining)} />
-                        <InsightChip label="7-day sales" value={formatMoney(economics.revenue)} />
-                        <InsightChip label="Ingredient / stock cost" value={formatMoney(economics.ingredient_cost)} />
-                        <InsightChip label="Waste" value={formatMoney(economics.waste_cost ?? 0)} />
-                        <InsightChip
-                            label={economics.is_loss ? '7-day loss' : '7-day profit'}
-                            value={formatMoney(Math.abs(economics.profit))}
-                        />
-                    </Box>
-                </SurfaceCard>
+                <MotionRise delay={80} className="mb-6">
+                    <SurfaceCard>
+                        <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+                            <div>
+                                <p className={`text-xs font-semibold uppercase tracking-wider ${economics.is_loss ? 'text-jam' : 'text-sage'}`}>
+                                    {economics.is_loss ? 'This week is a loss' : economics.is_profit ? 'This week is a profit' : 'This week is even'}
+                                </p>
+                                <h2 className="text-lg font-semibold">Capital, ingredient cost, and the week’s result</h2>
+                            </div>
+                            <Button asChild variant="outline" size="sm">
+                                <Link href={route('tenant.reports.index')} prefetch>
+                                    Full P&L
+                                </Link>
+                            </Button>
+                        </div>
+                        <p className="mb-4 max-w-xl text-sm text-muted-foreground">
+                            This week’s sales minus ingredient cost and waste, using current buy-in prices.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+                            <InsightChip label="Capital in" value={formatMoney(economics.capital_in)} />
+                            <InsightChip label="Still in the business" value={formatMoney(economics.capital_remaining)} />
+                            <InsightChip label="7-day sales" value={formatMoney(economics.revenue)} />
+                            <InsightChip label="Ingredient / stock cost" value={formatMoney(economics.ingredient_cost)} />
+                            <InsightChip label="Waste" value={formatMoney(economics.waste_cost ?? 0)} />
+                            <InsightChip
+                                label={economics.is_loss ? '7-day loss' : '7-day profit'}
+                                value={formatMoney(Math.abs(economics.profit))}
+                            />
+                        </div>
+                    </SurfaceCard>
+                </MotionRise>
             )}
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.45fr) minmax(320px, 0.75fr)' },
-                    mb: 3,
-                }}
-            >
-                <SurfaceCard sx={riseSx(80)}>
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        justifyContent="space-between"
-                        alignItems={{ sm: 'baseline' }}
-                        spacing={1}
-                        sx={{ mb: 1 }}
-                    >
-                        <Box>
-                            <Typography variant="overline" sx={{ color: colors.jam }}>
-                                Sales by channel
-                            </Typography>
-                            <Typography variant="h6">How the week was taken</Typography>
-                        </Box>
-                        <Button component={Link} href={route('tenant.reports.index')} prefetch size="small">
-                            Full reports
+            <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
+                <MotionRise delay={80}>
+                    <SurfaceCard>
+                        <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-baseline">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Sales by channel</p>
+                                <h2 className="text-lg font-semibold">How the week was taken</h2>
+                            </div>
+                            <Button asChild variant="outline" size="sm">
+                                <Link href={route('tenant.reports.index')} prefetch>
+                                    Full reports
+                                </Link>
+                            </Button>
+                        </div>
+                        <p className="mb-3 max-w-lg text-sm text-muted-foreground">
+                            Daily take across retail, wholesale, restaurant, and tools.
+                        </p>
+                        <LazyLineChart labels={salesTrend.labels ?? []} series={trendSeries} />
+                        <div className="mt-2">
+                            <LazyBarChart
+                                items={salesByChannel.map((row) => ({
+                                    label: row.label ?? row.channel,
+                                    value: row.total,
+                                    color: CHANNEL_COLORS[row.channel] ?? colors.jam,
+                                }))}
+                                height={176}
+                            />
+                        </div>
+                    </SurfaceCard>
+                </MotionRise>
+
+                <MotionRise delay={140}>
+                    <SurfaceCard>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Production</p>
+                        <h2 className="mb-4 text-lg font-semibold">Today’s batches</h2>
+                        <div className="space-y-3">
+                            {todayBatches.length === 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                    No active batches. Schedule the first one from production.
+                                </p>
+                            )}
+                            {todayBatches.map((batch) => (
+                                <div
+                                    key={batch.id}
+                                    className="flex items-start justify-between gap-3 rounded-[10px] border border-border bg-wheat-light p-3"
+                                >
+                                    <div>
+                                        <p className="text-sm font-semibold">{batch.product?.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            #{batch.batch_number} · {batch.planned_quantity}
+                                        </p>
+                                    </div>
+                                    <StatusBadge status={batch.status} />
+                                </div>
+                            ))}
+                        </div>
+                        <Button asChild variant="outline" size="sm" className="mt-4">
+                            <Link href={route('tenant.production-batches.index')} prefetch>
+                                Production board
+                            </Link>
                         </Button>
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, maxWidth: 520 }}>
-                        Daily take across retail, wholesale, restaurant, and tools.
-                    </Typography>
-                    <LineChart labels={salesTrend.labels ?? []} series={trendSeries} />
-                    <Box sx={{ mt: 1 }}>
-                        <BarChart
-                            items={salesByChannel.map((row) => ({
-                                label: row.label ?? row.channel,
-                                value: row.total,
-                                color: CHANNEL_COLORS[row.channel] ?? colors.jam,
-                            }))}
-                            height={176}
-                        />
-                    </Box>
-                </SurfaceCard>
+                    </SurfaceCard>
+                </MotionRise>
+            </div>
 
-                <SurfaceCard sx={riseSx(140)}>
-                    <Typography variant="overline" sx={{ color: colors.jam }}>
-                        Production
-                    </Typography>
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                        Today’s batches
-                    </Typography>
-                    <Stack spacing={1.5}>
-                        {todayBatches.length === 0 && (
-                            <Typography variant="body2" color="text.secondary">
-                                No active batches. Schedule the first one from production.
-                            </Typography>
-                        )}
-                        {todayBatches.map((batch) => (
-                            <Box
-                                key={batch.id}
-                                sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    gap: 1.5,
-                                    p: 1.5,
-                                    borderRadius: '10px',
-                                    border: `1px solid ${colors.border}`,
-                                    bgcolor: colors.wheatLight,
-                                }}
-                            >
-                                <Box>
-                                    <Typography variant="subtitle2">{batch.product?.name}</Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        #{batch.batch_number} · {batch.planned_quantity}
-                                    </Typography>
-                                </Box>
-                                <StatusBadge status={batch.status} />
-                            </Box>
-                        ))}
-                    </Stack>
-                    <Button
-                        component={Link}
-                        href={route('tenant.production-batches.index')}
-                        prefetch
-                        size="small"
-                        sx={{ mt: 2 }}
-                    >
-                        Production board
-                    </Button>
-                </SurfaceCard>
-            </Box>
+            <MotionRise delay={200} className="mb-6">
+                <SurfaceCard>
+                    <div className="mb-4 flex flex-col justify-between gap-4 md:flex-row md:items-start">
+                        <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-secondary">Best sellers</p>
+                            <h2 className="text-lg font-semibold">What walked out the door</h2>
+                            <p className="mt-2 max-w-xl text-sm text-muted-foreground">{sellerInsight}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            <InsightChip
+                                label="Units this week"
+                                value={
+                                    bestSellingSummary.total_quantity
+                                        ? formatQuantity(bestSellingSummary.total_quantity)
+                                        : '—'
+                                }
+                            />
+                            <InsightChip
+                                label="From these sales"
+                                value={bestSellingSummary.total_revenue ? formatMoney(bestSellingSummary.total_revenue) : '—'}
+                            />
+                        </div>
+                    </div>
 
-            <SurfaceCard sx={{ mb: 3, ...riseSx(200) }}>
-                <Stack
-                    direction={{ xs: 'column', md: 'row' }}
-                    justifyContent="space-between"
-                    alignItems={{ md: 'flex-start' }}
-                    spacing={2}
-                    sx={{ mb: 2 }}
-                >
-                    <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="overline" sx={{ color: colors.butter }}>
-                            Best sellers
-                        </Typography>
-                        <Typography variant="h6">What walked out the door</Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 560 }}>
-                            {sellerInsight}
-                        </Typography>
-                    </Box>
-                    <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
-                        <InsightChip
-                            label="Units this week"
-                            value={bestSellingSummary.total_quantity ? Math.round(bestSellingSummary.total_quantity) : '—'}
-                        />
-                        <InsightChip
-                            label="From these sales"
-                            value={bestSellingSummary.total_revenue ? formatMoney(bestSellingSummary.total_revenue) : '—'}
-                        />
-                    </Stack>
-                </Stack>
-
-                <Box
-                    sx={{
-                        display: 'grid',
-                        gap: 2.5,
-                        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.1fr) minmax(260px, 0.9fr)' },
-                        alignItems: 'center',
-                    }}
-                >
-                    <Stack spacing={1.25}>
-                        {bestSellingProducts.length === 0 && (
-                            <Typography variant="body2" color="text.secondary">
-                                No completed product sales this week. Open POS and the mix will show here.
-                            </Typography>
-                        )}
-                        {bestSellingProducts.map((product, index) => {
-                            const share =
-                                bestSellingSummary.total_quantity > 0
-                                    ? Math.round((Number(product.quantity) / bestSellingSummary.total_quantity) * 100)
-                                    : 0;
-                            const color = sellerColors[index];
-                            const content = (
-                                <Box
-                                    sx={{
-                                        display: 'grid',
-                                        gridTemplateColumns: '28px minmax(0, 1fr) auto',
-                                        gap: 1.25,
-                                        alignItems: 'center',
-                                        p: 1.25,
-                                        borderRadius: '10px',
-                                        border: `1px solid ${colors.border}`,
-                                        bgcolor: colors.wheatLight,
-                                        textDecoration: 'none',
-                                        color: 'inherit',
-                                    }}
-                                >
-                                    <Box
-                                        sx={{
-                                            width: 28,
-                                            height: 28,
-                                            borderRadius: '8px',
-                                            bgcolor: color,
-                                            color: colors.cream,
-                                            display: 'grid',
-                                            placeItems: 'center',
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                        }}
-                                    >
-                                        {product.is_other ? '·' : index + 1}
-                                    </Box>
-                                    <Box sx={{ minWidth: 0 }}>
-                                        <Typography variant="subtitle2" noWrap>
-                                            {product.name}
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary">
-                                            {Math.round(product.quantity)} {product.unit || 'sold'} · {share}% of units
-                                        </Typography>
-                                        <Box
-                                            sx={{
-                                                mt: 0.75,
-                                                height: 5,
-                                                borderRadius: 999,
-                                                bgcolor: colors.border,
-                                                overflow: 'hidden',
-                                            }}
-                                        >
-                                            <Box
-                                                sx={{
-                                                    width: `${Math.max(share, product.quantity > 0 ? 4 : 0)}%`,
-                                                    height: '100%',
-                                                    bgcolor: color,
-                                                    borderRadius: 999,
-                                                    transformOrigin: 'left center',
-                                                    animation: 'chartRise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both',
-                                                    animationDelay: `${220 + index * 70}ms`,
-                                                    '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                                                }}
-                                            />
-                                        </Box>
-                                    </Box>
-                                    <Typography variant="subtitle2" sx={{ color: colors.ink, whiteSpace: 'nowrap' }}>
-                                        {formatMoney(product.revenue)}
-                                    </Typography>
-                                </Box>
-                            );
-
-                            if (product.is_other) {
-                                return <Box key={product.id}>{content}</Box>;
-                            }
-
-                            return (
-                                <Box
-                                    key={product.id}
-                                    component={Link}
-                                    href={route('tenant.products.show', product.id)}
-                                    prefetch
-                                    sx={{ textDecoration: 'none' }}
-                                >
-                                    {content}
-                                </Box>
-                            );
-                        })}
-                    </Stack>
-
-                    <Box sx={{ position: 'relative', minHeight: 280 }}>
-                        <PieChart
+                    <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(260px,0.9fr)]">
+                        <RankingList
+                            empty="No completed product sales this week. Open POS and the mix will show here."
                             items={bestSellingProducts.map((product, index) => ({
                                 id: product.id,
-                                label: product.name,
-                                value: product.quantity,
-                                color: sellerColors[index],
+                                name: product.name,
+                                meta: `${Math.round(product.quantity)} ${product.unit || 'sold'} · ${
+                                    bestSellingSummary.total_quantity > 0
+                                        ? Math.round((Number(product.quantity) / bestSellingSummary.total_quantity) * 100)
+                                        : 0
+                                }% of units`,
+                                value: formatMoney(product.revenue),
                             }))}
-                            height={280}
-                            valueFormatter={(item) => `${Math.round(item.value)} sold`}
+                            className="border-0 bg-transparent p-0 shadow-none"
                         />
-                        {topSeller && (
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    inset: 0,
-                                    display: 'grid',
-                                    placeItems: 'center',
-                                    pointerEvents: 'none',
-                                    textAlign: 'center',
-                                    px: 8,
-                                }}
-                            >
-                                <Box>
-                                    <Typography variant="h5" sx={{ color: colors.ink, lineHeight: 1 }}>
-                                        {topShare}%
-                                    </Typography>
-                                    <Typography
-                                        variant="caption"
-                                        sx={{ color: colors.muted, display: 'block', maxWidth: 120, mx: 'auto' }}
-                                    >
-                                        {topSeller.name}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        )}
-                    </Box>
-                </Box>
-            </SurfaceCard>
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                    mb: 3,
-                }}
-            >
-                <SurfaceCard sx={riseSx(260)}>
-                    <Typography variant="overline" sx={{ color: colors.butter }}>
-                        Inventory
-                    </Typography>
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                        Low-stock alerts
-                    </Typography>
-                    <Stack spacing={1.25}>
-                        {lowStock.length === 0 && (
-                            <Typography variant="body2" color="text.secondary">
-                                Nothing is under the reorder line.
-                            </Typography>
-                        )}
-                        {lowStock.map((row) => (
-                            <Stack key={row.id} direction="row" justifyContent="space-between" spacing={1}>
-                                <Box>
-                                    <Typography variant="subtitle2">{row.name}</Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        {row.kind === 'raw' ? 'Raw material' : 'Finished'} · threshold {row.threshold ?? '—'}
-                                    </Typography>
-                                </Box>
-                                <Typography variant="subtitle2" sx={{ color: colors.jam }}>
-                                    {row.quantity} {row.unit}
-                                </Typography>
-                            </Stack>
-                        ))}
-                    </Stack>
-                    <Button component={Link} href={route('tenant.inventory.index')} prefetch size="small" sx={{ mt: 2 }}>
-                        Open inventory
-                    </Button>
+                        <div className="relative min-h-[280px]">
+                            <LazyPieChart
+                                items={bestSellingProducts.map((product, index) => ({
+                                    id: product.id,
+                                    label: product.name,
+                                    value: product.quantity,
+                                    color: sellerColors[index],
+                                }))}
+                                height={280}
+                                valueFormatter={(item) => `${Math.round(item.value)} sold`}
+                            />
+                            {topSeller && (
+                                <div className="pointer-events-none absolute inset-0 grid place-items-center px-16 text-center">
+                                    <div>
+                                        <p className="text-2xl font-semibold leading-none text-foreground">{topShare}%</p>
+                                        <p className="mx-auto mt-1 max-w-[120px] text-xs text-muted-foreground">{topSeller.name}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </SurfaceCard>
+            </MotionRise>
 
-                <SurfaceCard sx={riseSx(300)}>
-                    <Typography variant="overline" sx={{ color: colors.sage }}>
-                        Wholesale
-                    </Typography>
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                        Orders due
-                    </Typography>
-                    <Stack spacing={1.25}>
-                        {wholesaleDue.length === 0 && (
-                            <Typography variant="body2" color="text.secondary">
-                                No wholesale or restaurant tickets waiting.
-                            </Typography>
-                        )}
-                        {wholesaleDue.map((order) => (
-                            <Stack
-                                key={order.id}
-                                direction={{ xs: 'column', sm: 'row' }}
-                                justifyContent="space-between"
-                                alignItems={{ sm: 'center' }}
-                                spacing={1}
-                            >
-                                <Box sx={{ minWidth: 0 }}>
-                                    <Typography variant="subtitle2">{order.customer?.name ?? 'Account'}</Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        {formatDateTime(order.requested_fulfillment_at || order.due_date || order.created_at)}
-                                    </Typography>
-                                </Box>
-                                <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
-                                    <StatusBadge status={order.channel} />
-                                    {order.status === 'pending' && (
-                                        <Button
-                                            size="small"
-                                            variant="contained"
-                                            onClick={() =>
-                                                router.patch(
-                                                    route('tenant.orders.fulfill', order.id),
-                                                    {},
-                                                    { preserveScroll: true },
-                                                )
-                                            }
-                                        >
-                                            Mark sold
-                                        </Button>
-                                    )}
-                                </Stack>
-                            </Stack>
-                        ))}
-                    </Stack>
-                    <Button component={Link} href={route('tenant.pos.tickets', { all: 1 })} prefetch size="small" sx={{ mt: 2 }}>
-                        Open tickets
-                    </Button>
-                </SurfaceCard>
-            </Box>
+            <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <MotionRise delay={260}>
+                    <SurfaceCard>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-secondary">Inventory</p>
+                        <h2 className="mb-4 text-lg font-semibold">Low-stock alerts</h2>
+                        <div className="space-y-3">
+                            {lowStock.length === 0 && (
+                                <p className="text-sm text-muted-foreground">Nothing is under the reorder line.</p>
+                            )}
+                            {lowStock.map((row) => (
+                                <div key={row.id} className="flex justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-semibold">{row.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {row.kind === 'raw' ? 'Raw material' : 'Finished'} · threshold {row.threshold ?? '—'}
+                                        </p>
+                                    </div>
+                                    <p className="text-sm font-semibold text-jam">
+                                        {row.quantity} {row.unit}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                        <Button asChild variant="outline" size="sm" className="mt-4">
+                            <Link href={route('tenant.inventory.index')} prefetch>
+                                Open inventory
+                            </Link>
+                        </Button>
+                    </SurfaceCard>
+                </MotionRise>
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-                }}
-            >
+                <MotionRise delay={300}>
+                    <SurfaceCard>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-sage">Wholesale</p>
+                        <h2 className="mb-4 text-lg font-semibold">Orders due</h2>
+                        <div className="space-y-3">
+                            {wholesaleDue.length === 0 && (
+                                <p className="text-sm text-muted-foreground">No wholesale or restaurant tickets waiting.</p>
+                            )}
+                            {wholesaleDue.map((order) => (
+                                <div
+                                    key={order.id}
+                                    className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold">{order.customer?.name ?? 'Account'}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {formatDateTime(order.requested_fulfillment_at || order.due_date || order.created_at)}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <StatusBadge status={order.channel} />
+                                        {order.status === 'pending' && (
+                                            <SmoothButton
+                                                size="sm"
+                                                onClick={() =>
+                                                    router.patch(
+                                                        route('tenant.orders.fulfill', order.id),
+                                                        {},
+                                                        { preserveScroll: true },
+                                                    )
+                                                }
+                                            >
+                                                Mark sold
+                                            </SmoothButton>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <Button asChild variant="outline" size="sm" className="mt-4">
+                            <Link href={route('tenant.pos.tickets', { all: 1 })} prefetch>
+                                Open tickets
+                            </Link>
+                        </Button>
+                    </SurfaceCard>
+                </MotionRise>
+            </div>
+
+            <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {[
                     { label: 'Point of sale', route: 'tenant.pos.index', description: 'Ticket the counter' },
                     { label: 'Customers', route: 'tenant.customers.index', description: 'Accounts and credit' },
@@ -505,71 +337,31 @@ export default function Dashboard({
                 ].map((link) => {
                     const Icon = resolveNavIcon(link.route);
                     return (
-                        <SurfaceCard
-                            key={link.route}
-                            component={Link}
-                            href={route(link.route)}
-                            prefetch
-                            sx={{ textDecoration: 'none', p: { xs: 2, sm: 2.5 }, ...riseSx(340) }}
-                        >
-                            <Box
-                                sx={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: '10px',
-                                    display: 'grid',
-                                    placeItems: 'center',
-                                    bgcolor: colors.wheatLight,
-                                    color: colors.jam,
-                                    mb: 1.5,
-                                }}
+                        <MotionItem key={link.route}>
+                            <Link
+                                href={route(link.route)}
+                                prefetch
+                                className="block rounded-card border border-border bg-card p-4 shadow-card no-underline transition-colors hover:bg-muted/40 sm:p-5"
                             >
-                                <Icon fontSize="small" />
-                            </Box>
-                            <Typography variant="subtitle1">{link.label}</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {link.description}
-                            </Typography>
-                        </SurfaceCard>
+                                <div className="mb-3 grid h-9 w-9 place-items-center rounded-[10px] bg-wheat-light text-primary">
+                                    <Icon className="h-4 w-4" />
+                                </div>
+                                <p className="font-semibold text-foreground">{link.label}</p>
+                                <p className="text-sm text-muted-foreground">{link.description}</p>
+                            </Link>
+                        </MotionItem>
                     );
                 })}
-            </Box>
+            </MotionStagger>
         </TenantLayout>
-    );
-}
-
-function StatTile({ label, value, hint, accent, delay = 0 }) {
-    return (
-        <SurfaceCard sx={{ ...riseSx(delay) }}>
-            <Typography variant="overline" sx={{ color: accent }}>
-                {label}
-            </Typography>
-            <Typography variant="h4" sx={{ mt: 0.5, color: colors.ink, fontSize: { xs: '1.15rem', sm: '1.5rem' } }}>
-                {value}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-                {hint}
-            </Typography>
-        </SurfaceCard>
     );
 }
 
 function InsightChip({ label, value }) {
     return (
-        <Box
-            sx={{
-                px: 1.5,
-                py: 1,
-                borderRadius: '10px',
-                border: `1px solid ${colors.border}`,
-                bgcolor: colors.wheatLight,
-                minWidth: 120,
-            }}
-        >
-            <Typography variant="caption" color="text.secondary" display="block">
-                {label}
-            </Typography>
-            <Typography variant="subtitle2">{value}</Typography>
-        </Box>
+        <div className="min-w-[120px] rounded-[10px] border border-border bg-wheat-light px-3 py-2">
+            <p className="block text-xs text-muted-foreground">{label}</p>
+            <p className="text-sm font-semibold">{value}</p>
+        </div>
     );
 }

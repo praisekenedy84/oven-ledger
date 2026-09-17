@@ -1,54 +1,32 @@
-import { colors } from '@/theme/bakeryTheme';
 import { Link } from '@inertiajs/react';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Button } from '@/Components/ui/button';
+import { cn } from '@/lib/utils';
 
-export default function PageHeader({ eyebrow, title, description, actions, backHref }) {
+export default function PageHeader({ eyebrow, title, description, actions, backHref, className }) {
     return (
-        <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={2}
-            alignItems={{ xs: 'stretch', sm: 'center' }}
-            justifyContent="space-between"
-            sx={{ mb: 3 }}
+        <div
+            className={cn(
+                'mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between',
+                className,
+            )}
         >
-            <Box sx={{ minWidth: 0, flex: 1 }}>
+            <div className="min-w-0 flex-1">
                 {backHref && (
-                    <Button
-                        component={Link}
-                        href={backHref}
-                        size="small"
-                        sx={{ mb: 1, px: 0, minWidth: 0, minHeight: 0, height: 'auto', color: colors.muted }}
-                    >
-                        ← Back
+                    <Button asChild variant="link" size="sm" className="mb-1 h-auto px-0 text-muted-foreground">
+                        <Link href={backHref}>← Back</Link>
                     </Button>
                 )}
                 {eyebrow && (
-                    <Typography variant="overline" sx={{ display: 'block', color: colors.jam, mb: 1 }}>
-                        {eyebrow}
-                    </Typography>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">{eyebrow}</p>
                 )}
-                <Typography variant="h4" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, lineHeight: 1.2 }}>
-                    {title}
-                </Typography>
+                <h1 className="text-xl font-semibold leading-tight text-foreground sm:text-2xl">{title}</h1>
                 {description && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, maxWidth: 560 }}>
-                        {description}
-                    </Typography>
+                    <p className="mt-1 max-w-xl text-sm text-muted-foreground">{description}</p>
                 )}
-            </Box>
+            </div>
             {actions && (
-                <Stack
-                    direction="row"
-                    spacing={1}
-                    useFlexGap
-                    flexWrap="wrap"
-                    alignItems="center"
-                    justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
-                    sx={{ flexShrink: 0 }}
-                >
-                    {actions}
-                </Stack>
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">{actions}</div>
             )}
-        </Stack>
+        </div>
     );
 }

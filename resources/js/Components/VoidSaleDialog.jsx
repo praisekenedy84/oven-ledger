@@ -1,14 +1,16 @@
-import { formatMoney } from '@/lib/format';
-import { colors } from '@/theme/bakeryTheme';
+import InputError from '@/Components/InputError';
+import InputLabel from '@/Components/InputLabel';
+import { Button } from '@/Components/ui/button';
 import {
-    Button,
     Dialog,
-    DialogActions,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
     DialogTitle,
-    TextField,
-    Typography,
-} from '@mui/material';
+} from '@/Components/ui/dialog';
+import { formatMoney, formatQuantity } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -57,51 +59,66 @@ export default function VoidSaleDialog({ order, open, onClose }) {
     }
 
     const itemSummary = (order.items ?? [])
-        .map((item) => `${item.quantity} ${item.name}`)
+        .map((item) => `${formatQuantity(item.quantity)} ${item.name}`)
         .join(', ');
 
     return (
-        <Dialog open={open} onClose={close} maxWidth="sm" fullWidth>
-            <DialogTitle>Void sale #{order.id}</DialogTitle>
-            <DialogContent>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    {itemSummary || 'Ticket'} · {formatMoney(order.total_amount)}
-                    {order.cashier?.name ? ` · ${order.cashier.name}` : ''}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 2, color: colors.ink }}>
+        <Dialog
+            open={open}
+            onOpenChange={(nextOpen) => {
+                if (!nextOpen) {
+                    close();
+                }
+            }}
+        >
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Void sale #{order.id}</DialogTitle>
+                    <DialogDescription>
+                        {itemSummary || 'Ticket'} · {formatMoney(order.total_amount)}
+                        {order.cashier?.name ? ` · ${order.cashier.name}` : ''}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <p className="text-sm text-ink">
                     This does not rewrite the ticket. Stock comes back if it was taken, and any
                     amount on a customer account is reversed. Hand back cash or card at the till,
                     then ring the sale again if it still needs to be sold.
-                </Typography>
-                <TextField
-                    autoFocus
-                    fullWidth
-                    multiline
-                    minRows={2}
-                    label="Why is this being voided?"
-                    value={reason}
-                    onChange={(event) => {
-                        setReason(event.target.value);
-                        setError('');
-                    }}
-                    error={Boolean(error)}
-                    helperText={error || 'Example: Wrong product, or put on the wrong customer.'}
-                />
+                </p>
+
+                <div>
+                    <InputLabel value="Why is this being voided?" htmlFor="void-reason" />
+                    <textarea
+                        id="void-reason"
+                        autoFocus
+                        rows={2}
+                        value={reason}
+                        onChange={(event) => {
+                            setReason(event.target.value);
+                            setError('');
+                        }}
+                        className={cn(
+                            'mt-1.5 flex min-h-[80px] w-full rounded-md border bg-card px-3.5 py-3 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+                            error ? 'border-destructive' : 'border-input',
+                        )}
+                    />
+                    <InputError message={error} />
+                    {!error && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Example: Wrong product, or put on the wrong customer.
+                        </p>
+                    )}
+                </div>
+
+                <DialogFooter className="gap-2 sm:gap-0">
+                    <Button variant="ghost" size="sm" disabled={processing} onClick={close}>
+                        Keep sale
+                    </Button>
+                    <Button variant="destructive" size="sm" disabled={processing} onClick={submit}>
+                        {processing ? 'Voiding…' : 'Void sale'}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={close} color="inherit" size="small" disabled={processing}>
-                    Keep sale
-                </Button>
-                <Button
-                    onClick={submit}
-                    color="error"
-                    variant="contained"
-                    size="small"
-                    disabled={processing}
-                >
-                    {processing ? 'Voiding…' : 'Void sale'}
-                </Button>
-            </DialogActions>
         </Dialog>
     );
 }

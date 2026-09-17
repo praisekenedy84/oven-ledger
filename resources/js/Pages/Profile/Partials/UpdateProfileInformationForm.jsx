@@ -2,7 +2,8 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { Alert, Button, Stack, Typography } from '@mui/material';
+import { Alert } from '@/Components/ui/alert';
+import { Button } from '@/Components/ui/button';
 import { Link, useForm, usePage } from '@inertiajs/react';
 
 export default function UpdateProfileInformation({ mustVerifyEmail, status }) {
@@ -15,19 +16,16 @@ export default function UpdateProfileInformation({ mustVerifyEmail, status }) {
     });
 
     return (
-        <Stack spacing={2}>
+        <div className="space-y-4">
             <div>
-                <Typography variant="h6" fontWeight={700}>
-                    Profile Information
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                <h2 className="text-lg font-semibold text-foreground">Profile Information</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                     Update your account&apos;s name, username, and email address.
-                </Typography>
+                </p>
             </div>
 
-            <Stack
-                component="form"
-                spacing={2.5}
+            <form
+                className="space-y-5"
                 onSubmit={(e) => {
                     e.preventDefault();
                     patch(route('profile.update'));
@@ -73,39 +71,32 @@ export default function UpdateProfileInformation({ mustVerifyEmail, status }) {
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div>
-                        <Typography variant="body2">
+                        <p className="text-sm text-foreground">
                             Your email address is unverified.{' '}
-                            <Button
-                                component={Link}
-                                href={route('verification.send')}
-                                method="post"
-                                as="button"
-                                size="small"
-                                sx={{ p: 0, minWidth: 0, verticalAlign: 'baseline' }}
-                            >
-                                Click here to re-send the verification email.
+                            <Button variant="link" className="h-auto p-0" asChild>
+                                <Link href={route('verification.send')} method="post" as="button">
+                                    Click here to re-send the verification email.
+                                </Link>
                             </Button>
-                        </Typography>
+                        </p>
 
                         {status === 'verification-link-sent' && (
-                            <Alert severity="success" sx={{ mt: 1 }}>
+                            <Alert variant="success" className="mt-2">
                                 A new verification link has been sent to your email address.
                             </Alert>
                         )}
                     </div>
                 )}
 
-                <Stack direction="row" alignItems="center" spacing={2}>
+                <div className="flex items-center gap-4">
                     <PrimaryButton type="submit" disabled={processing}>
                         Save
                     </PrimaryButton>
                     {recentlySuccessful && (
-                        <Typography variant="body2" color="text.secondary">
-                            Saved.
-                        </Typography>
+                        <p className="text-sm text-muted-foreground">Saved.</p>
                     )}
-                </Stack>
-            </Stack>
-        </Stack>
+                </div>
+            </form>
+        </div>
     );
 }

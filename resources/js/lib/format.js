@@ -20,6 +20,64 @@ export function formatMoney(amount, { prefix = 'TZS ' } = {}) {
     return `${prefix}${formatted}`;
 }
 
+/**
+ * Strip grouping commas / currency noise and return a plain numeric string for forms.
+ * Keeps a trailing "." while the user is still typing decimals.
+ */
+export function parseNumberInput(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    let raw = String(value).replace(/,/g, '').replace(/[^\d.-]/g, '');
+
+    if (raw === '' || raw === '-' || raw === '.' || raw === '-.') {
+        return raw;
+    }
+
+    const negative = raw.startsWith('-');
+    raw = raw.replace(/-/g, '');
+    if (negative) {
+        raw = `-${raw}`;
+    }
+
+    const parts = raw.split('.');
+    if (parts.length > 2) {
+        raw = `${parts[0]}.${parts.slice(1).join('')}`;
+    }
+
+    return raw;
+}
+
+/**
+ * Format a numeric form value with thousand separators for display in inputs.
+ */
+export function formatNumberInput(value, { maximumFractionDigits = 3 } = {}) {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+
+    const raw = parseNumberInput(value);
+
+    if (raw === '' || raw === '-' || raw === '.' || raw === '-.') {
+        return raw;
+    }
+
+    const trailingDot = raw.endsWith('.');
+    const numeric = Number(trailingDot ? raw.slice(0, -1) : raw);
+
+    if (!Number.isFinite(numeric)) {
+        return '';
+    }
+
+    const formatted = new Intl.NumberFormat('en-TZ', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits,
+    }).format(numeric);
+
+    return trailingDot ? `${formatted}.` : formatted;
+}
+
 export function formatDate(value) {
     if (!value) {
         return '—';

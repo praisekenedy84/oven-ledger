@@ -1,5 +1,6 @@
-import { Button, Stack } from '@mui/material';
+import { Button } from '@/Components/ui/button';
 import { Link } from '@inertiajs/react';
+import { cn } from '@/lib/utils';
 
 export default function Pagination({ links }) {
     if (!links || links.length <= 3) {
@@ -7,30 +8,14 @@ export default function Pagination({ links }) {
     }
 
     return (
-        <Stack
-            direction="row"
-            spacing={1}
-            useFlexGap
-            flexWrap="wrap"
-            alignItems="center"
-            justifyContent={{ xs: 'center', sm: 'flex-end' }}
-            sx={{ mt: 3 }}
-        >
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:justify-end">
             {links.map((link, index) => {
                 const disabled = !link.url;
-                const content = (
-                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                );
+                const content = <span dangerouslySetInnerHTML={{ __html: link.label }} />;
 
                 if (disabled) {
                     return (
-                        <Button
-                            key={index}
-                            size="small"
-                            disabled
-                            variant="outlined"
-                            sx={{ minWidth: 40, minHeight: 40 }}
-                        >
+                        <Button key={index} size="sm" disabled variant="outline" className="min-h-10 min-w-10">
                             {content}
                         </Button>
                     );
@@ -39,19 +24,17 @@ export default function Pagination({ links }) {
                 return (
                     <Button
                         key={index}
-                        component={Link}
-                        href={link.url}
-                        preserveScroll
-                        prefetch
-                        size="small"
-                        variant={link.active ? 'contained' : 'outlined'}
-                        color={link.active ? 'primary' : 'inherit'}
-                        sx={{ minWidth: 40, minHeight: 40 }}
+                        asChild
+                        size="sm"
+                        variant={link.active ? 'default' : 'outline'}
+                        className={cn('min-h-10 min-w-10', link.active && 'pointer-events-none')}
                     >
-                        {content}
+                        <Link href={link.url} preserveScroll prefetch>
+                            {content}
+                        </Link>
                     </Button>
                 );
             })}
-        </Stack>
+        </div>
     );
 }

@@ -7,10 +7,24 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Button } from '@/Components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/Components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/Components/ui/select';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDate } from '@/lib/format';
-import { colors } from '@/theme/bakeryTheme';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -22,9 +36,9 @@ const NEXT_STATUS = {
 };
 
 const COLUMNS = [
-    { key: 'baking', label: 'Baking', accent: colors.jam },
-    { key: 'cooling', label: 'Cooling', accent: colors.butter },
-    { key: 'ready', label: 'Ready', accent: colors.sage },
+    { key: 'baking', label: 'Baking', accentClass: 'text-jam' },
+    { key: 'cooling', label: 'Cooling', accentClass: 'text-butter' },
+    { key: 'ready', label: 'Ready', accentClass: 'text-sage' },
 ];
 
 export default function Index({ batches, products }) {
@@ -88,173 +102,147 @@ export default function Index({ batches, products }) {
                 description="Schedule a batch, then walk it from oven to cooling rack to the ready shelf."
             />
 
-            <SurfaceCard
-                component="form"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    createForm.post(route('tenant.production-batches.store'), {
-                        onSuccess: () => createForm.reset('planned_quantity', 'expiry_date'),
-                    });
-                }}
-                sx={{
-                    mb: 3,
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
-                }}
-            >
-                <Box sx={{ gridColumn: '1 / -1' }}>
-                    <Typography variant="h6">Schedule a batch</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        Pick what is on the floor. The recipe and batch number are assigned automatically.
-                    </Typography>
-                </Box>
-                <Box>
-                    <InputLabel value="Product" />
-                    <FormControl fullWidth size="small">
+            <SurfaceCard className="mb-6">
+                <form
+                    className="grid gap-4 lg:grid-cols-3"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        createForm.post(route('tenant.production-batches.store'), {
+                            onSuccess: () => createForm.reset('planned_quantity', 'expiry_date'),
+                        });
+                    }}
+                >
+                    <div className="col-span-full">
+                        <h2 className="text-lg font-semibold">Schedule a batch</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Pick what is on the floor. The recipe and batch number are assigned automatically.
+                        </p>
+                    </div>
+                    <div>
+                        <InputLabel value="Product" />
                         <Select
-                            value={createForm.data.product_id}
-                            onChange={(e) => createForm.setData('product_id', e.target.value)}
+                            value={String(createForm.data.product_id ?? '')}
+                            onValueChange={(value) => createForm.setData('product_id', value)}
                         >
-                            {products.map((p) => (
-                                <MenuItem key={p.id} value={p.id}>
-                                    {p.name}
-                                </MenuItem>
-                            ))}
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select product" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {products.map((p) => (
+                                    <SelectItem key={p.id} value={String(p.id)}>
+                                        {p.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
                         </Select>
-                    </FormControl>
-                    <InputError message={createForm.errors.product_id} />
-                    {selectedProduct?.recipe?.expected_yield && (
-                        <Typography variant="caption" color="text.secondary">
-                            Recipe yield {selectedProduct.recipe.expected_yield}
-                        </Typography>
-                    )}
-                </Box>
-                <Box>
-                    <InputLabel value="Planned quantity" />
-                    <TextInput
-                        type="number"
-                        inputProps={{ step: '0.001' }}
-                        value={createForm.data.planned_quantity}
-                        onChange={(e) => createForm.setData('planned_quantity', e.target.value)}
-                    />
-                </Box>
-                <Box>
-                    <InputLabel value="Expiry date" />
-                    <TextInput
-                        type="date"
-                        value={createForm.data.expiry_date}
-                        onChange={(e) => createForm.setData('expiry_date', e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                    />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-                    <PrimaryButton type="submit" fullWidth disabled={createForm.processing}>
-                        Schedule batch
-                    </PrimaryButton>
-                </Box>
+                        <InputError message={createForm.errors.product_id} />
+                        {selectedProduct?.recipe?.expected_yield && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Recipe yield {selectedProduct.recipe.expected_yield}
+                            </p>
+                        )}
+                    </div>
+                    <div>
+                        <InputLabel value="Planned quantity" />
+                        <TextInput
+                            type="number"
+                            step="0.001"
+                            value={createForm.data.planned_quantity}
+                            onChange={(e) => createForm.setData('planned_quantity', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <InputLabel value="Expiry date" />
+                        <TextInput
+                            type="date"
+                            value={createForm.data.expiry_date}
+                            onChange={(e) => createForm.setData('expiry_date', e.target.value)}
+                        />
+                    </div>
+                    <div className="flex items-end">
+                        <PrimaryButton type="submit" className="w-full" disabled={createForm.processing}>
+                            Schedule batch
+                        </PrimaryButton>
+                    </div>
+                </form>
             </SurfaceCard>
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
-                    mb: 3,
-                }}
-            >
+            <div className="mb-6 grid gap-4 lg:grid-cols-3">
                 {COLUMNS.map((col) => (
-                    <SurfaceCard key={col.key} sx={{ p: 2 }}>
-                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
-                            <Typography variant="overline" sx={{ color: col.accent }}>
+                    <SurfaceCard key={col.key} className="p-4">
+                        <div className="mb-4 flex flex-row justify-between">
+                            <span className={`text-[10px] font-semibold uppercase tracking-wider ${col.accentClass}`}>
                                 {col.label}
-                            </Typography>
-                            <Typography variant="caption" fontWeight={700}>
-                                {board[col.key].length}
-                            </Typography>
-                        </Stack>
-                        <Stack spacing={1.25}>
+                            </span>
+                            <span className="text-xs font-bold">{board[col.key].length}</span>
+                        </div>
+                        <div className="space-y-3">
                             {board[col.key].length === 0 && (
-                                <Typography variant="body2" color="text.secondary">
-                                    None {col.label.toLowerCase()}.
-                                </Typography>
+                                <p className="text-sm text-muted-foreground">None {col.label.toLowerCase()}.</p>
                             )}
                             {board[col.key].map((batch) => {
                                 const next = NEXT_STATUS[batch.status];
                                 return (
-                                    <Box
+                                    <div
                                         key={batch.id}
-                                        sx={{
-                                            p: 1.5,
-                                            borderRadius: '10px',
-                                            border: `1px solid ${colors.border}`,
-                                            bgcolor: colors.wheatLight,
-                                        }}
+                                        className="rounded-[10px] border border-border bg-wheat-light p-3"
                                     >
-                                        <Typography variant="subtitle2">{batch.product?.name}</Typography>
-                                        <Typography variant="caption" color="text.secondary" display="block">
+                                        <p className="text-sm font-semibold">{batch.product?.name}</p>
+                                        <span className="block text-xs text-muted-foreground">
                                             #{batch.batch_number} · {batch.planned_quantity}
                                             {batch.actual_quantity ? ` actual ${batch.actual_quantity}` : ''}
-                                        </Typography>
+                                        </span>
                                         {next && (
                                             <SecondaryButton
                                                 size="small"
                                                 onClick={() => transition(batch, next)}
-                                                sx={{ mt: 1, textTransform: 'capitalize' }}
+                                                className="mt-2 capitalize"
                                             >
                                                 → {next}
                                             </SecondaryButton>
                                         )}
-                                    </Box>
+                                    </div>
                                 );
                             })}
-                        </Stack>
+                        </div>
                     </SurfaceCard>
                 ))}
-            </Box>
+            </div>
 
             {queued.length > 0 && (
                 <SurfaceCard>
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                        Queued & dispatched
-                    </Typography>
-                    <Stack spacing={1.25}>
+                    <h2 className="mb-4 text-lg font-semibold">Queued & dispatched</h2>
+                    <div className="space-y-3">
                         {queued.map((batch) => {
                             const next = NEXT_STATUS[batch.status];
                             return (
-                                <Stack
+                                <div
                                     key={batch.id}
-                                    direction={{ xs: 'column', sm: 'row' }}
-                                    justifyContent="space-between"
-                                    spacing={1}
-                                    sx={{
-                                        py: 1,
-                                        borderBottom: `1px solid ${colors.border}`,
-                                    }}
+                                    className="flex flex-col justify-between gap-2 border-b border-border py-2 sm:flex-row sm:items-center"
                                 >
-                                    <Box>
-                                        <Typography variant="subtitle2">{batch.product?.name}</Typography>
-                                        <Typography variant="caption" color="text.secondary">
+                                    <div>
+                                        <p className="text-sm font-semibold">{batch.product?.name}</p>
+                                        <span className="text-xs text-muted-foreground">
                                             #{batch.batch_number} · planned {batch.planned_quantity} ·{' '}
                                             {formatDate(batch.expiry_date)}
-                                        </Typography>
-                                    </Box>
-                                    <Stack direction="row" spacing={1} alignItems="center">
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-row items-center gap-2">
                                         <StatusBadge status={batch.status} />
                                         {next && (
                                             <SecondaryButton
                                                 size="small"
                                                 onClick={() => transition(batch, next)}
-                                                sx={{ textTransform: 'capitalize' }}
+                                                className="capitalize"
                                             >
                                                 → {next}
                                             </SecondaryButton>
                                         )}
-                                    </Stack>
-                                </Stack>
+                                    </div>
+                                </div>
                             );
                         })}
-                    </Stack>
+                    </div>
                 </SurfaceCard>
             )}
 
@@ -262,36 +250,45 @@ export default function Index({ batches, products }) {
 
             <Dialog
                 open={qtyDialog.open}
-                onClose={() => setQtyDialog({ open: false, batch: null, status: null, quantity: '' })}
-                fullWidth
-                maxWidth="xs"
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setQtyDialog({ open: false, batch: null, status: null, quantity: '' });
+                    }
+                }}
             >
-                <DialogTitle>Actual quantity</DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {qtyDialog.batch?.product?.name
-                            ? `How many ${qtyDialog.batch.product.name} came out of this batch?`
-                            : 'Optional — leave blank to keep the planned quantity.'}
-                    </Typography>
-                    <TextField
-                        autoFocus
-                        fullWidth
-                        type="number"
-                        label="Quantity produced"
-                        value={qtyDialog.quantity}
-                        onChange={(e) => setQtyDialog((prev) => ({ ...prev, quantity: e.target.value }))}
-                    />
+                <DialogContent className="max-w-xs">
+                    <DialogHeader>
+                        <DialogTitle>Actual quantity</DialogTitle>
+                        <DialogDescription>
+                            {qtyDialog.batch?.product?.name
+                                ? `How many ${qtyDialog.batch.product.name} came out of this batch?`
+                                : 'Optional — leave blank to keep the planned quantity.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div>
+                        <InputLabel value="Quantity produced" />
+                        <TextInput
+                            autoFocus
+                            type="number"
+                            value={qtyDialog.quantity}
+                            onChange={(e) => setQtyDialog((prev) => ({ ...prev, quantity: e.target.value }))}
+                        />
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() =>
+                                setQtyDialog({ open: false, batch: null, status: null, quantity: '' })
+                            }
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="button" onClick={confirmQuantity}>
+                            Mark {qtyDialog.status}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button
-                        onClick={() => setQtyDialog({ open: false, batch: null, status: null, quantity: '' })}
-                    >
-                        Cancel
-                    </Button>
-                    <Button variant="contained" onClick={confirmQuantity}>
-                        Mark {qtyDialog.status}
-                    </Button>
-                </DialogActions>
             </Dialog>
         </TenantLayout>
     );

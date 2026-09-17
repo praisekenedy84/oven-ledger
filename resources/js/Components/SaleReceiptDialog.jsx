@@ -1,20 +1,15 @@
-import { colors } from '@/theme/bakeryTheme';
-import BluetoothOutlinedIcon from '@mui/icons-material/BluetoothOutlined';
-import CloseIcon from '@mui/icons-material/Close';
-import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import { Button } from '@/Components/ui/button';
 import {
-    Box,
-    Button,
     Dialog,
-    DialogActions,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
     DialogTitle,
-    IconButton,
-    Stack,
-    ToggleButton,
-    ToggleButtonGroup,
-    Typography,
-} from '@mui/material';
+} from '@/Components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/Components/ui/tabs';
+import { cn } from '@/lib/utils';
+import { Bluetooth, FileText } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 function openThermalPrint(url) {
@@ -68,118 +63,71 @@ export default function SaleReceiptDialog({ sale, open, onClose }) {
     return (
         <Dialog
             open={open}
-            onClose={onClose}
-            maxWidth="sm"
-            fullWidth
-            fullScreen={false}
-            PaperProps={{
-                sx: {
-                    maxHeight: { xs: '100dvh', sm: '92dvh' },
-                    m: { xs: 0, sm: 2 },
-                    width: { xs: '100%', sm: 'auto' },
-                    borderRadius: { xs: 0, sm: 2 },
-                },
+            onOpenChange={(nextOpen) => {
+                if (!nextOpen) {
+                    onClose();
+                }
             }}
         >
-            <DialogTitle sx={{ pr: 6, pb: 1.25 }}>
-                {sale.is_pre_order ? 'Pre-order receipt' : 'Sale receipt'}
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                    Ticket #{sale.id} · preview before you download or print
-                </Typography>
-                <IconButton
-                    aria-label="Close"
-                    onClick={onClose}
-                    sx={{ position: 'absolute', right: 12, top: 12 }}
-                >
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
-
             <DialogContent
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 1.5,
-                    pt: 1,
-                    px: { xs: 1.5, sm: 3 },
-                }}
+                className={cn(
+                    'flex max-h-[100dvh] w-full max-w-lg flex-col gap-4 overflow-hidden p-0 sm:max-h-[92dvh] sm:rounded-card',
+                    'left-0 top-0 h-[100dvh] max-w-none translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:h-auto sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%]',
+                )}
             >
-                <ToggleButtonGroup
-                    exclusive
-                    size="small"
-                    fullWidth
-                    value={layout}
-                    onChange={(_event, value) => {
-                        if (value) {
-                            setLayout(value);
-                        }
-                    }}
-                    sx={{
-                        bgcolor: colors.cream,
-                        border: `1px solid ${colors.border}`,
-                        '& .MuiToggleButton-root': {
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            py: 1,
-                        },
-                    }}
-                >
-                    <ToggleButton value="full">Full receipt</ToggleButton>
-                    <ToggleButton value="thermal">Thermal 80mm</ToggleButton>
-                </ToggleButtonGroup>
+                <DialogHeader className="space-y-1 px-4 pb-0 pt-6 text-left sm:px-6">
+                    <DialogTitle>{sale.is_pre_order ? 'Pre-order receipt' : 'Sale receipt'}</DialogTitle>
+                    <DialogDescription>
+                        Ticket #{sale.id} · preview before you download or print
+                    </DialogDescription>
+                </DialogHeader>
 
-                <Box
-                    sx={{
-                        flex: 1,
-                        minHeight: { xs: '52dvh', sm: 420 },
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                        border: `1px solid ${colors.border}`,
-                        bgcolor: colors.kraft,
-                    }}
-                >
-                    <Box
-                        component="iframe"
-                        key={urls.preview}
-                        title={`Receipt preview #${sale.id}`}
-                        src={urls.preview}
-                        sx={{
-                            display: 'block',
-                            width: '100%',
-                            height: { xs: '52dvh', sm: 420 },
-                            border: 0,
-                            bgcolor: '#fff',
-                        }}
-                    />
-                </Box>
+                <div className="flex flex-1 flex-col gap-4 overflow-hidden px-4 sm:px-6">
+                    <Tabs value={layout} onValueChange={setLayout}>
+                        <TabsList className="grid h-auto w-full grid-cols-2 border border-border bg-cream p-1">
+                            <TabsTrigger value="full" className="py-2 font-semibold">
+                                Full receipt
+                            </TabsTrigger>
+                            <TabsTrigger value="thermal" className="py-2 font-semibold">
+                                Thermal 80mm
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
 
-                <Stack spacing={1}>
-                    <Button
-                        component="a"
-                        href={layout === 'thermal' ? urls.thermalPdfDownload : urls.pdfDownload}
-                        variant="contained"
-                        startIcon={<PictureAsPdfOutlinedIcon />}
-                        sx={{ minHeight: 48 }}
-                    >
-                        {layout === 'thermal' ? 'Download thermal PDF' : 'Download PDF'}
+                    <div className="min-h-[52dvh] flex-1 overflow-hidden rounded-lg border border-border bg-kraft sm:min-h-[420px]">
+                        <iframe
+                            key={urls.preview}
+                            title={`Receipt preview #${sale.id}`}
+                            src={urls.preview}
+                            className="block h-[52dvh] w-full border-0 bg-white sm:h-[420px]"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Button asChild className="min-h-12 w-full">
+                            <a href={layout === 'thermal' ? urls.thermalPdfDownload : urls.pdfDownload}>
+                                <FileText className="h-4 w-4" />
+                                {layout === 'thermal' ? 'Download thermal PDF' : 'Download PDF'}
+                            </a>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="min-h-12 w-full"
+                            onClick={() => openThermalPrint(urls.thermalUrl)}
+                        >
+                            <Bluetooth className="h-4 w-4" />
+                            Print thermal / Bluetooth
+                        </Button>
+                    </div>
+                </div>
+
+                <DialogFooter className="px-4 pb-6 pt-0 sm:px-6">
+                    <Button variant="secondary" className="min-h-11 w-full" onClick={onClose}>
+                        Done
                     </Button>
-                    <Button
-                        type="button"
-                        variant="outlined"
-                        startIcon={<BluetoothOutlinedIcon />}
-                        onClick={() => openThermalPrint(urls.thermalUrl)}
-                        sx={{ minHeight: 48 }}
-                    >
-                        Print thermal / Bluetooth
-                    </Button>
-                </Stack>
+                </DialogFooter>
             </DialogContent>
-
-            <DialogActions sx={{ px: 3, pb: 2.5, pt: 0 }}>
-                <Button onClick={onClose} variant="contained" color="inherit" fullWidth sx={{ minHeight: 44 }}>
-                    Done
-                </Button>
-            </DialogActions>
         </Dialog>
     );
 }

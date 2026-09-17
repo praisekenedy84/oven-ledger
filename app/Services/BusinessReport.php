@@ -25,7 +25,7 @@ class BusinessReport
     public function statement(Carbon $from, Carbon $to, ?int $branchId = null): array
     {
         $unitCosts = $this->economics->unitCostMap();
-        $items = $this->soldItems($from, $to, $branchId);
+        $items = $this->soldItemsByProduct($from, $to, $branchId);
 
         $revenue = 0.0;
         $cogs = 0.0;
@@ -95,7 +95,7 @@ class BusinessReport
             ->keyBy(fn ($row) => Carbon::parse($row->day)->toDateString());
 
         $cogsByDay = [];
-        foreach ($this->soldItems($from, $to, $branchId) as $item) {
+        foreach ($this->soldItemsByDay($from, $to, $branchId) as $item) {
             $day = Carbon::parse($item->sold_on)->toDateString();
             $cogsByDay[$day] = ($cogsByDay[$day] ?? 0) + ($unitCosts[$item->product_id] ?? 0) * (float) $item->quantity;
         }
@@ -355,19 +355,41 @@ class BusinessReport
     }
 
     /**
+     * Aggregated sold lines by product (smaller than raw line items).
+     *
      * @return Collection<int, object>
      */
-    protected function soldItems(Carbon $from, Carbon $to, ?int $branchId): Collection
+    protected function soldItemsByProduct(Carbon $from, Carbon $to, ?int $branchId): Collection
     {
         return OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('orders.status', 'completed')
             ->whereBetween('orders.created_at', [$from, $to])
             ->when($branchId, fn ($query) => $query->where('orders.branch_id', $branchId))
+            ->groupBy('order_items.product_id')
             ->get([
                 'order_items.product_id',
-                'order_items.quantity',
-                'order_items.line_total',
+                DB::raw('SUM(order_items.quantity) as quantity'),
+                DB::raw('SUM(order_items.line_total) as line_total'),
+            ]);
+    }
+
+    /**
+     * Aggregated sold lines by product and day.
+     *
+     * @return Collection<int, object>
+     */
+    protected function soldItemsByDay(Carbon $from, Carbon $to, ?int $branchId): Collection
+    {
+        return OrderItem::query()
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.status', 'completed')
+            ->whereBetween('orders.created_at', [$from, $to])
+            ->when($branchId, fn ($query) => $query->where('orders.branch_id', $branchId))
+            ->groupByRaw('order_items.product_id, DATE(orders.created_at)')
+            ->get([
+                'order_items.product_id',
+                DB::raw('SUM(order_items.quantity) as quantity'),
                 DB::raw('DATE(orders.created_at) as sold_on'),
             ]);
     }

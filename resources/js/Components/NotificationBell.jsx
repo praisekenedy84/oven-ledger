@@ -1,20 +1,18 @@
-import { colors } from '@/theme/bakeryTheme';
-import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import { Badge } from '@/Components/ui/badge';
+import { Button } from '@/Components/ui/button';
 import {
-    Badge,
-    Box,
-    Button,
-    Divider,
-    IconButton,
-    List,
-    ListItemButton,
-    ListItemText,
-    Popover,
-    Stack,
-    Typography,
-} from '@mui/material';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/Components/ui/dropdown-menu';
+import { ScrollArea } from '@/Components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import { colors } from '@/theme/bakeryTheme';
 import { Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Bell } from 'lucide-react';
 
 const KIND_COLOR = {
     alert: colors.jam,
@@ -32,129 +30,106 @@ function kindLabel(kind) {
     return 'Update';
 }
 
-export default function NotificationBell() {
-    const { staffNotifications } = usePage().props;
-    const items = staffNotifications?.items ?? [];
-    const unreadCount = staffNotifications?.unread_count ?? items.length;
-    const [anchorEl, setAnchorEl] = useState(null);
-    const open = Boolean(anchorEl);
-
-    const goTo = (href) => {
-        setAnchorEl(null);
-        if (href) {
-            router.visit(href);
+function openNotification(item) {
+    const go = () => {
+        if (item.href) {
+            router.visit(item.href);
         }
     };
 
-    return (
-        <>
-            <IconButton
-                aria-label="Notifications"
-                onClick={(event) => setAnchorEl(event.currentTarget)}
-                sx={{ color: colors.ink }}
-            >
-                <Badge
-                    badgeContent={unreadCount}
-                    color="error"
-                    max={99}
-                    overlap="circular"
-                    sx={{
-                        '& .MuiBadge-badge': {
-                            bgcolor: colors.jam,
-                            color: colors.cream,
-                            fontWeight: 700,
-                        },
-                    }}
-                >
-                    <NotificationsNoneOutlinedIcon />
-                </Badge>
-            </IconButton>
+    if (item.is_read) {
+        go();
+        return;
+    }
 
-            <Popover
-                open={open}
-                anchorEl={anchorEl}
-                onClose={() => setAnchorEl(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                slotProps={{
-                    paper: {
-                        sx: {
-                            width: { xs: 'min(100vw - 24px, 380px)', sm: 380 },
-                            maxHeight: 480,
-                            mt: 1,
-                            border: `1px solid ${colors.border}`,
-                            boxShadow: '0 2px 8px rgba(51, 38, 28, 0.08)',
-                        },
-                    },
-                }}
-            >
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    sx={{ px: 2, py: 1.5 }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700}>
-                        Notifications
-                    </Typography>
-                    <Button
-                        component={Link}
-                        href={route('tenant.notifications.index')}
-                        size="small"
-                        onClick={() => setAnchorEl(null)}
-                    >
-                        View all
-                    </Button>
-                </Stack>
-                <Divider />
+    router.post(
+        route('tenant.notifications.read'),
+        { id: item.id },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: go,
+        },
+    );
+}
+
+function markAllRead() {
+    router.post(route('tenant.notifications.read-all'), {}, { preserveScroll: true });
+}
+
+export default function NotificationBell() {
+    const { staffNotifications } = usePage().props;
+    const items = staffNotifications?.items ?? [];
+    const unreadCount = staffNotifications?.unread_count ?? 0;
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative text-ink" aria-label="Notifications">
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                        <Badge
+                            variant="destructive"
+                            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                        >
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </Badge>
+                    )}
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[min(100vw-24px,380px)] p-0 shadow-card">
+                <div className="flex items-center justify-between gap-2 px-4 py-3">
+                    <DropdownMenuLabel className="p-0 text-base font-bold">Notifications</DropdownMenuLabel>
+                    <div className="flex items-center gap-1">
+                        {unreadCount > 0 && (
+                            <Button type="button" variant="ghost" size="sm" onClick={markAllRead}>
+                                Mark all read
+                            </Button>
+                        )}
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href={route('tenant.notifications.index')}>View all</Link>
+                        </Button>
+                    </div>
+                </div>
+                <DropdownMenuSeparator className="m-0" />
                 {items.length === 0 ? (
-                    <Box sx={{ px: 2, py: 4 }}>
-                        <Typography variant="body2" color="text.secondary" textAlign="center">
-                            No alerts or reminders right now.
-                        </Typography>
-                    </Box>
+                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                        No alerts or reminders right now.
+                    </div>
                 ) : (
-                    <List dense disablePadding sx={{ overflowY: 'auto', maxHeight: 360 }}>
+                    <ScrollArea className="max-h-[360px]">
                         {items.map((item) => (
-                            <ListItemButton
+                            <DropdownMenuItem
                                 key={item.id}
-                                onClick={() => goTo(item.href)}
-                                alignItems="flex-start"
-                                sx={{ py: 1.25, px: 2 }}
+                                className={cn(
+                                    'cursor-pointer items-start gap-2 px-4 py-3',
+                                    item.is_read && 'opacity-60',
+                                )}
+                                onSelect={(event) => {
+                                    event.preventDefault();
+                                    openNotification(item);
+                                }}
                             >
-                                <ListItemText
-                                    primary={
-                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.25 }}>
-                                            <Typography
-                                                variant="caption"
-                                                sx={{
-                                                    color: KIND_COLOR[item.kind] ?? colors.muted,
-                                                    fontWeight: 700,
-                                                    textTransform: 'uppercase',
-                                                    letterSpacing: '0.08em',
-                                                }}
-                                            >
-                                                {kindLabel(item.kind)}
-                                            </Typography>
-                                        </Stack>
-                                    }
-                                    secondary={
-                                        <>
-                                            <Typography variant="body2" sx={{ color: colors.ink, fontWeight: 600 }}>
-                                                {item.title}
-                                            </Typography>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {item.body}
-                                            </Typography>
-                                        </>
-                                    }
-                                    secondaryTypographyProps={{ component: 'div' }}
-                                />
-                            </ListItemButton>
+                                <div className="min-w-0 flex-1 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <p
+                                            className="text-[10px] font-bold uppercase tracking-widest"
+                                            style={{ color: KIND_COLOR[item.kind] ?? colors.muted }}
+                                        >
+                                            {kindLabel(item.kind)}
+                                        </p>
+                                        {!item.is_read && (
+                                            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-label="Unread" />
+                                        )}
+                                    </div>
+                                    <p className="text-sm font-semibold text-ink">{item.title}</p>
+                                    <p className="text-xs text-muted-foreground">{item.body}</p>
+                                </div>
+                            </DropdownMenuItem>
                         ))}
-                    </List>
+                    </ScrollArea>
                 )}
-            </Popover>
-        </>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }

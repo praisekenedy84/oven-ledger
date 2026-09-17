@@ -60,17 +60,28 @@ class SaleController extends Controller
 
         $todayCompleted = (clone $completedBase)->whereBetween('created_at', [$todayStart, $todayEnd]);
 
+        $todayStats = (clone $todayCompleted)
+            ->selectRaw('COALESCE(SUM(total_amount), 0) as total, COUNT(*) as ticket_count')
+            ->first();
+
+        $periodStats = (clone $periodCompleted)
+            ->selectRaw('COALESCE(SUM(total_amount), 0) as total, COUNT(*) as ticket_count')
+            ->first();
+
+        $statusCounts = Order::query()
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->whereBetween('created_at', [$from, $to])
+            ->selectRaw("SUM(CASE WHEN status = 'voided' THEN 1 ELSE 0 END) as voided_count")
+            ->selectRaw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count")
+            ->first();
+
         $summary = [
-            'today_total' => round((float) (clone $todayCompleted)->sum('total_amount'), 2),
-            'today_count' => (clone $todayCompleted)->count(),
-            'period_total' => round((float) (clone $periodCompleted)->sum('total_amount'), 2),
-            'period_count' => (clone $periodCompleted)->count(),
-            'voided_count' => (clone $salesQuery)->where('status', 'voided')->count(),
-            'pending_count' => Order::query()
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->where('status', 'pending')
-                ->whereBetween('created_at', [$from, $to])
-                ->count(),
+            'today_total' => round((float) ($todayStats?->total ?? 0), 2),
+            'today_count' => (int) ($todayStats?->ticket_count ?? 0),
+            'period_total' => round((float) ($periodStats?->total ?? 0), 2),
+            'period_count' => (int) ($periodStats?->ticket_count ?? 0),
+            'voided_count' => (int) ($statusCounts?->voided_count ?? 0),
+            'pending_count' => (int) ($statusCounts?->pending_count ?? 0),
         ];
 
         $staffOptions = User::query()

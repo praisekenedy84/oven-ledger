@@ -1,12 +1,7 @@
-import { Dialog, DialogContent } from '@mui/material';
-
-const MAX_WIDTH = {
-    sm: 'xs',
-    md: 'sm',
-    lg: 'md',
-    xl: 'lg',
-    '2xl': 'md',
-};
+import {
+    Dialog,
+    DialogContent,
+} from '@/Components/ui/dialog';
 
 export default function Modal({
     children,
@@ -15,18 +10,24 @@ export default function Modal({
     closeable = true,
     onClose = () => {},
 }) {
+    const widthClass = {
+        sm: 'max-w-sm',
+        md: 'max-w-md',
+        lg: 'max-w-lg',
+        xl: 'max-w-xl',
+        '2xl': 'max-w-2xl',
+    }[maxWidth] ?? 'max-w-2xl';
+
     return (
         <Dialog
             open={show}
-            onClose={() => {
-                if (closeable) {
+            onOpenChange={(open) => {
+                if (!open && closeable) {
                     onClose();
                 }
             }}
-            maxWidth={MAX_WIDTH[maxWidth] ?? 'md'}
-            fullWidth
         >
-            <DialogContent sx={{ p: 0 }}>{children}</DialogContent>
+            <DialogContent className={`${widthClass} p-0`}>{children}</DialogContent>
         </Dialog>
     );
 }

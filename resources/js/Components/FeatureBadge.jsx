@@ -1,19 +1,20 @@
+import { Badge } from '@/Components/ui/badge';
 import { featureLabel } from '@/lib/features';
-import { colors } from '@/theme/bakeryTheme';
-import { Chip } from '@mui/material';
+import { cn } from '@/lib/utils';
 
-export default function FeatureBadge({ featureKey, enabled }) {
+export default function FeatureBadge({ featureKey, enabled, className }) {
     return (
-        <Chip
-            size="small"
-            label={featureLabel(featureKey)}
-            sx={{
-                height: 24,
-                fontWeight: 600,
-                bgcolor: enabled ? `${colors.sage}1f` : colors.wheatLight,
-                color: enabled ? colors.sage : colors.muted,
-                border: enabled ? 'none' : `1px solid ${colors.border}`,
-            }}
-        />
+        <Badge
+            variant="outline"
+            className={cn(
+                'h-6 font-semibold',
+                enabled
+                    ? 'border-transparent bg-sage/12 text-sage'
+                    : 'border-border bg-wheat-light text-muted-foreground',
+                className,
+            )}
+        >
+            {featureLabel(featureKey)}
+        </Badge>
     );
 }

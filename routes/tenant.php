@@ -59,6 +59,8 @@ Route::middleware('web')->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('tenant.dashboard');
         Route::get('/notifications', [NotificationController::class, 'index'])->name('tenant.notifications.index');
+        Route::post('/notifications/read', [NotificationController::class, 'markRead'])->name('tenant.notifications.read');
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('tenant.notifications.read-all');
 
         Route::resource('products', ProductController::class)->names('tenant.products');
         Route::resource('raw-materials', RawMaterialController::class)->only(['index', 'show', 'store', 'update', 'destroy'])->names('tenant.raw-materials');

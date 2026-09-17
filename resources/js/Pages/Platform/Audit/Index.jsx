@@ -26,26 +26,17 @@ export default function Index({ logs }) {
             >
                 {logs.data.map((log) => (
                     <DataTableRow key={log.id}>
-                        <DataTableCell sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>
+                        <DataTableCell className="whitespace-nowrap text-muted-foreground">
                             {formatDateTime(log.created_at)}
                         </DataTableCell>
                         <DataTableCell>{log.platform_admin?.name ?? '—'}</DataTableCell>
-                        <DataTableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>
+                        <DataTableCell className="font-mono text-xs">
                             {log.action}
                         </DataTableCell>
-                        <DataTableCell sx={{ fontSize: 12, color: 'text.secondary' }}>
+                        <DataTableCell className="text-xs text-muted-foreground">
                             {log.target_type ? `${log.target_type} #${log.target_id}` : '—'}
                         </DataTableCell>
-                        <DataTableCell
-                            sx={{
-                                maxWidth: 280,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                fontSize: 12,
-                                color: 'text.secondary',
-                            }}
-                        >
+                        <DataTableCell className="max-w-[280px] truncate text-xs text-muted-foreground">
                             {log.meta ? JSON.stringify(log.meta) : '—'}
                         </DataTableCell>
                     </DataTableRow>

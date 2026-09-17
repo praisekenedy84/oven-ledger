@@ -2,8 +2,8 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { Button } from '@/Components/ui/button';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Button, Stack } from '@mui/material';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Register() {
@@ -19,9 +19,8 @@ export default function Register() {
         <GuestLayout>
             <Head title="Register" />
 
-            <Stack
-                component="form"
-                spacing={2.5}
+            <form
+                className="space-y-5"
                 onSubmit={(e) => {
                     e.preventDefault();
                     post(route('register'), {
@@ -93,15 +92,15 @@ export default function Register() {
                     <InputError message={errors.password_confirmation} />
                 </div>
 
-                <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={2}>
-                    <Button component={Link} href={route('login')} size="small">
-                        Already registered?
+                <div className="flex items-center justify-end gap-4">
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href={route('login')}>Already registered?</Link>
                     </Button>
                     <PrimaryButton type="submit" disabled={processing}>
                         Register
                     </PrimaryButton>
-                </Stack>
-            </Stack>
+                </div>
+            </form>
         </GuestLayout>
     );
 }

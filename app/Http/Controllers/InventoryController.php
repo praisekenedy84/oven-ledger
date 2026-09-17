@@ -37,7 +37,13 @@ class InventoryController extends Controller
             'rawMaterialStock' => BranchRawMaterialStock::query()
                 ->with('rawMaterial:id,name,unit_of_measure,reorder_threshold,unit_cost')
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->get(),
+                ->get(['id', 'branch_id', 'raw_material_id', 'quantity_on_hand'])
+                ->map(fn (BranchRawMaterialStock $row) => [
+                    'id' => $row->id,
+                    'raw_material_id' => $row->raw_material_id,
+                    'quantity_on_hand' => (float) $row->quantity_on_hand,
+                    'raw_material' => $row->rawMaterial,
+                ]),
             'finishedGoodsStock' => $this->finishedGoodsInventory->shelfSnapshot($branchId),
             'products' => Product::query()
                 ->where('is_active', true)

@@ -1,14 +1,9 @@
-import { Button } from '@mui/material';
+import { Button } from '@/Components/ui/button';
+import { cn } from '@/lib/utils';
 
-export default function DangerButton({ className = '', disabled, children, ...props }) {
+export default function DangerButton({ className, disabled, children, ...props }) {
     return (
-        <Button
-            {...props}
-            variant="contained"
-            color="error"
-            disabled={disabled}
-            className={className}
-        >
+        <Button variant="destructive" className={cn(className)} disabled={disabled} {...props}>
             {children}
         </Button>
     );

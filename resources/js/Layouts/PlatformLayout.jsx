@@ -2,13 +2,11 @@ import AppSidebar from '@/Components/AppSidebar';
 import BuildUpdatePrompt from '@/Components/BuildUpdatePrompt';
 import FlashMessage from '@/Components/FlashMessage';
 import ImpersonationBanner from '@/Components/ImpersonationBanner';
-import { colors, layout } from '@/theme/bakeryTheme';
+import { Button } from '@/Components/ui/button';
 import { resolveNavIcon } from '@/theme/nav';
-import MenuIcon from '@mui/icons-material/Menu';
-import { AppBar, Box, IconButton, Toolbar, Typography, useMediaQuery } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { router, usePage } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { Menu } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 const NAV = [
     { label: 'Dashboard', route: 'platform.dashboard' },
@@ -17,9 +15,21 @@ const NAV = [
     { label: 'Audit Log', route: 'platform.audit.index' },
 ];
 
+function useIsDesktop() {
+    const [isDesktop, setIsDesktop] = useState(() =>
+        typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : true,
+    );
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 768px)');
+        const onChange = () => setIsDesktop(mq.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+    return isDesktop;
+}
+
 export default function PlatformLayout({ title, children }) {
-    const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+    const isDesktop = useIsDesktop();
     const { auth } = usePage().props;
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -41,58 +51,40 @@ export default function PlatformLayout({ title, children }) {
     );
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+        <div className="flex min-h-screen flex-col bg-background">
             <ImpersonationBanner />
-            <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
-            <FlashMessage />
-            <BuildUpdatePrompt />
+            <div className="flex min-h-0 flex-1">
+                <FlashMessage />
+                <BuildUpdatePrompt />
 
-            <AppSidebar
-                navItems={navItems}
-                userName={auth.user?.name}
-                onLogout={() => router.post(route('platform.logout'))}
-                mobileOpen={mobileOpen}
-                onMobileClose={() => setMobileOpen(false)}
-            />
+                <AppSidebar
+                    navItems={navItems}
+                    userName={auth.user?.name}
+                    onLogout={() => router.post(route('platform.logout'))}
+                    mobileOpen={mobileOpen}
+                    onMobileClose={() => setMobileOpen(false)}
+                />
 
-            <Box
-                sx={{
-                    flex: 1,
-                    minWidth: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minHeight: 0,
-                }}
-            >
-                <AppBar position="sticky">
-                    <Toolbar sx={{ gap: 2, minHeight: layout.headerHeight }}>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-card/95 px-3 backdrop-blur sm:px-4">
                         {!isDesktop && (
-                            <IconButton
-                                edge="start"
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => setMobileOpen(true)}
-                                sx={{ color: colors.ink }}
+                                aria-label="Open menu"
                             >
-                                <MenuIcon />
-                            </IconButton>
+                                <Menu className="h-5 w-5" />
+                            </Button>
                         )}
-                        <Typography variant="h6" noWrap sx={{ flex: 1, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
-                            {title}
-                        </Typography>
-                        <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ display: { xs: 'none', sm: 'block' } }}
-                        >
-                            Platform Admin
-                        </Typography>
-                    </Toolbar>
-                </AppBar>
+                        <h2 className="min-w-0 flex-1 truncate text-base font-semibold sm:text-lg">{title}</h2>
+                        <p className="hidden text-sm text-muted-foreground sm:block">Platform Admin</p>
+                    </header>
 
-                <Box component="main" sx={{ flex: 1, p: layout.pageGutter }}>
-                    {children}
-                </Box>
-            </Box>
-            </Box>
-        </Box>
+                    <main className="flex-1 p-4 md:p-6">{children}</main>
+                </div>
+            </div>
+        </div>
     );
 }

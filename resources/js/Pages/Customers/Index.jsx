@@ -8,10 +8,10 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import StatusBadge from '@/Components/StatusBadge';
 import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
+import { Button } from '@/Components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import TenantLayout from '@/Layouts/TenantLayout';
 import useDebouncedValue from '@/hooks/useDebouncedValue';
-import { colors } from '@/theme/bakeryTheme';
-import { Box, Button, FormControl, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
@@ -21,6 +21,9 @@ const TYPES = [
     { value: 'wholesale', label: 'Wholesale' },
     { value: 'restaurant', label: 'Restaurant' },
 ];
+
+const filterSelectClassName =
+    'flex h-10 min-w-[180px] rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
 export default function Index({ customers, filters, totals = { total_owed: 0, customers_owing: 0, by_type: {} } }) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -66,162 +69,138 @@ export default function Index({ customers, filters, totals = { total_owed: 0, cu
                 description="Retail, wholesale, and restaurant accounts — with delivery details and a running balance."
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 1fr)' },
-                    mb: 3,
-                }}
-            >
+            <div className="mb-6 grid gap-6 md:grid-cols-[1.2fr_0.7fr_1fr]">
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.jam }}>
-                        They owe us
-                    </Typography>
-                    <Typography variant="h4" sx={{ color: colors.ink, mt: 0.5 }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-jam">They owe us</p>
+                    <p className="mt-1 text-3xl font-semibold text-ink">
                         <Money amount={totals.total_owed} />
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Unpaid credit across every customer account.
-                    </Typography>
+                    </p>
                 </SurfaceCard>
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.butter }}>
-                        Open accounts
-                    </Typography>
-                    <Typography variant="h4" sx={{ color: colors.ink, mt: 0.5 }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-butter">Open accounts</p>
+                    <p className="mt-1 text-3xl font-semibold text-ink">
                         {totals.customers_owing ?? 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         {totals.customers_owing === 1
                             ? 'Customer still has a balance.'
                             : 'Customers still have a balance.'}
-                    </Typography>
+                    </p>
                 </SurfaceCard>
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.sage }}>
-                        By type
-                    </Typography>
-                    <Stack spacing={0.75} sx={{ mt: 1 }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-sage">By type</p>
+                    <div className="mt-2 flex flex-col gap-1.5">
                         {[
                             { key: 'wholesale', label: 'Wholesale' },
                             { key: 'restaurant', label: 'Restaurant' },
                             { key: 'retail', label: 'Retail' },
                         ].map((row) => (
-                            <Stack key={row.key} direction="row" justifyContent="space-between" spacing={2}>
-                                <Typography variant="body2" color="text.secondary">
-                                    {row.label}
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600}>
+                            <div key={row.key} className="flex justify-between gap-4">
+                                <p className="text-sm text-muted-foreground">{row.label}</p>
+                                <p className="text-sm font-semibold">
                                     <Money amount={totals.by_type?.[row.key] ?? 0} />
-                                </Typography>
-                            </Stack>
+                                </p>
+                            </div>
                         ))}
-                    </Stack>
+                    </div>
                 </SurfaceCard>
-            </Box>
+            </div>
 
-            <Paper
-                component="form"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    form.post(route('tenant.customers.store'), {
-                        onSuccess: () => form.reset(),
-                    });
-                }}
-                variant="outlined"
-                sx={{
-                    mb: 3,
-                    p: { xs: 2, sm: 3 },
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
-                }}
-            >
-                <Box>
-                    <InputLabel value="Name" />
-                    <TextInput
-                        value={form.data.name}
-                        onChange={(e) => form.setData('name', e.target.value)}
-                    />
-                    <InputError message={form.errors.name} />
-                </Box>
-                <Box>
-                    <InputLabel value="Phone" />
-                    <TextInput
-                        value={form.data.phone}
-                        onChange={(e) => form.setData('phone', e.target.value)}
-                    />
-                    <InputError message={form.errors.phone} />
-                </Box>
-                <Box>
-                    <InputLabel value="Email" />
-                    <TextInput
-                        type="email"
-                        value={form.data.email}
-                        onChange={(e) => form.setData('email', e.target.value)}
-                    />
-                    <InputError message={form.errors.email} />
-                </Box>
-                <Box>
-                    <InputLabel value="Type" />
-                    <FormControl fullWidth size="small">
+            <SurfaceCard className="mb-6">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        form.post(route('tenant.customers.store'), {
+                            onSuccess: () => form.reset(),
+                        });
+                    }}
+                    className="grid gap-4 lg:grid-cols-3"
+                >
+                    <div>
+                        <InputLabel value="Name" />
+                        <TextInput
+                            value={form.data.name}
+                            onChange={(e) => form.setData('name', e.target.value)}
+                        />
+                        <InputError message={form.errors.name} />
+                    </div>
+                    <div>
+                        <InputLabel value="Phone" />
+                        <TextInput
+                            value={form.data.phone}
+                            onChange={(e) => form.setData('phone', e.target.value)}
+                        />
+                        <InputError message={form.errors.phone} />
+                    </div>
+                    <div>
+                        <InputLabel value="Email" />
+                        <TextInput
+                            type="email"
+                            value={form.data.email}
+                            onChange={(e) => form.setData('email', e.target.value)}
+                        />
+                        <InputError message={form.errors.email} />
+                    </div>
+                    <div>
+                        <InputLabel value="Type" />
                         <Select
                             value={form.data.type}
-                            onChange={(e) => form.setData('type', e.target.value)}
+                            onValueChange={(value) => form.setData('type', value)}
                         >
-                            <MenuItem value="retail">Retail</MenuItem>
-                            <MenuItem value="wholesale">Wholesale</MenuItem>
-                            <MenuItem value="restaurant">Restaurant</MenuItem>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="retail">Retail</SelectItem>
+                                <SelectItem value="wholesale">Wholesale</SelectItem>
+                                <SelectItem value="restaurant">Restaurant</SelectItem>
+                            </SelectContent>
                         </Select>
-                    </FormControl>
-                </Box>
-                <Box>
-                    <InputLabel value="Credit limit (TZS)" />
-                    <TextInput
-                        type="number"
-                        value={form.data.credit_limit}
-                        onChange={(e) => form.setData('credit_limit', e.target.value)}
-                    />
-                </Box>
-                <Box>
-                    <InputLabel value="Payment terms" />
-                    <TextInput
-                        value={form.data.payment_terms}
-                        onChange={(e) => form.setData('payment_terms', e.target.value)}
-                    />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'flex-end', gridColumn: { lg: '3 / 4' } }}>
-                    <PrimaryButton type="submit" fullWidth disabled={form.processing}>
-                        Add customer
-                    </PrimaryButton>
-                </Box>
-            </Paper>
+                    </div>
+                    <div>
+                        <InputLabel value="Credit limit (TZS)" />
+                        <TextInput
+                            type="number"
+                            value={form.data.credit_limit}
+                            onChange={(e) => form.setData('credit_limit', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <InputLabel value="Payment terms" />
+                        <TextInput
+                            value={form.data.payment_terms}
+                            onChange={(e) => form.setData('payment_terms', e.target.value)}
+                        />
+                    </div>
+                    <div className="flex items-end lg:col-start-3">
+                        <PrimaryButton type="submit" className="w-full" disabled={form.processing}>
+                            Add customer
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </SurfaceCard>
 
-            <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={2}
-                alignItems={{ sm: 'center' }}
-                sx={{ mb: 3 }}
-            >
+            <div className="mb-6 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
                 <TextInput
                     placeholder="Search name or phone"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
-                <FormControl size="small" sx={{ minWidth: 180 }}>
-                    <Select
-                        value={filters.type ?? ''}
-                        onChange={(e) => applyFilters({ ...filters, type: e.target.value })}
-                    >
-                        {TYPES.map((type) => (
-                            <MenuItem key={type.value} value={type.value}>
-                                {type.label}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-            </Stack>
+                <select
+                    className={filterSelectClassName}
+                    value={filters.type ?? ''}
+                    onChange={(e) => applyFilters({ ...filters, type: e.target.value })}
+                >
+                    {TYPES.map((type) => (
+                        <option key={type.value} value={type.value}>
+                            {type.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
 
             <DataTable
                 columns={[
@@ -237,12 +216,12 @@ export default function Index({ customers, filters, totals = { total_owed: 0, cu
             >
                 {customers.data.map((customer) => (
                     <DataTableRow key={customer.id}>
-                        <DataTableCell sx={{ fontWeight: 600 }}>{customer.name}</DataTableCell>
+                        <DataTableCell className="font-semibold">{customer.name}</DataTableCell>
                         <DataTableCell>
                             <StatusBadge status={customer.type} />
                         </DataTableCell>
                         <DataTableCell>{customer.phone || '—'}</DataTableCell>
-                        <DataTableCell sx={{ fontWeight: 600 }}>
+                        <DataTableCell className="font-semibold">
                             <Money amount={customer.outstanding_balance} />
                         </DataTableCell>
                         <DataTableCell>
@@ -256,13 +235,10 @@ export default function Index({ customers, filters, totals = { total_owed: 0, cu
                             <StatusBadge status={customer.is_active ? 'active' : 'inactive'} />
                         </DataTableCell>
                         <DataTableCell>
-                            <Button
-                                component={Link}
-                                href={route('tenant.customers.show', customer.id)}
-                                prefetch
-                                size="small"
-                            >
-                                Statement
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={route('tenant.customers.show', customer.id)} prefetch>
+                                    Statement
+                                </Link>
                             </Button>
                         </DataTableCell>
                     </DataTableRow>

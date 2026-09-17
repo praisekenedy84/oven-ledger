@@ -1,48 +1,31 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
-import { colors, headerHeight, shadow } from '@/theme/bakeryTheme';
-import { activeGroupKeys, isNavTreeActive, isRouteActive, userInitials } from '@/theme/nav';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import LogoutIcon from '@mui/icons-material/Logout';
+import { Avatar, AvatarFallback } from '@/Components/ui/avatar';
+import { Button } from '@/Components/ui/button';
 import {
-    Avatar,
-    Box,
-    Collapse,
-    Drawer,
-    IconButton,
-    List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
-    Popover,
-    Tooltip,
-    Typography,
-    useMediaQuery,
-} from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/Components/ui/dropdown-menu';
+import { ScrollArea } from '@/Components/ui/scroll-area';
+import { Sheet, SheetContent } from '@/Components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { activeGroupKeys, isNavTreeActive, isRouteActive, userInitials } from '@/theme/nav';
 import { Link, usePage } from '@inertiajs/react';
+import { ChevronDown, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export const DRAWER_EXPANDED = 256;
 export const DRAWER_COLLAPSED = 80;
 const STORAGE_KEY = 'oven-ledger.sidebar-expanded';
 
-const hideScrollbar = {
-    scrollbarWidth: 'none',
-    msOverflowStyle: 'none',
-    '&::-webkit-scrollbar': {
-        display: 'none',
-        width: 0,
-        height: 0,
-    },
-};
-
 function readExpanded() {
     if (typeof window === 'undefined') {
         return true;
     }
-
     try {
         const stored = window.localStorage.getItem(STORAGE_KEY);
         return stored === null ? true : stored === '1';
@@ -51,13 +34,19 @@ function readExpanded() {
     }
 }
 
-function widthTransition(theme, reduceMotion) {
-    return reduceMotion
-        ? 'none'
-        : theme.transitions.create('width', {
-              duration: 280,
-              easing: theme.transitions.easing.sharp,
-          });
+function useIsDesktop() {
+    const [isDesktop, setIsDesktop] = useState(() =>
+        typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : true,
+    );
+
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 768px)');
+        const onChange = () => setIsDesktop(mq.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+
+    return isDesktop;
 }
 
 export default function AppSidebar({
@@ -69,13 +58,10 @@ export default function AppSidebar({
     mobileOpen,
     onMobileClose,
 }) {
-    const theme = useTheme();
     const page = usePage();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
-    const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+    const isDesktop = useIsDesktop();
     const [expanded, setExpanded] = useState(readExpanded);
     const [openKey, setOpenKey] = useState(() => activeGroupKeys(navItems)[0] ?? null);
-    const [flyout, setFlyout] = useState(null);
 
     const railExpanded = !isDesktop || expanded;
     const width = railExpanded ? DRAWER_EXPANDED : DRAWER_COLLAPSED;
@@ -93,15 +79,10 @@ export default function AppSidebar({
             try {
                 window.localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
             } catch {
-                // Keep the in-memory preference if storage is blocked.
+                // ignore
             }
             return next;
         });
-        setFlyout(null);
-    };
-
-    const toggleGroup = (key) => {
-        setOpenKey((current) => (current === key ? null : key));
     };
 
     const drawer = (
@@ -113,83 +94,51 @@ export default function AppSidebar({
             onLogout={onLogout}
             expanded={railExpanded}
             openKey={openKey}
-            onToggleGroup={toggleGroup}
-            flyout={flyout}
-            onFlyoutChange={setFlyout}
+            onToggleGroup={(key) => setOpenKey((current) => (current === key ? null : key))}
             onNavigate={onMobileClose}
-            reduceMotion={reduceMotion}
         />
     );
 
     return (
-        <Box
-            component="nav"
-            sx={{
-                width: { md: width },
-                flexShrink: { md: 0 },
-                position: 'relative',
-                zIndex: 1201,
-                transition: widthTransition(theme, reduceMotion),
-            }}
-        >
-            <Drawer
-                variant="temporary"
-                open={mobileOpen}
-                onClose={onMobileClose}
-                ModalProps={{ keepMounted: true }}
-                sx={{
-                    display: { xs: 'block', md: 'none' },
-                    '& .MuiDrawer-paper': {
-                        width: DRAWER_EXPANDED,
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                    },
-                }}
+        <TooltipProvider delayDuration={200}>
+            <nav
+                className="relative z-[40] shrink-0 transition-[width] duration-280"
+                style={{ width: isDesktop ? width : undefined }}
             >
-                {drawer}
-            </Drawer>
-            <Drawer
-                variant="permanent"
-                open
-                sx={{
-                    display: { xs: 'none', md: 'block' },
-                    '& .MuiDrawer-paper': {
-                        width,
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                        transition: widthTransition(theme, reduceMotion),
-                    },
-                }}
-            >
-                {drawer}
-            </Drawer>
+                <Sheet open={mobileOpen} onOpenChange={(open) => !open && onMobileClose?.()}>
+                    <SheetContent side="left" className="w-64 border-0 bg-sidebar p-0 text-sidebar-foreground md:hidden [&>button]:text-sidebar-foreground">
+                        {drawer}
+                    </SheetContent>
+                </Sheet>
 
-            {isDesktop && (
-                <Tooltip title={expanded ? 'Give the page more room' : 'Show menu labels'} placement="right">
-                    <IconButton
-                        onClick={toggleExpanded}
-                        aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
-                        aria-expanded={expanded}
-                        sx={{
-                            position: 'absolute',
-                            top: 72,
-                            right: -12,
-                            width: 24,
-                            height: 24,
-                            minWidth: 24,
-                            minHeight: 24,
-                            bgcolor: colors.cream,
-                            color: colors.ink,
-                            border: `1px solid ${colors.border}`,
-                            boxShadow: shadow,
-                            '&:hover': { bgcolor: colors.wheatLight },
-                        }}
-                    >
-                        {expanded ? <ChevronLeftIcon sx={{ fontSize: 18 }} /> : <ChevronRightIcon sx={{ fontSize: 18 }} />}
-                    </IconButton>
-                </Tooltip>
-            )}
-        </Box>
+                <div
+                    className="hidden h-full overflow-hidden md:block"
+                    style={{ width }}
+                >
+                    {drawer}
+                </div>
+
+                {isDesktop && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="outline"
+                                onClick={toggleExpanded}
+                                aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+                                className="absolute -right-3 top-[72px] z-10 h-6 w-6 rounded-full border-border bg-card p-0 shadow-card hover:bg-wheat-light"
+                            >
+                                {expanded ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                            {expanded ? 'Give the page more room' : 'Show menu labels'}
+                        </TooltipContent>
+                    </Tooltip>
+                )}
+            </nav>
+        </TooltipProvider>
     );
 }
 
@@ -202,151 +151,80 @@ function DrawerContents({
     expanded,
     openKey,
     onToggleGroup,
-    flyout,
-    onFlyoutChange,
     onNavigate,
-    reduceMotion,
 }) {
     const shop = usePage().props.shop;
 
     return (
-        <Box
-            sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                bgcolor: colors.ink,
-                color: colors.cream,
-                overflow: 'hidden',
-            }}
-        >
-            <Box
-                sx={{
-                    height: headerHeight,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: expanded ? 'flex-start' : 'center',
-                    px: expanded ? 2 : 1,
-                    borderBottom: '1px solid rgba(255,255,255,0.1)',
-                }}
+        <div className="flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-foreground">
+            <div
+                className={cn(
+                    'flex h-16 items-center border-b border-sidebar-border',
+                    expanded ? 'justify-start px-4' : 'justify-center px-2',
+                )}
             >
-                <Box sx={{ color: colors.cream, minWidth: 0, overflow: 'hidden' }}>
-                    <ApplicationLogo
-                        showText={expanded}
-                        src={shop?.logo_url}
-                        name={shop?.shop_name || 'Oven Ledger'}
-                    />
-                </Box>
-            </Box>
+                <ApplicationLogo
+                    showText={expanded}
+                    src={shop?.logo_url}
+                    name={shop?.shop_name || 'Oven Ledger'}
+                />
+            </div>
 
             {expanded && headerExtra}
 
-            <List
-                sx={{
-                    flex: 1,
-                    minHeight: 0,
-                    overflowX: 'hidden',
-                    overflowY: 'auto',
-                    px: expanded ? 2 : 2.5,
-                    py: 2,
-                    ...hideScrollbar,
-                }}
-            >
-                {navItems.map((item) => (
-                    <NavNode
-                        key={item.key}
-                        item={item}
-                        depth={0}
-                        expanded={expanded}
-                        openKey={openKey}
-                        onToggleGroup={onToggleGroup}
-                        flyout={flyout}
-                        onFlyoutChange={onFlyoutChange}
-                        onNavigate={onNavigate}
-                        reduceMotion={reduceMotion}
-                    />
-                ))}
-            </List>
+            <ScrollArea className="min-h-0 flex-1">
+                <div className={cn('space-y-0.5 py-4', expanded ? 'px-3' : 'px-2')}>
+                    {navItems.map((item) => (
+                        <NavNode
+                            key={item.key}
+                            item={item}
+                            depth={0}
+                            expanded={expanded}
+                            openKey={openKey}
+                            onToggleGroup={onToggleGroup}
+                            onNavigate={onNavigate}
+                        />
+                    ))}
+                </div>
+            </ScrollArea>
 
-            <Box
-                sx={{
-                    borderTop: '1px solid rgba(255,255,255,0.1)',
-                    p: expanded ? 2 : 1.5,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: expanded ? 'stretch' : 'center',
-                    gap: 1,
-                }}
+            <div
+                className={cn(
+                    'flex flex-col gap-2 border-t border-sidebar-border',
+                    expanded ? 'items-stretch p-4' : 'items-center p-3',
+                )}
             >
-                <Box
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: expanded ? 'flex-start' : 'center',
-                        gap: 1.25,
-                        minWidth: 0,
-                    }}
-                >
-                    <Tooltip title={expanded ? '' : [userName, userMeta].filter(Boolean).join(' · ')} placement="right">
-                        <Avatar
-                            sx={{
-                                width: 32,
-                                height: 32,
-                                fontSize: 12,
-                                bgcolor: colors.butter,
-                                color: colors.ink,
-                                fontWeight: 700,
-                            }}
-                        >
+                <div className={cn('flex min-w-0 items-center gap-3', expanded ? 'justify-start' : 'justify-center')}>
+                    <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-secondary text-xs font-bold text-secondary-foreground">
                             {userInitials(userName)}
-                        </Avatar>
-                    </Tooltip>
+                        </AvatarFallback>
+                    </Avatar>
                     {expanded && (
-                        <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="caption" sx={{ color: colors.wheatLight, display: 'block' }} noWrap>
-                                {userName}
-                            </Typography>
-                            {userMeta && (
-                                <Typography variant="caption" sx={{ color: colors.butter }} noWrap>
-                                    {userMeta}
-                                </Typography>
-                            )}
-                        </Box>
+                        <div className="min-w-0">
+                            <p className="truncate text-xs text-sidebar-foreground">{userName}</p>
+                            {userMeta && <p className="truncate text-xs text-secondary">{userMeta}</p>}
+                        </div>
                     )}
-                </Box>
-                <Tooltip title={expanded ? '' : 'Log out'} placement="right">
-                    <ListItemButton
-                        onClick={onLogout}
-                        sx={{
-                            color: colors.wheatLight,
-                            px: expanded ? 1 : 0,
-                            justifyContent: 'center',
-                            minHeight: 40,
-                            '&:hover': { bgcolor: 'rgba(251,246,234,0.08)', color: colors.cream },
-                        }}
-                    >
-                        <ListItemIcon sx={{ minWidth: expanded ? 40 : 0, color: 'inherit' }}>
-                            <LogoutIcon fontSize="small" />
-                        </ListItemIcon>
-                        {expanded && <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: 14 }} />}
-                    </ListItemButton>
-                </Tooltip>
-            </Box>
-        </Box>
+                </div>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={onLogout}
+                    className={cn(
+                        'h-10 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                        expanded ? 'justify-start px-2' : 'w-10 justify-center px-0',
+                    )}
+                >
+                    <LogOut className="h-4 w-4" />
+                    {expanded && <span>Log out</span>}
+                </Button>
+            </div>
+        </div>
     );
 }
 
-function NavNode({
-    item,
-    depth,
-    expanded,
-    openKey,
-    onToggleGroup,
-    flyout,
-    onFlyoutChange,
-    onNavigate,
-    reduceMotion,
-}) {
+function NavNode({ item, depth, expanded, openKey, onToggleGroup, onNavigate }) {
     const children = item.children ?? [];
     const hasChildren = children.length > 0;
     const hasLink = Boolean(item.href);
@@ -354,163 +232,111 @@ function NavNode({
     const treeActive = isNavTreeActive(item);
     const open = openKey === item.key;
     const Icon = item.Icon;
-    const flyoutOpen = flyout?.key === item.key;
 
     if (hasChildren && !hasLink) {
         return (
-            <Box sx={{ mb: 0.5 }}>
-                <Tooltip title={expanded ? '' : item.label} placement="right">
-                    <ListItemButton
-                        onClick={(event) => {
-                            if (expanded) {
-                                onToggleGroup(item.key);
-                                return;
-                            }
-                            onFlyoutChange(
-                                flyoutOpen
-                                    ? null
-                                    : { key: item.key, anchorEl: event.currentTarget, item },
-                            );
-                        }}
-                        aria-expanded={expanded ? open : flyoutOpen}
-                        sx={{
-                            ...navButtonSx({
-                                active: !expanded && treeActive,
-                                expanded,
-                                depth,
-                                open: expanded ? open || treeActive : flyoutOpen,
-                            }),
-                            ...(expanded &&
-                                treeActive && {
-                                    boxShadow: `inset 2px 0 0 ${colors.butter}`,
-                                }),
-                        }}
-                    >
-                        <ListItemIcon sx={{ minWidth: expanded ? 40 : 0, color: 'inherit' }}>
-                            <Icon fontSize="small" />
-                        </ListItemIcon>
-                        {expanded && (
-                            <>
-                                <ListItemText
-                                    primary={item.label}
-                                    primaryTypographyProps={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em' }}
-                                />
-                                <ExpandMoreIcon
-                                    sx={{
-                                        fontSize: 18,
-                                        opacity: 0.7,
-                                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                                        transition: reduceMotion ? 'none' : 'transform 200ms ease',
-                                    }}
-                                />
-                            </>
+            <div className="mb-0.5">
+                {expanded ? (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => onToggleGroup(item.key)}
+                            className={cn(
+                                'flex h-10 w-full items-center gap-2 rounded-md px-3 text-left text-[13px] font-bold tracking-wide transition-colors',
+                                treeActive
+                                    ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_2px_0_0_var(--secondary)]'
+                                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                            )}
+                        >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="flex-1 truncate">{item.label}</span>
+                            <ChevronDown className={cn('h-4 w-4 opacity-70 transition-transform', open && 'rotate-180')} />
+                        </button>
+                        {open && (
+                            <div className="ml-3 space-y-0.5 border-l border-sidebar-border py-1 pl-2">
+                                {children.map((child) => (
+                                    <NavNode
+                                        key={child.key}
+                                        item={child}
+                                        depth={0}
+                                        expanded={expanded}
+                                        openKey={openKey}
+                                        onToggleGroup={onToggleGroup}
+                                        onNavigate={onNavigate}
+                                    />
+                                ))}
+                            </div>
                         )}
-                    </ListItemButton>
-                </Tooltip>
+                    </>
+                ) : (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                    'h-10 w-10 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                                    treeActive && 'bg-primary text-primary-foreground hover:bg-primary',
+                                )}
+                            >
+                                <Icon className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="right" align="start" className="min-w-[208px] border-sidebar-border bg-sidebar text-sidebar-foreground">
+                            <DropdownMenuLabel className="text-xs uppercase tracking-widest text-secondary">
+                                {item.label}
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator className="bg-sidebar-border" />
+                            {children.map((child) => {
+                                const ChildIcon = child.Icon;
+                                return (
+                                    <DropdownMenuItem key={child.key} asChild className="focus:bg-sidebar-accent focus:text-sidebar-accent-foreground">
+                                        <Link href={child.href} prefetch onClick={onNavigate}>
+                                            <ChildIcon className="h-4 w-4" />
+                                            {child.label}
+                                        </Link>
+                                    </DropdownMenuItem>
+                                );
+                            })}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+            </div>
+        );
+    }
 
-                <Collapse in={expanded && open} timeout={reduceMotion ? 0 : 220} unmountOnExit>
-                    <Box
-                        sx={{
-                            pt: 0.25,
-                            ml: 2.25,
-                            pl: 0.75,
-                            borderLeft: '1px solid rgba(251,246,234,0.1)',
-                        }}
-                    >
-                        {children.map((child) => (
-                            <NavNode
-                                key={child.key}
-                                item={child}
-                                depth={0}
-                                expanded={expanded}
-                                openKey={openKey}
-                                onToggleGroup={onToggleGroup}
-                                flyout={flyout}
-                                onFlyoutChange={onFlyoutChange}
-                                onNavigate={onNavigate}
-                                reduceMotion={reduceMotion}
-                            />
-                        ))}
-                    </Box>
-                </Collapse>
+    const link = (
+        <Link
+            href={item.href}
+            prefetch
+            onClick={onNavigate}
+            className={cn(
+                'mb-0.5 flex h-10 items-center gap-2 rounded-md text-sm font-semibold transition-colors',
+                expanded ? 'px-3' : 'w-10 justify-center px-0',
+                depth > 0 && expanded && 'text-[13px]',
+                active
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+            )}
+        >
+            <Icon className="h-4 w-4 shrink-0" />
+            {expanded && <span className="truncate">{item.label}</span>}
+        </Link>
+    );
 
-                <Popover
-                    open={!expanded && flyoutOpen}
-                    anchorEl={flyout?.anchorEl}
-                    onClose={() => onFlyoutChange(null)}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                    slotProps={{
-                        paper: {
-                            sx: {
-                                ml: 1.25,
-                                minWidth: 208,
-                                p: 1,
-                                bgcolor: colors.ink,
-                                color: colors.cream,
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                boxShadow: '0 12px 32px rgba(51, 38, 28, 0.28)',
-                            },
-                        },
-                    }}
-                >
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            display: 'block',
-                            px: 1.25,
-                            py: 0.75,
-                            color: colors.butter,
-                            letterSpacing: '0.12em',
-                            textTransform: 'uppercase',
-                            fontWeight: 700,
-                        }}
-                    >
-                        {item.label}
-                    </Typography>
-                    {children.map((child) => (
-                        <NavNode
-                            key={child.key}
-                            item={child}
-                            depth={0}
-                            expanded
-                            openKey={openKey}
-                            onToggleGroup={onToggleGroup}
-                            flyout={flyout}
-                            onFlyoutChange={onFlyoutChange}
-                            onNavigate={() => {
-                                onFlyoutChange(null);
-                                onNavigate?.();
-                            }}
-                            reduceMotion={reduceMotion}
-                        />
-                    ))}
-                </Popover>
-            </Box>
+    if (!expanded) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>{link}</TooltipTrigger>
+                <TooltipContent side="right">{item.label}</TooltipContent>
+            </Tooltip>
         );
     }
 
     return (
         <>
-            <Tooltip title={expanded ? '' : item.label} placement="right">
-                <ListItemButton
-                    component={Link}
-                    href={item.href}
-                    prefetch
-                    onClick={onNavigate}
-                    sx={navButtonSx({ active, expanded, depth })}
-                >
-                    <ListItemIcon sx={{ minWidth: expanded ? 40 : 0, color: 'inherit' }}>
-                        <Icon fontSize="small" />
-                    </ListItemIcon>
-                    {expanded && (
-                        <ListItemText
-                            primary={item.label}
-                            primaryTypographyProps={{ fontWeight: 600, fontSize: depth > 0 ? 13 : 14 }}
-                        />
-                    )}
-                </ListItemButton>
-            </Tooltip>
+            {link}
             {children.map((child) => (
                 <NavNode
                     key={child.key}
@@ -519,29 +345,9 @@ function NavNode({
                     expanded={expanded}
                     openKey={openKey}
                     onToggleGroup={onToggleGroup}
-                    flyout={flyout}
-                    onFlyoutChange={onFlyoutChange}
                     onNavigate={onNavigate}
-                    reduceMotion={reduceMotion}
                 />
             ))}
         </>
     );
 }
-
-function navButtonSx({ active, expanded, depth, open = false }) {
-    return {
-        mb: 0.5,
-        minHeight: 40,
-        px: expanded ? 1.5 : 0,
-        pl: expanded ? 1.5 + depth : 0,
-        justifyContent: expanded ? 'flex-start' : 'center',
-        color: active ? colors.cream : colors.wheatLight,
-        bgcolor: active ? colors.jam : open ? 'rgba(251,246,234,0.06)' : 'transparent',
-        '&:hover': {
-            bgcolor: active ? colors.jam : 'rgba(251,246,234,0.08)',
-            color: colors.cream,
-        },
-    };
-}
-

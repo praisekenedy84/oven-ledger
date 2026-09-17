@@ -3,7 +3,6 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Stack, Typography } from '@mui/material';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function ConfirmPassword() {
@@ -15,14 +14,13 @@ export default function ConfirmPassword() {
         <GuestLayout>
             <Head title="Confirm Password" />
 
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <p className="mb-4 text-sm text-muted-foreground">
                 This is a secure area of the application. Please confirm your password before
                 continuing.
-            </Typography>
+            </p>
 
-            <Stack
-                component="form"
-                spacing={2.5}
+            <form
+                className="space-y-5"
                 onSubmit={(e) => {
                     e.preventDefault();
                     post(route('password.confirm'), {
@@ -45,7 +43,7 @@ export default function ConfirmPassword() {
                 <PrimaryButton type="submit" disabled={processing}>
                     Confirm
                 </PrimaryButton>
-            </Stack>
+            </form>
         </GuestLayout>
     );
 }

@@ -1,55 +1,62 @@
-import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
-import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
-import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
-import BakeryDiningOutlinedIcon from '@mui/icons-material/BakeryDiningOutlined';
-import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
-import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import LocalMallOutlinedIcon from '@mui/icons-material/LocalMallOutlined';
-import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
-import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
-import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
-import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
-import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
-import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
-import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
-import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
-import PolicyOutlinedIcon from '@mui/icons-material/PolicyOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
+import {
+    LayoutDashboard,
+    Bell,
+    ScanBarcode,
+    ClipboardList,
+    ShoppingBag,
+    FlaskConical,
+    BookOpen,
+    Croissant,
+    Package2,
+    Users,
+    Landmark,
+    PiggyBank,
+    Wallet,
+    BarChart3,
+    Building2,
+    BadgeCheck,
+    Store,
+    Shield,
+    Settings,
+    ScrollText,
+    Receipt,
+} from 'lucide-react';
 
+/**
+ * Lucide equivalents of the previous MUI outlined nav icons.
+ * PointOfSale → ScanBarcode, BakeryDining → Croissant, etc.
+ */
 const NAV_ICONS = {
-    'tenant.dashboard': DashboardOutlinedIcon,
-    'tenant.notifications.index': NotificationsNoneOutlinedIcon,
-    'tenant.notifications': NotificationsNoneOutlinedIcon,
-    'tenant.pos.index': PointOfSaleOutlinedIcon,
-    'tenant.pos.tickets': ReceiptLongOutlinedIcon,
-    'tenant.products.index': LocalMallOutlinedIcon,
-    'tenant.raw-materials.index': ScienceOutlinedIcon,
-    'tenant.recipes.index': MenuBookOutlinedIcon,
-    'tenant.production-batches.index': BakeryDiningOutlinedIcon,
-    'tenant.inventory.index': Inventory2OutlinedIcon,
-    'tenant.customers.index': PeopleOutlinedIcon,
-    'tenant.debts.index': AccountBalanceOutlinedIcon,
-    'tenant.capital.index': SavingsOutlinedIcon,
-    'tenant.expenses.index': PaymentsOutlinedIcon,
-    'tenant.expenses': PaymentsOutlinedIcon,
-    'tenant.reports.index': AssessmentOutlinedIcon,
-    'tenant.sales.index': ReceiptLongOutlinedIcon,
-    'tenant.sales.list': ReceiptLongOutlinedIcon,
-    'tenant.branches.index': BusinessOutlinedIcon,
-    'tenant.staff.index': BadgeOutlinedIcon,
-    'tenant.shop.edit': StorefrontOutlinedIcon,
-    'tenant.roles.index': ShieldOutlinedIcon,
-    'tenant.catalog': LocalMallOutlinedIcon,
-    'tenant.operations': BakeryDiningOutlinedIcon,
-    'tenant.sales': AssessmentOutlinedIcon,
-    'tenant.settings': SettingsOutlinedIcon,
-    'platform.dashboard': DashboardOutlinedIcon,
-    'platform.tenants.index': BusinessOutlinedIcon,
-    'platform.roles.index': ShieldOutlinedIcon,
-    'platform.audit.index': PolicyOutlinedIcon,
+    'tenant.dashboard': LayoutDashboard,
+    'tenant.notifications.index': Bell,
+    'tenant.notifications': Bell,
+    'tenant.pos.index': ScanBarcode,
+    'tenant.pos.tickets': ClipboardList,
+    'tenant.products.index': ShoppingBag,
+    'tenant.raw-materials.index': FlaskConical,
+    'tenant.recipes.index': BookOpen,
+    'tenant.production-batches.index': Croissant,
+    'tenant.inventory.index': Package2,
+    'tenant.customers.index': Users,
+    'tenant.debts.index': Landmark,
+    'tenant.capital.index': PiggyBank,
+    'tenant.expenses.index': Wallet,
+    'tenant.expenses': Wallet,
+    'tenant.reports.index': BarChart3,
+    'tenant.sales.index': Receipt,
+    'tenant.sales.list': Receipt,
+    'tenant.branches.index': Building2,
+    'tenant.staff.index': BadgeCheck,
+    'tenant.shop.edit': Store,
+    'tenant.roles.index': Shield,
+    'tenant.catalog': ShoppingBag,
+    'tenant.operations': Croissant,
+    'tenant.sales': BarChart3,
+    'tenant.settings': Settings,
+    'platform.dashboard': LayoutDashboard,
+    'platform.tenants.index': Building2,
+    'platform.roles.index': Shield,
+    'platform.audit.index': ScrollText,
 };
 
 export function safeRoute(name) {
@@ -71,36 +78,39 @@ export function resolveNavIcon(routeName, key) {
         return NAV_ICONS[key];
     }
     if (routeName?.startsWith('tenant.products') || routeName?.startsWith('platform.tenants')) {
-        return LocalMallOutlinedIcon;
+        return ShoppingBag;
     }
     if (routeName?.startsWith('tenant.customers') || routeName?.startsWith('tenant.staff')) {
-        return PeopleOutlinedIcon;
+        return Users;
     }
     if (routeName?.startsWith('tenant.debts')) {
-        return AccountBalanceOutlinedIcon;
+        return Landmark;
     }
     if (routeName?.startsWith('tenant.capital')) {
-        return SavingsOutlinedIcon;
+        return PiggyBank;
     }
     if (routeName?.startsWith('tenant.expenses')) {
-        return PaymentsOutlinedIcon;
+        return Wallet;
     }
     if (routeName?.startsWith('tenant.reports') || routeName?.startsWith('platform.audit')) {
-        return AssessmentOutlinedIcon;
+        return BarChart3;
     }
     if (routeName?.includes('inventory') || routeName?.includes('raw-materials')) {
-        return Inventory2OutlinedIcon;
+        return Package2;
     }
     if (routeName?.includes('recipe')) {
-        return MenuBookOutlinedIcon;
+        return BookOpen;
     }
     if (routeName?.includes('production') || routeName?.includes('batch')) {
-        return BakeryDiningOutlinedIcon;
+        return Croissant;
     }
     if (routeName?.includes('branch')) {
-        return BusinessOutlinedIcon;
+        return Building2;
     }
-    return DashboardOutlinedIcon;
+    if (routeName?.includes('pos')) {
+        return ScanBarcode;
+    }
+    return LayoutDashboard;
 }
 
 export function isRouteActive(routeName) {

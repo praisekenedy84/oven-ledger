@@ -8,8 +8,6 @@ import SurfaceCard from '@/Components/SurfaceCard';
 import TextInput from '@/Components/TextInput';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatQuantity } from '@/lib/format';
-import { colors } from '@/theme/bakeryTheme';
-import { Box, Paper, Typography } from '@mui/material';
 import { Head, useForm } from '@inertiajs/react';
 
 function todayInput() {
@@ -36,14 +34,7 @@ export default function Show({ rawMaterial, movements }) {
                 backHref={route('tenant.raw-materials.index')}
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-                    mb: 3,
-                }}
-            >
+            <div className="mb-6 grid gap-4 md:grid-cols-3">
                 {[
                     {
                         label: 'On hand',
@@ -58,81 +49,71 @@ export default function Show({ rawMaterial, movements }) {
                         value: rawMaterial.unit_cost ? <Money amount={rawMaterial.unit_cost} /> : '—',
                     },
                 ].map((card) => (
-                    <Paper key={card.label} variant="outlined" sx={{ p: 3, borderRadius: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                            {card.label}
-                        </Typography>
-                        <Typography variant="h6" fontWeight={700} sx={{ color: colors.cocoa }}>
-                            {card.value}
-                        </Typography>
-                    </Paper>
+                    <SurfaceCard key={card.label}>
+                        <p className="text-xs text-muted-foreground">{card.label}</p>
+                        <p className="text-lg font-bold text-cocoa">{card.value}</p>
+                    </SurfaceCard>
                 ))}
-            </Box>
+            </div>
 
-            <SurfaceCard
-                component="form"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    restockForm.post(route('tenant.inventory.restock'), {
-                        preserveScroll: true,
-                        onSuccess: () => restockForm.reset('quantity', 'notes'),
-                    });
-                }}
-                sx={{
-                    mb: 4,
-                    display: 'grid',
-                    gap: 2,
-                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
-                }}
-            >
-                <Typography variant="h6" sx={{ gridColumn: '1 / -1' }}>
-                    Restock
-                </Typography>
-                <Box>
-                    <InputLabel value={`Quantity (${rawMaterial.unit_of_measure})`} />
-                    <TextInput
-                        type="number"
-                        inputProps={{ min: 0, step: '0.001' }}
-                        value={restockForm.data.quantity}
-                        onChange={(e) => restockForm.setData('quantity', e.target.value)}
-                    />
-                    <InputError message={restockForm.errors.quantity} />
-                </Box>
-                <Box>
-                    <InputLabel value="Price per unit (TZS)" />
-                    <TextInput
-                        type="number"
-                        inputProps={{ min: 0, step: '1' }}
-                        value={restockForm.data.unit_cost}
-                        onChange={(e) => restockForm.setData('unit_cost', e.target.value)}
-                    />
-                </Box>
-                <Box>
-                    <InputLabel value="Received on" />
-                    <TextInput
-                        type="date"
-                        value={restockForm.data.occurred_at}
-                        onChange={(e) => restockForm.setData('occurred_at', e.target.value)}
-                    />
-                </Box>
-                <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
-                    <InputLabel value="Notes" />
-                    <TextInput
-                        value={restockForm.data.notes}
-                        onChange={(e) => restockForm.setData('notes', e.target.value)}
-                        placeholder="Supplier, invoice, bag count…"
-                    />
-                </Box>
-                <Box sx={{ gridColumn: '1 / -1' }}>
-                    <PrimaryButton type="submit" disabled={restockForm.processing}>
-                        Record restock
-                    </PrimaryButton>
-                </Box>
+            <SurfaceCard className="mb-8">
+                <form
+                    className="grid gap-4 sm:grid-cols-3"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        restockForm.post(route('tenant.inventory.restock'), {
+                            preserveScroll: true,
+                            onSuccess: () => restockForm.reset('quantity', 'notes'),
+                        });
+                    }}
+                >
+                    <h2 className="col-span-full text-lg font-semibold">Restock</h2>
+                    <div>
+                        <InputLabel value={`Quantity (${rawMaterial.unit_of_measure})`} />
+                        <TextInput
+                            type="number"
+                            min={0}
+                            step="0.001"
+                            value={restockForm.data.quantity}
+                            onChange={(e) => restockForm.setData('quantity', e.target.value)}
+                        />
+                        <InputError message={restockForm.errors.quantity} />
+                    </div>
+                    <div>
+                        <InputLabel value="Price per unit (TZS)" />
+                        <TextInput
+                            type="number"
+                            min={0}
+                            step="1"
+                            value={restockForm.data.unit_cost}
+                            onChange={(e) => restockForm.setData('unit_cost', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <InputLabel value="Received on" />
+                        <TextInput
+                            type="date"
+                            value={restockForm.data.occurred_at}
+                            onChange={(e) => restockForm.setData('occurred_at', e.target.value)}
+                        />
+                    </div>
+                    <div className="sm:col-span-full">
+                        <InputLabel value="Notes" />
+                        <TextInput
+                            value={restockForm.data.notes}
+                            onChange={(e) => restockForm.setData('notes', e.target.value)}
+                            placeholder="Supplier, invoice, bag count…"
+                        />
+                    </div>
+                    <div className="col-span-full">
+                        <PrimaryButton type="submit" disabled={restockForm.processing}>
+                            Record restock
+                        </PrimaryButton>
+                    </div>
+                </form>
             </SurfaceCard>
 
-            <Typography variant="h6" sx={{ mb: 1.5 }}>
-                Lifecycle
-            </Typography>
+            <h2 className="mb-3 text-lg font-semibold">Lifecycle</h2>
             <RawMaterialLifecycleTable
                 movements={movements}
                 emptyMessage="No restocks or usage yet for this material."

@@ -86,13 +86,20 @@ class PosController extends Controller
             ->withQueryString()
             ->through(fn (Order $order) => $order->toTicketArray());
 
+        $summary = (clone $summaryQuery)
+            ->selectRaw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count")
+            ->selectRaw("SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END) as completed_total")
+            ->selectRaw("SUM(CASE WHEN status = 'voided' THEN 1 ELSE 0 END) as voided_count")
+            ->selectRaw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count")
+            ->first();
+
         return Inertia::render('Pos/Tickets', [
             'tickets' => $tickets,
             'summary' => [
-                'count' => (clone $summaryQuery)->where('status', 'completed')->count(),
-                'total' => (float) (clone $summaryQuery)->where('status', 'completed')->sum('total_amount'),
-                'voided' => (clone $summaryQuery)->where('status', 'voided')->count(),
-                'pending' => (clone $summaryQuery)->where('status', 'pending')->count(),
+                'count' => (int) ($summary?->completed_count ?? 0),
+                'total' => (float) ($summary?->completed_total ?? 0),
+                'voided' => (int) ($summary?->voided_count ?? 0),
+                'pending' => (int) ($summary?->pending_count ?? 0),
             ],
             'filters' => [
                 'branch_id' => $branchId,

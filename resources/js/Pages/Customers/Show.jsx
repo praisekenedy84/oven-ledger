@@ -6,23 +6,15 @@ import Money from '@/Components/Money';
 import PageHeader from '@/Components/PageHeader';
 import Pagination from '@/Components/Pagination';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
 import StatusBadge from '@/Components/StatusBadge';
-import TextInput from '@/Components/TextInput';
 import SurfaceCard from '@/Components/SurfaceCard';
+import TextInput from '@/Components/TextInput';
 import VoidSaleDialog, { canVoidOrder } from '@/Components/VoidSaleDialog';
+import { Button } from '@/Components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import TenantLayout from '@/Layouts/TenantLayout';
 import { formatDate, formatDateTime } from '@/lib/format';
-import { colors } from '@/theme/bakeryTheme';
-import {
-    Box,
-    Button,
-    FormControl,
-    MenuItem,
-    Paper,
-    Select,
-    Stack,
-    Typography,
-} from '@mui/material';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -36,41 +28,26 @@ function AgingCard({ aging }) {
 
     return (
         <SurfaceCard>
-            <Typography variant="overline" sx={{ color: colors.jam }}>
-                Aging
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <p className="text-xs font-semibold uppercase tracking-wider text-jam">Aging</p>
+            <p className="mb-4 text-sm text-muted-foreground">
                 How long the unpaid balance has been sitting.
                 {aging.oldest_unpaid_at
                     ? ` Oldest charge: ${formatDate(aging.oldest_unpaid_at)}.`
                     : ' Nothing outstanding.'}
-            </Typography>
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 1.5,
-                    gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' },
-                }}
-            >
+            </p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {buckets.map((bucket) => (
-                    <Box
+                    <div
                         key={bucket.key}
-                        sx={{
-                            p: 1.5,
-                            borderRadius: 2,
-                            bgcolor: colors.surface,
-                            border: `1px solid ${colors.border}`,
-                        }}
+                        className="rounded-lg border border-border bg-surface p-3"
                     >
-                        <Typography variant="caption" color="text.secondary">
-                            {bucket.label}
-                        </Typography>
-                        <Typography variant="subtitle1" fontWeight={700}>
+                        <p className="text-xs text-muted-foreground">{bucket.label}</p>
+                        <p className="text-base font-bold">
                             <Money amount={aging[bucket.key]} />
-                        </Typography>
-                    </Box>
+                        </p>
+                    </div>
                 ))}
-            </Box>
+            </div>
         </SurfaceCard>
     );
 }
@@ -141,105 +118,80 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                 }
             />
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.1fr) minmax(0, 0.9fr)' },
-                    mb: 3,
-                }}
-            >
+            <div className="mb-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                 <SurfaceCard>
-                    <Typography variant="overline" sx={{ color: colors.jam }}>
-                        Credit balance
-                    </Typography>
-                    <Typography variant="h3" sx={{ color: colors.ink }}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-jam">Credit balance</p>
+                    <p className="text-4xl font-semibold text-ink">
                         <Money amount={outstanding} />
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Credit limit:{' '}
                         {customer.credit_limit != null ? (
                             <Money amount={customer.credit_limit} />
                         ) : (
                             'none'
                         )}
-                    </Typography>
+                    </p>
                     {customer.payment_terms && (
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                        <p className="mt-2 block text-xs text-muted-foreground">
                             {customer.payment_terms}
-                        </Typography>
+                        </p>
                     )}
                 </SurfaceCard>
                 <AgingCard aging={aging} />
-            </Box>
+            </div>
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gap: 3,
-                    gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                    mb: 3,
-                }}
-            >
-                <Paper
-                    component="form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        profileForm.put(route('tenant.customers.update', customer.id));
-                    }}
-                    variant="outlined"
-                    sx={{ p: 3, borderRadius: 1 }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-                        Profile
-                    </Typography>
-                    <Stack spacing={2}>
-                        <Box>
+            <div className="mb-6 grid gap-6 lg:grid-cols-2">
+                <SurfaceCard>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            profileForm.put(route('tenant.customers.update', customer.id));
+                        }}
+                        className="flex flex-col gap-4"
+                    >
+                        <p className="text-base font-bold">Profile</p>
+                        <div>
                             <InputLabel value="Name" />
                             <TextInput
                                 value={profileForm.data.name}
                                 onChange={(e) => profileForm.setData('name', e.target.value)}
                             />
                             <InputError message={profileForm.errors.name} />
-                        </Box>
-                        <Box
-                            sx={{
-                                display: 'grid',
-                                gap: 2,
-                                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                            }}
-                        >
-                            <Box>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div>
                                 <InputLabel value="Phone" />
                                 <TextInput
                                     value={profileForm.data.phone}
                                     onChange={(e) => profileForm.setData('phone', e.target.value)}
                                 />
-                            </Box>
-                            <Box>
+                            </div>
+                            <div>
                                 <InputLabel value="Email" />
                                 <TextInput
                                     type="email"
                                     value={profileForm.data.email}
                                     onChange={(e) => profileForm.setData('email', e.target.value)}
                                 />
-                            </Box>
-                            <Box>
+                            </div>
+                            <div>
                                 <InputLabel value="Type" />
-                                <FormControl fullWidth size="small">
-                                    <Select
-                                        value={profileForm.data.type}
-                                        onChange={(e) =>
-                                            profileForm.setData('type', e.target.value)
-                                        }
-                                    >
-                                        <MenuItem value="retail">Retail</MenuItem>
-                                        <MenuItem value="wholesale">Wholesale</MenuItem>
-                                        <MenuItem value="restaurant">Restaurant</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Box>
-                            <Box>
+                                <Select
+                                    value={profileForm.data.type}
+                                    onValueChange={(value) => profileForm.setData('type', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="retail">Retail</SelectItem>
+                                        <SelectItem value="wholesale">Wholesale</SelectItem>
+                                        <SelectItem value="restaurant">Restaurant</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
                                 <InputLabel value="Credit limit" />
                                 <TextInput
                                     type="number"
@@ -248,9 +200,9 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                                         profileForm.setData('credit_limit', e.target.value)
                                     }
                                 />
-                            </Box>
-                        </Box>
-                        <Box>
+                            </div>
+                        </div>
+                        <div>
                             <InputLabel value="Payment terms" />
                             <TextInput
                                 value={profileForm.data.payment_terms}
@@ -258,29 +210,25 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                                     profileForm.setData('payment_terms', e.target.value)
                                 }
                             />
-                        </Box>
+                        </div>
                         <PrimaryButton type="submit" disabled={profileForm.processing}>
                             Save profile
                         </PrimaryButton>
-                    </Stack>
-                </Paper>
+                    </form>
+                </SurfaceCard>
 
-                <Paper
-                    component="form"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        paymentForm.post(route('tenant.customers.payments.store', customer.id), {
-                            onSuccess: () => paymentForm.reset('amount', 'notes'),
-                        });
-                    }}
-                    variant="outlined"
-                    sx={{ p: 3, borderRadius: 1 }}
-                >
-                    <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-                        Record a payment
-                    </Typography>
-                    <Stack spacing={2}>
-                        <Box>
+                <SurfaceCard>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            paymentForm.post(route('tenant.customers.payments.store', customer.id), {
+                                onSuccess: () => paymentForm.reset('amount', 'notes'),
+                            });
+                        }}
+                        className="flex flex-col gap-4"
+                    >
+                        <p className="text-base font-bold">Record a payment</p>
+                        <div>
                             <InputLabel value="Amount (TZS)" />
                             <TextInput
                                 type="number"
@@ -288,41 +236,39 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                                 onChange={(e) => paymentForm.setData('amount', e.target.value)}
                             />
                             <InputError message={paymentForm.errors.amount} />
-                        </Box>
-                        <Box>
+                        </div>
+                        <div>
                             <InputLabel value="Date" />
                             <TextInput
                                 type="date"
                                 value={paymentForm.data.entry_date}
                                 onChange={(e) => paymentForm.setData('entry_date', e.target.value)}
                             />
-                        </Box>
-                        <Box>
+                        </div>
+                        <div>
                             <InputLabel value="Notes" />
                             <TextInput
                                 value={paymentForm.data.notes}
                                 onChange={(e) => paymentForm.setData('notes', e.target.value)}
                             />
-                        </Box>
+                        </div>
                         <PrimaryButton
                             type="submit"
                             disabled={paymentForm.processing || outstanding <= 0}
                         >
                             Apply payment
                         </PrimaryButton>
-                    </Stack>
-                </Paper>
-            </Box>
+                    </form>
+                </SurfaceCard>
+            </div>
 
-            <SurfaceCard sx={{ mb: 3 }}>
-                <Typography variant="overline" sx={{ color: colors.jam }}>
-                    Price list
-                </Typography>
-                <Typography variant="h6" sx={{ mb: 2 }}>
+            <SurfaceCard className="mb-6">
+                <p className="text-xs font-semibold uppercase tracking-wider text-jam">Price list</p>
+                <p className="mb-4 text-base font-semibold">
                     {customer.type === 'wholesale' || customer.type === 'restaurant'
                         ? `${customer.type} prices`
                         : 'Retail prices'}
-                </Typography>
+                </p>
                 <DataTable
                     columns={[
                         { label: 'Product' },
@@ -333,13 +279,13 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                 >
                     {priceList.map((row) => (
                         <DataTableRow key={row.id}>
-                            <DataTableCell sx={{ fontWeight: 600 }}>
+                            <DataTableCell className="font-semibold">
                                 {row.product?.name}
                             </DataTableCell>
                             <DataTableCell>
                                 <StatusBadge status={row.product?.type} />
                             </DataTableCell>
-                            <DataTableCell sx={{ fontWeight: 600 }}>
+                            <DataTableCell className="font-semibold">
                                 <Money amount={row.price} />
                             </DataTableCell>
                         </DataTableRow>
@@ -347,58 +293,50 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                 </DataTable>
             </SurfaceCard>
 
-            <Paper variant="outlined" sx={{ p: 3, borderRadius: 1, mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 1 }}>
-                    Delivery notes
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <SurfaceCard className="mb-6">
+                <p className="mb-1 text-base font-semibold">Delivery notes</p>
+                <p className="mb-4 text-sm text-muted-foreground">
                     Kitchen doors, call-aheads, and the addresses this account uses.
-                </Typography>
-                <Box
-                    component="form"
+                </p>
+                <form
                     onSubmit={saveAddress}
-                    sx={{
-                        display: 'grid',
-                        gap: 2,
-                        gridTemplateColumns: { xs: '1fr', md: '1fr 2fr 1fr 1fr auto' },
-                        mb: 2,
-                    }}
+                    className="mb-4 grid gap-4 md:grid-cols-[1fr_2fr_1fr_1fr_auto]"
                 >
-                    <Box>
+                    <div>
                         <InputLabel value="Label" />
                         <TextInput
                             value={addressForm.data.label}
                             onChange={(e) => addressForm.setData('label', e.target.value)}
                         />
-                    </Box>
-                    <Box>
+                    </div>
+                    <div>
                         <InputLabel value="Address" />
                         <TextInput
                             value={addressForm.data.address_text}
                             onChange={(e) => addressForm.setData('address_text', e.target.value)}
                         />
                         <InputError message={addressForm.errors.address_text} />
-                    </Box>
-                    <Box>
+                    </div>
+                    <div>
                         <InputLabel value="Phone" />
                         <TextInput
                             value={addressForm.data.phone}
                             onChange={(e) => addressForm.setData('phone', e.target.value)}
                         />
-                    </Box>
-                    <Box>
+                    </div>
+                    <div>
                         <InputLabel value="Delivery note" />
                         <TextInput
                             value={addressForm.data.notes}
                             onChange={(e) => addressForm.setData('notes', e.target.value)}
                         />
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                    </div>
+                    <div className="flex items-end">
                         <PrimaryButton type="submit" disabled={addressForm.processing}>
                             {editingAddress ? 'Update' : 'Add'}
                         </PrimaryButton>
-                    </Box>
-                </Box>
+                    </div>
+                </form>
 
                 <DataTable
                     columns={[
@@ -412,14 +350,14 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                 >
                     {customer.addresses.map((address) => (
                         <DataTableRow key={address.id}>
-                            <DataTableCell sx={{ fontWeight: 600 }}>{address.label}</DataTableCell>
+                            <DataTableCell className="font-semibold">{address.label}</DataTableCell>
                             <DataTableCell>{address.address_text}</DataTableCell>
                             <DataTableCell>{address.phone || '—'}</DataTableCell>
                             <DataTableCell>{address.notes || '—'}</DataTableCell>
                             <DataTableCell>
-                                <Stack direction="row" spacing={1}>
-                                    <Button
-                                        size="small"
+                                <div className="flex gap-2">
+                                    <SecondaryButton
+                                        size="sm"
                                         onClick={() => {
                                             setEditingAddress(address.id);
                                             addressForm.setData({
@@ -431,7 +369,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                                         }}
                                     >
                                         Edit
-                                    </Button>
+                                    </SecondaryButton>
                                     <ConfirmButton
                                         size="small"
                                         variant="danger"
@@ -447,16 +385,14 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                                     >
                                         Remove
                                     </ConfirmButton>
-                                </Stack>
+                                </div>
                             </DataTableCell>
                         </DataTableRow>
                     ))}
                 </DataTable>
-            </Paper>
+            </SurfaceCard>
 
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
-                Statement
-            </Typography>
+            <p className="mb-3 text-base font-bold">Statement</p>
             <DataTable
                 columns={[
                     { label: 'Date' },
@@ -476,7 +412,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                         <DataTableCell>
                             <Money amount={entry.amount} />
                         </DataTableCell>
-                        <DataTableCell sx={{ fontWeight: 600 }}>
+                        <DataTableCell className="font-semibold">
                             <Money amount={entry.balance_after} />
                         </DataTableCell>
                         <DataTableCell>{entry.notes || '—'}</DataTableCell>
@@ -485,9 +421,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
             </DataTable>
             <Pagination links={ledger.links} />
 
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 4, mb: 1.5 }}>
-                Orders
-            </Typography>
+            <p className="mb-3 mt-8 text-base font-bold">Orders</p>
             <DataTable
                 columns={[
                     { label: 'When' },
@@ -537,11 +471,10 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                             />
                         </DataTableCell>
                         <DataTableCell>
-                            <Stack direction="row" spacing={1} justifyContent="flex-end" useFlexGap flexWrap="wrap">
+                            <div className="flex flex-wrap justify-end gap-2">
                                 {order.status === 'pending' && (
                                     <Button
-                                        size="small"
-                                        variant="contained"
+                                        size="sm"
                                         onClick={() =>
                                             router.patch(
                                                 route('tenant.orders.fulfill', order.id),
@@ -555,9 +488,9 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                                 )}
                                 {canVoidOrder(auth, order) && (
                                     <Button
-                                        size="small"
-                                        color="error"
-                                        variant="outlined"
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                                         onClick={() => setVoidTarget({
                                             ...order,
                                             cashier: order.sold_by,
@@ -570,7 +503,7 @@ export default function Show({ customer, ledger, orders, outstanding, aging, pri
                                         Void
                                     </Button>
                                 )}
-                            </Stack>
+                            </div>
                         </DataTableCell>
                     </DataTableRow>
                 ))}

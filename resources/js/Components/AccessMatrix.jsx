@@ -1,21 +1,16 @@
-import { roleLabel } from '@/lib/roles';
-import { colors } from '@/theme/bakeryTheme';
+import { Badge } from '@/Components/ui/badge';
+import { Checkbox } from '@/Components/ui/checkbox';
 import {
-    Box,
-    Checkbox,
-    Chip,
-    FormControlLabel,
-    Switch,
     Table,
     TableBody,
     TableCell,
-    TableContainer,
     TableHead,
+    TableHeader,
     TableRow,
-    Typography,
-    useMediaQuery,
-} from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+} from '@/Components/ui/table';
+import { roleLabel } from '@/lib/roles';
+import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
 
 function descendantIds(rows, index) {
     const row = rows[index];
@@ -77,9 +72,37 @@ function toggleIds(selected, ids, checked) {
     return [...next];
 }
 
+function MatrixCheckbox({ state, onToggle, className, ariaLabel }) {
+    return (
+        <Checkbox
+            className={cn(
+                'border-border data-[state=checked]:border-jam data-[state=checked]:bg-jam data-[state=indeterminate]:border-butter data-[state=indeterminate]:bg-butter',
+                className,
+            )}
+            checked={state.indeterminate ? 'indeterminate' : state.checked}
+            onCheckedChange={onToggle}
+            aria-label={ariaLabel}
+        />
+    );
+}
+
+function useIsDesktop() {
+    const [isDesktop, setIsDesktop] = useState(
+        () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
+    );
+
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 768px)');
+        const onChange = (event) => setIsDesktop(event.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+
+    return isDesktop;
+}
+
 export default function AccessMatrix({ columns, rows, value, onChange }) {
-    const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+    const isDesktop = useIsDesktop();
 
     const setRoleIds = (roleId, ids) => onChange(roleId, ids);
 
@@ -107,175 +130,103 @@ export default function AccessMatrix({ columns, rows, value, onChange }) {
 
     if (!isDesktop) {
         return (
-            <Box sx={{ display: 'grid', gap: 2 }}>
+            <div className="grid gap-4">
                 {columns.map((role) => {
                     const selected = value[role.id] ?? [];
                     return (
-                        <Box
+                        <div
                             key={role.id}
-                            sx={{
-                                border: `1px solid ${colors.border}`,
-                                borderRadius: 1,
-                                overflow: 'hidden',
-                                bgcolor: colors.surfaceRaised,
-                            }}
+                            className="overflow-hidden rounded-md border border-border bg-surface-raised"
                         >
-                            <Box
-                                sx={{
-                                    px: 2,
-                                    py: 1.5,
-                                    bgcolor: colors.ink,
-                                    color: colors.cream,
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    gap: 1,
-                                }}
-                            >
-                                <Typography fontWeight={700}>{roleLabel(role.name)}</Typography>
-                                <Chip
-                                    size="small"
-                                    label={`${selected.length} on`}
-                                    sx={{ bgcolor: colors.butter, color: colors.ink, fontWeight: 700 }}
-                                />
-                            </Box>
+                            <div className="flex items-center justify-between gap-2 bg-ink px-4 py-3 text-cream">
+                                <p className="font-bold">{roleLabel(role.name)}</p>
+                                <Badge variant="warning">{selected.length} on</Badge>
+                            </div>
                             {rows.map((row, index) => {
                                 const related = descendantIds(rows, index);
                                 const state = selectionState(selected, related);
 
                                 if (row.isSection) {
                                     return (
-                                        <Box
-                                            key={`${role.id}-${row.id}`}
-                                            sx={{
-                                                px: 2,
-                                                pt: 1.5,
-                                                pb: 0.5,
-                                                bgcolor: colors.surface,
-                                            }}
-                                        >
-                                            <FormControlLabel
-                                                control={
-                                                    <Checkbox
-                                                        size="small"
-                                                        checked={state.checked}
-                                                        indeterminate={state.indeterminate}
-                                                        onChange={() => toggleCell(role.id, index)}
-                                                    />
-                                                }
-                                                label={
-                                                    <Typography variant="caption" fontWeight={700} letterSpacing="0.06em">
-                                                        {row.label.toUpperCase()}
-                                                    </Typography>
-                                                }
-                                            />
-                                        </Box>
+                                        <div key={`${role.id}-${row.id}`} className="bg-surface px-4 pb-1 pt-4">
+                                            <label className="flex cursor-pointer items-center gap-2">
+                                                <MatrixCheckbox
+                                                    state={state}
+                                                    onToggle={() => toggleCell(role.id, index)}
+                                                />
+                                                <span className="text-xs font-bold tracking-widest">
+                                                    {row.label.toUpperCase()}
+                                                </span>
+                                            </label>
+                                        </div>
                                     );
                                 }
 
                                 return (
-                                    <Box
+                                    <div
                                         key={`${role.id}-${row.id}`}
-                                        sx={{
-                                            px: 2,
-                                            py: 0.5,
-                                            pl: 2 + row.depth * 1.5,
-                                            borderTop: `1px solid ${colors.border}`,
-                                        }}
+                                        className="border-t border-border px-4 py-1"
+                                        style={{ paddingLeft: `${16 + row.depth * 24}px` }}
                                     >
-                                        <FormControlLabel
-                                            sx={{ width: '100%', justifyContent: 'space-between', ml: 0 }}
-                                            labelPlacement="start"
-                                            control={
-                                                <Switch
-                                                    checked={state.checked}
-                                                    onChange={() => toggleCell(role.id, index)}
-                                                />
-                                            }
-                                            label={
-                                                <Typography variant="body2" fontWeight={600}>
-                                                    {row.label}
-                                                </Typography>
-                                            }
-                                        />
-                                    </Box>
+                                        <label className="flex w-full cursor-pointer items-center justify-between gap-3">
+                                            <span className="text-sm font-semibold">{row.label}</span>
+                                            <MatrixCheckbox
+                                                state={state}
+                                                onToggle={() => toggleCell(role.id, index)}
+                                            />
+                                        </label>
+                                    </div>
                                 );
                             })}
-                        </Box>
+                        </div>
                     );
                 })}
-            </Box>
+            </div>
         );
     }
 
     return (
-        <TableContainer
-            sx={{
-                border: `1px solid ${colors.border}`,
-                borderRadius: 1,
-                maxHeight: '70vh',
-                bgcolor: colors.surfaceRaised,
-            }}
-        >
-            <Table stickyHeader size="small">
-                <TableHead>
+        <div className="max-h-[70vh] overflow-auto rounded-md border border-border bg-surface-raised">
+            <Table>
+                <TableHeader>
                     <TableRow>
-                        <TableCell
-                            sx={{
-                                position: 'sticky',
-                                left: 0,
-                                zIndex: 3,
-                                minWidth: 240,
-                                bgcolor: colors.surface,
-                            }}
-                        >
-                            Access
-                        </TableCell>
+                        <TableHead className="sticky left-0 z-[3] min-w-[240px] bg-surface">Access</TableHead>
                         {columns.map((role) => {
                             const selected = value[role.id] ?? [];
                             const allIds = rows.filter((row) => !row.isSection).map((row) => row.id);
                             const state = selectionState(selected, allIds);
 
                             return (
-                                <TableCell key={role.id} align="center" sx={{ minWidth: 128, bgcolor: colors.surface }}>
-                                    <Typography variant="body2" fontWeight={700}>
-                                        {roleLabel(role.name)}
-                                    </Typography>
-                                    <Checkbox
-                                        size="small"
-                                        checked={state.checked}
-                                        indeterminate={state.indeterminate}
-                                        onChange={() => toggleColumn(role.id)}
-                                        inputProps={{ 'aria-label': `Toggle all for ${role.name}` }}
-                                    />
-                                </TableCell>
+                                <TableHead key={role.id} className="min-w-32 bg-surface text-center">
+                                    <p className="text-sm font-bold">{roleLabel(role.name)}</p>
+                                    <div className="mt-1 flex justify-center">
+                                        <MatrixCheckbox
+                                            state={state}
+                                            onToggle={() => toggleColumn(role.id)}
+                                            ariaLabel={`Toggle all for ${role.name}`}
+                                        />
+                                    </div>
+                                </TableHead>
                             );
                         })}
                     </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                     {rows.map((row, index) => (
                         <TableRow
                             key={row.id}
-                            hover={!row.isSection}
-                            sx={{
-                                bgcolor: row.isSection ? colors.surface : 'transparent',
-                            }}
+                            className={cn(row.isSection && 'bg-surface hover:bg-surface')}
                         >
                             <TableCell
-                                sx={{
-                                    position: 'sticky',
-                                    left: 0,
-                                    zIndex: 1,
-                                    bgcolor: row.isSection ? colors.surface : colors.surfaceRaised,
-                                    pl: 2 + row.depth * 2,
-                                    fontWeight: row.isSection || row.has_children ? 700 : 500,
-                                    letterSpacing: row.isSection ? '0.04em' : 0,
-                                    textTransform: row.isSection ? 'uppercase' : 'none',
-                                    fontSize: row.isSection ? 12 : 14,
-                                    color: row.isSection ? colors.muted : colors.charcoal,
-                                    borderRight: `1px solid ${colors.border}`,
-                                }}
+                                className={cn(
+                                    'sticky left-0 z-[1] border-r border-border',
+                                    row.isSection ? 'bg-surface' : 'bg-surface-raised',
+                                    row.isSection
+                                        ? 'text-xs font-bold uppercase tracking-wide text-muted-foreground'
+                                        : 'text-sm font-medium text-charcoal',
+                                    row.has_children && !row.isSection && 'font-bold',
+                                )}
+                                style={{ paddingLeft: `${16 + row.depth * 16}px` }}
                             >
                                 {row.label}
                             </TableCell>
@@ -285,18 +236,13 @@ export default function AccessMatrix({ columns, rows, value, onChange }) {
                                 const state = selectionState(selected, related);
 
                                 return (
-                                    <TableCell key={`${role.id}-${row.id}`} align="center">
-                                        <Checkbox
-                                            size="small"
-                                            checked={state.checked}
-                                            indeterminate={state.indeterminate}
-                                            onChange={() => toggleCell(role.id, index)}
-                                            sx={{
-                                                color: colors.border,
-                                                '&.Mui-checked': { color: colors.jam },
-                                                '&.MuiCheckbox-indeterminate': { color: colors.butter },
-                                            }}
-                                        />
+                                    <TableCell key={`${role.id}-${row.id}`} className="text-center">
+                                        <div className="flex justify-center">
+                                            <MatrixCheckbox
+                                                state={state}
+                                                onToggle={() => toggleCell(role.id, index)}
+                                            />
+                                        </div>
                                     </TableCell>
                                 );
                             })}
@@ -304,6 +250,6 @@ export default function AccessMatrix({ columns, rows, value, onChange }) {
                     ))}
                 </TableBody>
             </Table>
-        </TableContainer>
+        </div>
     );
 }

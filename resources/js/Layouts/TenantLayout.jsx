@@ -3,28 +3,35 @@ import BuildUpdatePrompt from '@/Components/BuildUpdatePrompt';
 import FlashMessage from '@/Components/FlashMessage';
 import ImpersonationBanner from '@/Components/ImpersonationBanner';
 import NotificationBell from '@/Components/NotificationBell';
-import { colors, layout } from '@/theme/bakeryTheme';
-import { prepareNavTree } from '@/theme/nav';
-import MenuIcon from '@mui/icons-material/Menu';
+import { Alert, AlertDescription } from '@/Components/ui/alert';
+import { Button } from '@/Components/ui/button';
 import {
-    Alert,
-    AppBar,
-    Box,
-    FormControl,
-    IconButton,
-    MenuItem,
     Select,
-    Toolbar,
-    Typography,
-    useMediaQuery,
-} from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/Components/ui/select';
+import { prepareNavTree } from '@/theme/nav';
 import { router, usePage } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { Menu } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+
+function useIsDesktop() {
+    const [isDesktop, setIsDesktop] = useState(() =>
+        typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : true,
+    );
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 768px)');
+        const onChange = () => setIsDesktop(mq.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+    return isDesktop;
+}
 
 export default function TenantLayout({ title, children }) {
-    const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+    const isDesktop = useIsDesktop();
     const { auth, currentBranch, branches, menuItems, branchSuspended } = usePage().props;
     const [mobileOpen, setMobileOpen] = useState(false);
     const navItems = useMemo(() => prepareNavTree(menuItems), [menuItems]);
@@ -38,102 +45,74 @@ export default function TenantLayout({ title, children }) {
     };
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+        <div className="flex min-h-screen flex-col bg-background">
             <ImpersonationBanner />
-            <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
-            <FlashMessage />
-            <BuildUpdatePrompt />
+            <div className="flex min-h-0 flex-1">
+                <FlashMessage />
+                <BuildUpdatePrompt />
 
-            <AppSidebar
-                navItems={navItems}
-                userName={auth.user?.name}
-                userMeta={currentBranch?.name}
-                onLogout={() => router.post(route('logout'))}
-                mobileOpen={mobileOpen}
-                onMobileClose={() => setMobileOpen(false)}
-                headerExtra={
-                    branches?.length > 1 ? (
-                        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                            <Typography
-                                variant="caption"
-                                sx={{
-                                    color: colors.wheatLight,
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.06em',
-                                }}
-                            >
-                                Branch
-                            </Typography>
-                            <FormControl fullWidth size="small" sx={{ mt: 0.75 }}>
+                <AppSidebar
+                    navItems={navItems}
+                    userName={auth.user?.name}
+                    userMeta={currentBranch?.name}
+                    onLogout={() => router.post(route('logout'))}
+                    mobileOpen={mobileOpen}
+                    onMobileClose={() => setMobileOpen(false)}
+                    headerExtra={
+                        branches?.length > 1 ? (
+                            <div className="border-b border-sidebar-border px-4 py-3">
+                                <p className="text-[10px] uppercase tracking-wider text-wheat-light">Branch</p>
                                 <Select
-                                    value={currentBranch?.id ?? ''}
-                                    onChange={(e) => switchBranch(e.target.value)}
-                                    sx={{
-                                        color: '#fff',
-                                        bgcolor: 'rgba(0,0,0,0.2)',
-                                        '.MuiOutlinedInput-notchedOutline': { border: 'none' },
-                                        '.MuiSvgIcon-root': { color: colors.wheatLight },
-                                    }}
+                                    value={String(currentBranch?.id ?? '')}
+                                    onValueChange={switchBranch}
                                 >
-                                    {branches.map((branch) => (
-                                        <MenuItem key={branch.id} value={branch.id}>
-                                            {branch.name}
-                                        </MenuItem>
-                                    ))}
+                                    <SelectTrigger className="mt-2 h-9 border-0 bg-black/20 text-cream">
+                                        <SelectValue placeholder="Select branch" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {branches.map((branch) => (
+                                            <SelectItem key={branch.id} value={String(branch.id)}>
+                                                {branch.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
                                 </Select>
-                            </FormControl>
-                        </Box>
-                    ) : null
-                }
-            />
+                            </div>
+                        ) : null
+                    }
+                />
 
-            <Box
-                sx={{
-                    flex: 1,
-                    minWidth: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minHeight: 0,
-                }}
-            >
-                <AppBar position="sticky">
-                    <Toolbar sx={{ gap: 1.5, minHeight: layout.headerHeight }}>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-3 backdrop-blur sm:px-4">
                         {!isDesktop && (
-                            <IconButton
-                                edge="start"
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => setMobileOpen(true)}
-                                sx={{ color: colors.ink }}
+                                aria-label="Open menu"
                             >
-                                <MenuIcon />
-                            </IconButton>
+                                <Menu className="h-5 w-5" />
+                            </Button>
                         )}
-                        <Typography variant="h6" noWrap sx={{ flex: 1, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
-                            {title}
-                        </Typography>
+                        <h2 className="min-w-0 flex-1 truncate text-base font-semibold sm:text-lg">{title}</h2>
                         <NotificationBell />
                         {currentBranch && branches?.length <= 1 && (
-                            <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ display: { xs: 'none', sm: 'block' } }}
-                            >
-                                {currentBranch.name}
-                            </Typography>
+                            <p className="hidden text-sm text-muted-foreground sm:block">{currentBranch.name}</p>
                         )}
-                    </Toolbar>
-                </AppBar>
+                    </header>
 
-                {branchSuspended && (
-                    <Alert severity="error" sx={{ borderRadius: 0 }}>
-                        This branch is currently suspended. Some operations may be unavailable.
-                    </Alert>
-                )}
+                    {branchSuspended && (
+                        <Alert variant="destructive" className="rounded-none border-x-0">
+                            <AlertDescription>
+                                This branch is currently suspended. Some operations may be unavailable.
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
-                <Box component="main" sx={{ flex: 1, p: layout.pageGutter }}>
-                    {children}
-                </Box>
-            </Box>
-            </Box>
-        </Box>
+                    <main className="flex-1 p-4 md:p-6">{children}</main>
+                </div>
+            </div>
+        </div>
     );
 }

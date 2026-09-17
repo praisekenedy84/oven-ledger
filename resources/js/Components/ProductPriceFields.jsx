@@ -1,7 +1,7 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
-import { Box, Typography } from '@mui/material';
+import { cn } from '@/lib/utils';
 
 const CHANNELS = [
     { key: 'retail', label: 'Retail (TZS)' },
@@ -15,11 +15,12 @@ export default function ProductPriceFields({
     errors,
     showCostPrice = false,
     showHeading = true,
+    className,
 }) {
     return (
-        <>
+        <div className={cn('space-y-4', className)}>
             {showCostPrice && (
-                <Box>
+                <div>
                     <InputLabel value="What you pay (TZS)" />
                     <TextInput
                         type="number"
@@ -28,37 +29,29 @@ export default function ProductPriceFields({
                         onChange={(e) => setData('cost_price', e.target.value)}
                     />
                     <InputError message={errors.cost_price} />
-                    <Typography variant="caption" color="text.secondary">
+                    <p className="mt-1 text-xs text-muted-foreground">
                         Buy-in cost for this hardware item. Used to tell profit from the selling price.
-                    </Typography>
-                </Box>
+                    </p>
+                </div>
             )}
 
-            <Box>
+            <div>
                 {showHeading && (
                     <>
-                        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                            Selling prices
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                        <p className="mb-1 text-sm font-semibold">Selling prices</p>
+                        <p className="mb-3 block text-xs text-muted-foreground">
                             What the counter charges on each channel. Leave a channel blank if you do not sell there.
-                        </Typography>
+                        </p>
                     </>
                 )}
                 {!showHeading && (
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                    <p className="mb-3 block text-xs text-muted-foreground">
                         What the counter charges on each channel. Leave a channel blank if you do not sell there.
-                    </Typography>
+                    </p>
                 )}
-                <Box
-                    sx={{
-                        display: 'grid',
-                        gap: 2,
-                        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
-                    }}
-                >
+                <div className="grid gap-4 sm:grid-cols-3">
                     {CHANNELS.map((channel) => (
-                        <Box key={channel.key}>
+                        <div key={channel.key}>
                             <InputLabel value={channel.label} />
                             <TextInput
                                 type="number"
@@ -72,10 +65,10 @@ export default function ProductPriceFields({
                                 }
                             />
                             <InputError message={errors[`prices.${channel.key}`]} />
-                        </Box>
+                        </div>
                     ))}
-                </Box>
-            </Box>
-        </>
+                </div>
+            </div>
+        </div>
     );
 }

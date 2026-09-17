@@ -82,6 +82,8 @@ class RecipeController extends Controller
             $recipe->syncIngredients($validated['ingredients']);
         });
 
+        $this->economics->forgetUnitCostMap();
+
         return back()->with('success', 'Recipe created.');
     }
 
@@ -117,6 +119,8 @@ class RecipeController extends Controller
             $recipe->syncIngredients($validated['ingredients']);
         });
 
+        $this->economics->forgetUnitCostMap();
+
         return back()->with('success', 'Recipe updated.');
     }
 
@@ -133,6 +137,8 @@ class RecipeController extends Controller
         }
 
         $recipe->delete();
+
+        $this->economics->forgetUnitCostMap();
 
         return redirect()->route('tenant.recipes.index')
             ->with('success', 'Recipe deleted.');

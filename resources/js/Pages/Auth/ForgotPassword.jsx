@@ -1,8 +1,8 @@
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { Alert } from '@/Components/ui/alert';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Alert, Stack, Typography } from '@mui/material';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function ForgotPassword({ status }) {
@@ -14,20 +14,19 @@ export default function ForgotPassword({ status }) {
         <GuestLayout>
             <Head title="Forgot Password" />
 
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <p className="mb-4 text-sm text-muted-foreground">
                 Forgot your password? No problem. Just let us know your email address and we will
                 email you a password reset link that will allow you to choose a new one.
-            </Typography>
+            </p>
 
             {status && (
-                <Alert severity="success" sx={{ mb: 2 }}>
+                <Alert variant="success" className="mb-4">
                     {status}
                 </Alert>
             )}
 
-            <Stack
-                component="form"
-                spacing={2}
+            <form
+                className="space-y-4"
                 onSubmit={(e) => {
                     e.preventDefault();
                     post(route('password.email'));
@@ -47,7 +46,7 @@ export default function ForgotPassword({ status }) {
                 <PrimaryButton type="submit" disabled={processing}>
                     Email Password Reset Link
                 </PrimaryButton>
-            </Stack>
+            </form>
         </GuestLayout>
     );
 }
